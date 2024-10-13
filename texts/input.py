@@ -9,7 +9,7 @@ class Input(Base):
         x.eventos_teclado(eventos)
     '''
     def __init__(self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
-        width=100, height=50, text_color='white',text_value_color='grey', background_color = 'black', dire: str = 'topleft', **kwargs) -> None:
+        width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: str = 'topleft', **kwargs) -> None:
         
         super().__init__(pos,dire)
         self.border_radius = kwargs.get('border_radius',0)
@@ -40,6 +40,7 @@ class Input(Base):
         self.typing_pos = 0
         self.backspace = False
         self.supr = False
+        self.deleting = False
         self.del_time = 0
         self.left_b = False
         self.left_time = 0
@@ -128,10 +129,12 @@ class Input(Base):
                     self.to_right()
                 elif evento.key == pag.K_BACKSPACE:
                     self.del_letter()
-                # elif evento.key == pag.K_DELETE:
-                #     self.del_letter()
+                elif evento.key == pag.K_DELETE:
+                    self.del_letter(-1)
                 elif evento.key == pag.K_RETURN:
                     return "enter"
+                elif evento.key == pag.K_TAB:
+                    return "tab"
                 self.button_pressed_time = time.time()
             elif evento.type == pag.TEXTINPUT:
                 self.add_letter(evento.text)
@@ -139,6 +142,10 @@ class Input(Base):
             elif evento.type == pag.KEYUP:
                 if evento.key == pag.K_BACKSPACE:
                     self.backspace = False
+                    self.deleting = False
+                elif evento.key == pag.K_DELETE:
+                    self.deleting = False
+                    self.supr = False
                 elif evento.key == pag.K_LEFT:
                     self.left_b = False
                 elif evento.key == pag.K_RIGHT:
@@ -162,7 +169,7 @@ class Input(Base):
             elif 'center' in self.dire:
                 neg = self.pos.x - self.rect.w/2
             elif 'right' in self.dire:
-                neg = self.pos.x + self.rect.w/2
+                neg = self.pos.x - self.rect.w
             self.typing_pos = self.check_pos_letter_click(pos[0]-neg-(self.padding.x)-self.text_size/3)
             self.typing_line = True
             self.typing_line_time = time.time()
@@ -178,7 +185,9 @@ class Input(Base):
         if len(self.raw_text) < self.max_letter:
             self.raw_text = self.raw_text[:self.typing_pos] + t + self.raw_text[self.typing_pos:]
             self.text.text = self.raw_text
-            self.letter_pos.insert(self.typing_pos,Text(t,self.text_size, self.font, (0,0), padding=0).rect.w)
+            w = Text(self.raw_text[:self.typing_pos]+t,self.text_size, self.font, (0,0), padding=0).rect.w - sum(self.letter_pos[:self.typing_pos])
+            self.letter_pos.insert(self.typing_pos,w)
+            # self.letter_pos.insert(self.typing_pos,Text(t,self.text_size, self.font, (0,0), padding=0).rect.w)
             self.typing_pos += 1
             suma = sum(self.letter_pos[:self.typing_pos])
             if suma > self.rect2.w-5:
@@ -215,30 +224,43 @@ class Input(Base):
         suma = sum(self.letter_pos[:self.typing_pos])
         if suma+self.text.left > self.rect2.w*.9 :
             self.text.pos -= (self.letter_pos[self.typing_pos],0)
-        if self.text.right < self.rect2.w:
+        if self.text.right < self.rect2.w and self.text.width > self.rect2.w:
             self.text.pos = (self.rect2.w-1,self.input_surface.get_height()/2)
             self.text.dire = 'right'
         self.draw_surf()
 
-    def del_letter(self) -> None:
-        if not self.backspace:
-            self.backspace = True
+    def del_letter(self,dire=1) -> None:
+        if not self.deleting:
+            if dire == 1:
+                self.backspace = True
+            else:
+                self.supr = True
             self.del_time = time.time()
+            self.deleting = True
         if len(str(self.raw_text)) > 0:
-            if self.typing_pos == 0:
+            if (self.backspace and self.typing_pos == 0) or (self.supr and self.typing_pos == len(self.raw_text)):
                 return
-            
-            self.raw_text = self.raw_text[:self.typing_pos-1] + self.raw_text[self.typing_pos:]
-            self.letter_pos.pop(self.typing_pos)
-            self.typing_pos -= 1
+            if self.backspace:
+                self.raw_text = self.raw_text[:self.typing_pos-1] + self.raw_text[self.typing_pos:]
+                self.letter_pos.pop(self.typing_pos)
+                self.typing_pos -= 1
+                suma = sum(self.letter_pos[:self.typing_pos])
+                if suma > self.rect2.w-5:
+                    self.text.pos = (self.rect2.w-2,self.input_surface.get_height()/2)
+                    self.text.dire = 'right'
+                elif suma + self.text.left < self.rect2.w:
+                    self.text.pos = (0,self.input_surface.get_height()/2)
+                    self.text.dire = 'left'
+            else: 
+                self.raw_text = self.raw_text[:self.typing_pos] + self.raw_text[self.typing_pos+1:]
+                self.letter_pos.pop(self.typing_pos+1)
+                
+                suma = sum(self.letter_pos[:self.typing_pos])
+                if self.text.width  < self.rect2.w:
+                    self.text.pos = (0,self.input_surface.get_height()/2)
+                    self.text.dire = 'left'
+
             self.text.text = self.raw_text
-            suma = sum(self.letter_pos[:self.typing_pos])
-            if suma > self.rect2.w-5:
-                self.text.pos = (self.rect2.w-2,self.input_surface.get_height()/2)
-                self.text.dire = 'right'
-            elif suma + self.text.left < self.rect2.w:
-                self.text.pos = (0,self.input_surface.get_height()/2)
-                self.text.dire = 'left'
         self.typing_line = True
         self.typing_line_time = time.time()
         self.draw_surf()
