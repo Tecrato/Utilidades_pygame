@@ -5,7 +5,7 @@ from pygame import Vector2
 from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
 
 class Base:
-    def __init__(self,pos,dire:str) -> None:
+    def __init__(self,pos,dire: Literal["left","right","top","bottom","center","topleft","topright","bottomleft","bottomright"]) -> None:
         self.rect = pag.Rect(0,0,50,50)
         self.smothmove_bool = False
 
@@ -94,7 +94,7 @@ class Base:
     def raw_pos(self):
         return self.__pos
     @pos.setter
-    def pos(self,pos):
+    def pos(self,pos:tuple[int,int]|Vector2):
         if self.smothmove_bool:
             self.smothmove_pos = Vector2(pos)
         else:

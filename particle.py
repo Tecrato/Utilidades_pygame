@@ -1,37 +1,47 @@
 import pygame as pag
 from pygame import Vector2
+from Utilidades.optimize import memosize
+
+@memosize
+def radial(radius, startcolor, endcolor):
+    print(str(radius),str(startcolor),str(endcolor))
+    """
+    Draws a linear raidal gradient on a square sized surface and returns
+    that surface.
+    """
+    radius = int(radius)
+    bigSurf = pag.Surface((2*radius, 2*radius), pag.SRCALPHA)
+    bigSurf.fill((0,0,0,0))
+    dd = -1.0/radius
+    sr, sg, sb, sa = endcolor
+    er, eg, eb, ea = startcolor
+    rm = (er-sr)*dd
+    gm = (eg-sg)*dd
+    bm = (eb-sb)*dd
+    am = (ea-sa)*dd
+    
+    draw_circle = pag.draw.circle
+    for rad in range(radius, 0, -1):
+        draw_circle(bigSurf, (er + int(rm*rad),
+                              eg + int(gm*rad),
+                              eb + int(bm*rad),
+                              ea + int(am*rad)), (radius, radius), rad)
+    return bigSurf
 
 class Particle:
-    def __init__(self, pos, radio: int, color=[255,255,255], direccion=[1,0], vel=0) -> None:
+    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, direccion=(0,0)):
         self.__pos = Vector2(pos)
         self.__radio = radio
-        self.__color: tuple[int] = color
-        self.direccion = direccion
-        self.vel = vel
-        self.surf = pag.Surface
+        self.color = color
+        self.vel = velocidad
+        self.direccion = Vector2(direccion)
+        self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
 
-    def draw(self,surface):
+    def draw(self,surface: pag.Surface):
         surface.blit(self.surf,(self.pos-(self.radio,self.radio)))
 
     def generate(self):
-        self.surf = pag.Surface((self.radio*2,self.radio*2), pag.SRCALPHA)
-        matriz_colores = []
-        for y in range(self.radio*2):
-            fila = []
-            for x in range(self.radio*2):
-                distancia = Vector2(Vector2(x,y)-Vector2(self.radio,self.radio)).length() / self.radio
-                color = (
-                        self.lighting_color[0] * (1-distancia),
-                        self.lighting_color[1] * (1-distancia),
-                        self.lighting_color[2] * (1-distancia),
-                        self.lighting_color[3] * (1-distancia),
-                    )
-                fila.append(color if color[0] > 1 else (0,0,0,0))
-            matriz_colores.append(fila)
-        
-        for y in range(self.radio*2):
-            for x in range(self.radio*2):
-                self.surf.set_at((x,y),matriz_colores[y][x])
+        self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
 
     def update(self,dt=1):
         self.pos += self.direccion*self.vel*dt
@@ -51,10 +61,18 @@ class Particle:
         self.generate()
 
     @property
-    def color(self) -> tuple[int]:
+    def color(self) -> tuple[int,int,int]:
         return self.__color
     @color.setter
     def color(self,color):
-        self.__color = color
+        if len(color) == 3:
+            color = color + (255,)
+        self.__color = (int(color[0]),int(color[1]),int(color[2]))
         self.generate()
           
+    @property
+    def direccion(self) -> Vector2:
+        return self.__direccion
+    @direccion.setter
+    def direccion(self,direccion):
+        self.__direccion = Vector2(direccion)

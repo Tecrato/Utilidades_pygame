@@ -23,7 +23,7 @@ class Text(Base):
     - smothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
     """
     
-    def __init__(self,text: str,size: int,font: str|None, pos: tuple = (0,0),
+    def __init__(self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
                  dire: Literal["center","left","right","top","bottom","topleft","topright","bottomleft","bottomright"] ='center',
                  color='white',with_rect = False, color_rect ='black', border_width = -1, padding: int|list|tuple = 20, 
                  width = 0, height = 0, rect_width= 0, **kwargs) -> None:
@@ -31,6 +31,8 @@ class Text(Base):
         pag.font.init()
         text = str(text)
         self.raw_text = text.replace('\t', '    ').split('\n') if '\n' in text else text
+        if len(self.raw_text) == 1:
+            self.raw_text = self.raw_text[0]
         self.__size = size
         self.raw_font = font
         self.__color = color
@@ -62,6 +64,8 @@ class Text(Base):
     
     def __generate(self):
         self.raw_text = self.text.replace('\t', '    ').split('\n') if '\n' in self.raw_text else self.raw_text
+        if len(self.raw_text) == 1:
+            self.raw_text = self.raw_text[0]
         self.__width = self.default_width
         self.__height = self.default_height
         if not isinstance(self.raw_text, list):
@@ -198,5 +202,5 @@ class Text(Base):
         
     def __str__(self) -> str:
         return f'{self.raw_text = } - {self.pos = }'
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
