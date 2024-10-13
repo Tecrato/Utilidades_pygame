@@ -1,7 +1,9 @@
 import pygame as pag
 import sys
 import datetime
+import pyperclip
 import Utilidades as uti
+import Utilidades_pygame as uti_pag
 
 from pygame import Vector2
 
@@ -9,7 +11,7 @@ TITLE: str = 'Program'
 RESOLUCION = [800, 550]
 MIN_RESOLUTION = [550,450]
 
-class Clicker_game:
+class Program:
     def __init__(self) -> None:
         self.ventana: pag.Surface = pag.display.set_mode(RESOLUCION, pag.RESIZABLE|pag.DOUBLEBUF)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
@@ -32,9 +34,16 @@ class Clicker_game:
 
         # Variables por pantalla
         # Principal:
-        self.list_to_draw: list[uti.Text|uti.Button|uti.Input|uti.Multi_list|uti.List|uti.Bloque] = []
-        self.list_to_click: list[uti.Button|uti.Bloque] = []
+        self.list_to_draw: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        self.list_to_click: list[uti_pag.Button|uti_pag.Bloque] = []
+        self.list_inputs: list[uti_pag.Input] = []
         ...
+
+        # Pantalla de configuracion
+        # self.list_to_draw_config: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        # self.list_to_click_config: list[uti_pag.Button|uti_pag.Bloque] = []
+        # self.list_inputs_config: list[uti_pag.Input] = []
+        # ... --------------------> Es un ejemplo de como se puede hacer una pantalla de configuracion
 
         # Iniciar el programa
         self.load_resources()
@@ -66,8 +75,8 @@ class Clicker_game:
     def generate_objs(self) -> None:
         # Cosas varias
         # uti.GUI.configs['fuente_simbolos'] = self.font_simbolos      ----   # Esto es para la GUI que retorna texto, mientras lo la uses no es obligatorio
-        self.GUI_manager = uti.GUI.GUI_admin()
-        self.Mini_GUI_manager = uti.mini_GUI.mini_GUI_admin(self.ventana_rect)
+        self.GUI_manager = uti_pag.GUI.GUI_admin()
+        self.Mini_GUI_manager = uti_pag.mini_GUI.mini_GUI_admin(self.ventana_rect)
 
         # El resto de textos y demas cosas
         ...
@@ -86,9 +95,9 @@ class Clicker_game:
             if self.draw_background:
                 self.ventana.fill(self.background_color)
             for x in lista:
-                if isinstance(x, (uti.Button|uti.Bloque)):
+                if isinstance(x, (uti_pag.Button|uti_pag.Bloque)):
                     x.draw(self.ventana, (mx,my))
-                elif isinstance(x, uti.Multi_list):
+                elif isinstance(x, uti_pag.Multi_list):
                     if x.listas[0].lista_palabras:
                         x.draw(self.ventana)
                 else:
@@ -100,9 +109,9 @@ class Clicker_game:
         else:
             self.updates.clear()
             for x in lista:
-                if isinstance(x, (uti.Button|uti.Bloque)):
+                if isinstance(x, (uti_pag.Button|uti_pag.Bloque)):
                     self.updates.append(x.draw(self.ventana, (mx,my)))
-                elif isinstance(x, uti.Multi_list):
+                elif isinstance(x, uti_pag.Multi_list):
                     if self.lista_descargas.listas[0].lista_palabras:
                         self.updates.append(x.draw(self.ventana))
                 else:
@@ -177,21 +186,26 @@ class Clicker_game:
                 if self.eventos_en_comun(evento):
                     self.redraw = True
                     continue
-                elif evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
-                    pag.quit()
-                    sys.exit()
+                elif evento.type == pag.KEYDOWN:
+                    if evento.key == pag.K_ESCAPE:
+                        pag.quit()
+                        sys.exit()
+                    elif evento.key == pag.K_v and pag.key.get_pressed()[pag.K_LCTRL]:
+                        for x in self.list_inputs:
+                            if x.typing:
+                                x.set(pyperclip.paste())
                 elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
                     for i,x in sorted(enumerate(self.list_to_click), reverse=True):
-                        if isinstance(x, (uti.Multi_list,uti.List)) and x.click((mx,my),pag.key.get_pressed()[pag.K_LCTRL]):
+                        if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click((mx,my),pag.key.get_pressed()[pag.K_LCTRL]):
                             self.redraw = True
                             break
                         elif x.click((mx, my)):
                             self.redraw = True
                             break
-                elif evento.type == pag.MOUSEWHEEL and self.lista_descargas.rect.collidepoint((mx,my)):
-                    self.lista_descargas.rodar(evento.y*15)
-                elif evento.type == pag.MOUSEMOTION and self.lista_descargas.scroll:
-                    self.lista_descargas.rodar_mouse(evento.rel[1])
+                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event(evento,self.list_to_click):
+                    ...
+                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event(evento,self.list_to_click):
+                    ...
                 # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
                 #     if self.lista_descargas.click((mx, my),pag.key.get_pressed()[pag.K_LCTRL],button=3) and (result := self.lista_descargas.get_selects()):
                 #         self.Mini_GUI_manager.add(mini_GUI.select((mx, my),
@@ -206,6 +220,24 @@ class Clicker_game:
             if self.drawing:
                 self.draw_objs(self.list_to_draw)  # La lista a dibujar de esta pantalla
 
+    def wheel_event(self,evento,lista):
+        for i,x in sorted(enumerate(lista), reverse=True):
+            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
+                x.rodar(evento.y*15)
+                return True
+        if self.graficador.rect.collidepoint(pag.mouse.get_pos()):
+            self.zoom += self.zoom*.05*evento.y
+            self.graficador.zoom = self.zoom
+            return True
+        return False
+    
+    def mouse_motion_event(self,evento, lista):
+        for i,x in sorted(enumerate(lista), reverse=True):
+            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
+                x.rodar_mouse(evento.rel[1])
+                return True
+        return False
+
 if __name__ == '__main__':
     pag.init()
-    Clicker_game()
+    Program()
