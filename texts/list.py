@@ -121,7 +121,8 @@ class List(Base):
 
         self.draw_surf()
 
-        self.create_border(self.rect.union(self.text_header.rect), self.border_width)
+        p = self.rect.union(self.text_header.rect) if self.header else self.rect
+        self.create_border(p, self.border_width)
 
     def create_text(self,text:str):
         return self.font.render(str(text),1,self.text_color)
@@ -133,7 +134,10 @@ class List(Base):
         self.set_height()
 
     def draw_surf(self):
+        # if self.header:
         self.lista_surface.fill(self.background_color)
+        # else:
+        #     pag.draw.rect(self.lista_surface, self.background_color, (0,0,self.lista_surface_rect.w,self.lista_surface_rect.h), border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
 
         if self.selected_nums:
             for num in self.selected_nums:
@@ -160,14 +164,18 @@ class List(Base):
         surface.blit(self.lista_surface,self.rect)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
 
-        return self.rect.union(self.text_header.rect)
+        if self.header:
+            return self.rect.union(self.text_header.rect)
+        else:
+            return self.rect
 
-    def update(self):
+    def update(self,dt=1):
         if self.smothscroll:
             self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento).x)
         super().update()
-        self.text_header.bottomleft = self.rect.topleft
-        self.rect_border.bottom = self.rect.bottom
+        if self.header:
+            self.text_header.bottomleft = self.rect.topleft
+            self.rect_border.bottom = self.rect.bottom
 
     def set_height(self):
         if not self.lista_palabras:
