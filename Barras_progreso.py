@@ -2,10 +2,14 @@ from typing import Tuple, Literal
 import pygame as pag
 
 class Barra_de_progreso:
-    def __init__(self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical') -> None:
+    def __init__(self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical',
+                 border_color: tuple[int,int,int] = (0,255,0), fill_color: tuple[int,int,int] = (0,128,255), border_width: int = 2):
         self.__size = pag.Vector2(size)
         self.__pos = pag.Vector2(pos)
         self.orientacion = orientacion
+        self.border_color = border_color
+        self.fill_color = fill_color
+        self.border_width = border_width
         self.rect = pag.rect.Rect(0, 0, *self.__size)
         self.rect2 = pag.rect.Rect(0, 0, *self.__size)
         self.__volumen = 1.0
@@ -37,18 +41,22 @@ class Barra_de_progreso:
             self.volumen = float(self.rect.w / self.__size.x)
 
     def draw(self,surface) -> None:
-        pag.draw.rect(surface, 'green', self.rect)
-        pag.draw.rect(surface, 'darkblue', self.rect2, width=2)
+        pag.draw.rect(surface, self.border_color, self.rect)
+        pag.draw.rect(surface, self.fill_color, self.rect2, width=self.border_width)
 
     def update(self):
         pass
-
 
     @property
     def volumen(self):
         return self.__volumen
     @volumen.setter
     def volumen(self,volumen):
+        if volumen > 1:
+            volumen = 1
+        elif volumen < 0:
+            volumen = 0
+
         self.__volumen = float(volumen)
         if self.orientacion == 'vertical':
             self.rect.height = self.__size.y*volumen
