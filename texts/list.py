@@ -4,7 +4,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dinamics
-from ..optimize import memosize
+from Utilidades import memosize
 
 @memosize
 def get_inside_objs(dez, height, size, padd,separation):

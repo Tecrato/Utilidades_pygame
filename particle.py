@@ -57,7 +57,7 @@ class Particle:
         return self.__radio
     @radio.setter
     def radio(self,radio):
-        self.__radio = int(radio)
+        self.__radio = float(radio)
         self.generate()
 
     @property
