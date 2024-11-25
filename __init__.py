@@ -13,8 +13,6 @@ from .texts import Input
 from .texts import List
 from .texts import Multi_list
 
-from .graficador import Graficador
-
 from .figuras.poligono_regular import Poligono_regular
 from .figuras.poligono_irregular import Poligono_irregular
 from .figuras.engranajes import Engranaje

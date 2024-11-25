@@ -1,5 +1,5 @@
 import pygame as pag
-from Utilidades.obj_Base import Base
+from .obj_Base import Base
 from PIL import Image as img
 from io import BytesIO
 

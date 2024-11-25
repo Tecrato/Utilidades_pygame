@@ -4,11 +4,10 @@
 import pygame as pag
 import math
 import random
-from Utilidades import memosize, tener_el_tiempo
-from Utilidades.maths import line_intersect
+from Utilidades import memosize, line_intersect
 
-from .obj_Base import Base
-from .texts import Text
+from obj_Base import Base
+from texts import Text
 
 @memosize
 def numero(num,size) -> Text:

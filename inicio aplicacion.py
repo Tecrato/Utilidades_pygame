@@ -230,7 +230,7 @@ class Program:
             self.graficador.zoom = self.zoom
             return True
         return False
-    
+
     def mouse_motion_event(self,evento, lista):
         for i,x in sorted(enumerate(lista), reverse=True):
             if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
