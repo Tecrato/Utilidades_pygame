@@ -66,7 +66,6 @@ class Input(Base):
         self.text_value = Text(self.text_value, self.text_size, self.font, (0,self.input_surface.get_height()/2), 'left',self.text_value_color,True, self.background_color, padding=0)
 
         self.surf_rect.center = self.rect.center
-        # self.width = self.rect.w
         self.create_border(self.rect, self.border_width)
         self.direccion(self.rect)
 
@@ -74,16 +73,20 @@ class Input(Base):
     def draw_surf(self):
         self.input_surface.fill(self.background_color)
         if self.raw_text == '':
+            self.text_value.redraw = 1
             self.text_value.draw(self.input_surface)
         else:
             self.text.draw(self.input_surface)
         if self.typing_line:
             pag.draw.line(self.input_surface, self.pointer_color, (sum(self.letter_pos[:self.typing_pos])+self.text.left,0),
                           (sum(self.letter_pos[:self.typing_pos])+self.text.left,self.input_surface.get_height()))
-
+        if self.redraw < 1:
+            self.redraw = 1
 
     def draw(self, surface) -> None:
         self.update_pressed_keys()
+        if self.redraw < 1:
+            return []
 
         pag.draw.rect(surface, self.background_color, self.rect, 0, self.border_radius, self.border_top_left_radius, 
                       self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
@@ -99,7 +102,14 @@ class Input(Base):
         self.surf_rect.center = self.rect.center
         surface.blit(self.input_surface, self.surf_rect)
         
-        return self.rect
+        if self.redraw < 2:
+            self.redraw = 0
+            return [self.rect_border]
+        elif self.redraw < 3:
+            self.redraw = 0
+            r = self.last_rect.union(self.rect_border.copy()).copy()
+            self.last_rect = self.rect_border.copy()
+            return [self.rect_border, r]
 
 
     def update_pressed_keys(self):

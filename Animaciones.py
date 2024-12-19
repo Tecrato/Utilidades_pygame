@@ -32,9 +32,10 @@ class Curva_de_Bezier:
         ' - Define en que % de la animacion estara'
         self.__T = progress
 
-    def update(self,dt=1) -> Vector2:
+    def update(self,dt=1) -> Vector2|bool:
         self.__T += (1/self.timer) * dt
         if self.__T > self.extra_time:
+            self.__T = 1
             return True
         result = Vector2(0,0)
         for i,p in enumerate(self.points):

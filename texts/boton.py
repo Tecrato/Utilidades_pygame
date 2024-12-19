@@ -16,7 +16,7 @@ class Button(Text):
         color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
-        func:None|Callable = None, width = 0, height = 0, **kwargs) -> None:
+        func:None|Callable = None, width = 0, height = 0, func_to_hover=None, func_out_hover=None, **kwargs) -> None:
 
         self.color_rect_active = color_rect_active if color_rect_active != None else color_rect
         self.color_rect_inactive = color_rect
@@ -29,6 +29,8 @@ class Button(Text):
 
         self.color_active = kwargs.get('color_active',None)
         self.func = func
+        self.func_to_hover = func_to_hover
+        self.func_out_hover = func_out_hover
     
         self.sound_to_hover = kwargs.get('sound_to_hover',False)
         self.sound_to_click = kwargs.get('sound_to_click',False)
@@ -42,26 +44,32 @@ class Button(Text):
             self.with_rect = False
         self.hover = False
 
-    def draw(self, surface: pag.Surface, pos: tuple[int,int] =False) -> pag.Rect:
+    def draw(self, surface: pag.Surface, pos: tuple[int,int] =False) -> list[pag.Rect]|None:
         pos = pos if pos else pag.mouse.get_pos()
-        if self.rect.collidepoint(pos):
-            if not self.hover:
-                if self.sound_to_hover:
-                    self.sound_to_hover.play()
-                self.hover = True
-                self.color_rect = self.color_rect_active
-                self.color = self.color_active if self.color_active else self.color_inactive
-                self.border_color = self.color_border_active
-                if self.toggle_rect and self.with_rect2:
-                    self.with_rect = True
-        else:
-            if self.hover:
-                self.hover = False
-                self.color_rect = self.color_rect_inactive
-                self.color = self.color_inactive
-                self.border_color = self.border_color_inactive
-                if self.toggle_rect and self.with_rect2:
-                    self.with_rect = False
+        if self.rect.collidepoint(pos) and not self.hover:
+            if self.sound_to_hover:
+                self.sound_to_hover.play()
+            if self.func_to_hover:
+                self.func_to_hover()
+            self.hover = True
+            self.color_rect = self.color_rect_active
+            self.color = self.color_active if self.color_active else self.color_inactive
+            self.border_color = self.color_border_active
+            if self.toggle_rect and self.with_rect2:
+                self.with_rect = True
+            if self.redraw < 1:
+                self.redraw = 1
+        elif not self.rect.collidepoint(pos) and self.hover:
+            if self.func_to_hover:
+                self.func_to_hover()
+            self.hover = False
+            self.color_rect = self.color_rect_inactive
+            self.color = self.color_inactive
+            self.border_color = self.border_color_inactive
+            if self.toggle_rect and self.with_rect2:
+                self.with_rect = False
+            if self.redraw < 1:
+                self.redraw = 1
         return super().draw(surface)
 
     def click(self,pos) -> bool:
@@ -79,6 +87,8 @@ class Button(Text):
             self.color = self.color_active
         else:
             self.color = self.color_inactive
+        if self.redraw < 1:
+            self.redraw = 1
     def change_color_rect_ad(self,color_inactive,color_active = None) -> None:
         self.color_rect_inactive = color_inactive if color_inactive != None else self.color_rect_inactive
         self.color_rect_active = color_active if color_active != None else self.color_rect_active
@@ -86,3 +96,5 @@ class Button(Text):
             self.color_rect = self.color_rect_active
         else:
             self.color_rect = self.color_rect_inactive
+        if self.redraw < 1:
+            self.redraw = 1

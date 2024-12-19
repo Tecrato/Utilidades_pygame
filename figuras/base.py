@@ -1,7 +1,14 @@
 from typing import Self
-from pygame import draw
-from pygame import Vector2
-from pygame import Rect
+import pygame as pag
+from pygame import draw, Vector2, Rect
+from Utilidades.optimize import memosize
+
+@memosize
+def to_surf(points, radio, color) -> pag.Surface:
+	surf = pag.Surface((radio*2,radio*2))
+	surf.fill((0,0,0,0))
+	pag.draw.polygon(surf, color, points)
+	return surf
 
 class Base:
 	def __init__(self,pos,radio,angle,color) -> None:
@@ -13,10 +20,14 @@ class Base:
 		self.__color = color
 		self.max_radio = 0
 		self.figure: list[dict] = []
+		self.redraw = True
 
 	def draw(self,surface) -> Rect:
 		draw.polygon(surface,self.color,self.figure)
 		return Rect(0,0,self.radio*2,self.radio*2).move(self.pos.x-self.radio,self.pos.y-self.radio)
+
+	def get_surface(self) -> pag.Surface:
+		return to_surf(self.figure, int(self.radio), self.color)
 	
 	@property
 	def pos(self) -> Vector2:

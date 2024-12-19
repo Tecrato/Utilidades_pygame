@@ -13,7 +13,7 @@ class Poligono_regular(Base):
 	def generate(self) -> None:
 		xs = [self.pos.x + cos(radians(360/self.__lados*a +self.angle)) * self.radio for a in range(self.__lados)]
 		ys = [self.pos.y - sin(radians(360/self.__lados*a +self.angle)) * self.radio for a in range(self.__lados)]
-		self.figure = [list((x,y)) for x,y in zip(xs,ys)]
+		self.figure = [(int(x),int(y)) for x,y in zip(xs,ys)]
 
 	@property
 	def lados(self) -> int:

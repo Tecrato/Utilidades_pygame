@@ -7,7 +7,7 @@ from ..Animaciones import Second_Order_Dinamics
 from Utilidades import memosize
 
 @memosize
-def get_inside_objs(dez, height, size, padd,separation):
+def get_inside_objs(dez, height, size, padd,separation) -> list:
     return [math.floor((-dez-padd)/(size+separation)), math.ceil((height+(-dez-padd))/(size+separation))]
 
 class List(Base):
@@ -123,6 +123,7 @@ class List(Base):
 
         p = self.rect.union(self.text_header.rect) if self.header else self.rect
         self.create_border(p, self.border_width)
+        self.last_rect = self.last_rect.union(self.rect_border)
 
     def create_text(self,text:str):
         return self.font.render(str(text),1,self.text_color)
@@ -134,10 +135,7 @@ class List(Base):
         self.set_height()
 
     def draw_surf(self):
-        # if self.header:
         self.lista_surface.fill(self.background_color)
-        # else:
-        #     pag.draw.rect(self.lista_surface, self.background_color, (0,0,self.lista_surface_rect.w,self.lista_surface_rect.h), border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
 
         if self.selected_nums:
             for num in self.selected_nums:
@@ -152,6 +150,8 @@ class List(Base):
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
             pag.draw.rect(self.lista_surface, 'white', self.barra,border_radius=5)
+        if self.redraw < 1:
+            self.redraw = 1
 
     def draw(self,surface):
 
@@ -161,13 +161,21 @@ class List(Base):
         if self.header:
             self.text_header.draw(surface)
 
+        if self.redraw < 1:
+            return []
+        self.redraw = 0
         surface.blit(self.lista_surface,self.rect)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
-
-        if self.header:
-            return self.rect.union(self.text_header.rect)
-        else:
-            return self.rect
+        r = self.rect_border.union(self.text_header.rect) if self.header else self.rect_border
+        if self.redraw < 2:
+            self.redraw = 0
+            return [r]
+        elif self.redraw < 3:
+            self.redraw = 0
+            r2 = self.last_rect.union(r).copy()
+            self.last_rect = r.copy()
+            return [r, r2]
+        
 
     def update(self,dt=1):
         if self.smothscroll:
@@ -254,7 +262,7 @@ class List(Base):
         return {'text': self.lista_palabras[touch], 'index': touch} if touch > -1 and touch < len(self.lista_palabras) else False
 
     def append(self, text: str):
-        self.lista_palabras.append(text)
+        self.lista_palabras.append('{}'.format(text))
         self.lista_objetos.append(self.create_text(text))
         self.set_height()
         self.rodar(0)
@@ -345,6 +353,8 @@ class List(Base):
 
     def __str__(self) -> str:
         text = f'{'_':_>20}\n'
-        text += '\n'.join(self.lista_palabras)
+        text += f'{self.text_header if self.header else "   ----   "}\n'
+        if self.lista_palabras:
+            text += '\n'.join(self.lista_palabras)
         text += f'\n{'-':-^20}\n'
         return text

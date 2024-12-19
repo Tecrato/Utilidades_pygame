@@ -14,11 +14,11 @@ class simple_popup(Base):
         Text(title, 16, None, (0,0), 'topleft', 'black').draw(self.surf)
         Text(text, 16, None, (10,40), 'left', 'black').draw(self.surf)
 
-        
         self.botones.append({
             'btn':Button('Aceptar',16,None,self.rect.bottomright, (20,15), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
             'result': 'exit'
             })
+        
 class desicion_popup(Base):
     def __init__(self, pos, title= 'Titulo', text= 'Texto aqui', size= (200,80),accept_boton_text= 'aceptar', dir = 'center', border_radius=10, inside_limits=True) -> None:
 
@@ -38,11 +38,12 @@ class desicion_popup(Base):
             })
 
 class select(Base):
-    def __init__(self, pos, options:list, dir = 'topleft', captured = None,min_width =0, border_radius=10, inside_limits=True) -> None:
+    def __init__(self, pos, options:list, dir = 'topleft', captured = None,min_width =0, border_radius=10, inside_limits=True, volatile=True) -> None:
         super().__init__(pos,dir, border_radius=border_radius, inside_limits=inside_limits)
         self.texts = options
         self.captured = captured
         self.botones: list[Text] = []
+        self.volatile = volatile
 
         self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',16,None,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
         self.txt_tama_w = min_width
@@ -58,9 +59,7 @@ class select(Base):
         self.surf = pag.Surface(self.size,pag.SRCALPHA)
         self.rect = self.surf.get_rect()
 
-
-    
-    def draw(self,surface,pos,update=True):
+    def draw(self,surface,pos):
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.size], 0, self.border_radius)
         if self.rect.collidepoint(pos):
             new_pos = Vector2(pos)-self.rect.topleft
@@ -70,13 +69,13 @@ class select(Base):
             btn.draw(self.surf)
         pag.draw.rect(self.surf, 'black', [0,0,*self.size], 1, self.border_radius)
         surface.blit(self.surf,self.rect)
-        if update:
-            return self.rect
+        return self.rect
 
     def click(self, pos):
         if self.rect.collidepoint(pos):
             new_pos = Vector2(pos)-self.rect.topleft
             final_index = math.floor((new_pos.y/self.size[1])*len(self.texts))
             return {'index': final_index, 'text': self.botones[final_index].text, 'obj':self.captured}
-        else:
+        elif self.volatile:
             return 'exit'
+        return False

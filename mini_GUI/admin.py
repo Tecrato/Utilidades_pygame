@@ -1,28 +1,32 @@
 import pygame as pag
+from .objs import desicion_popup, simple_popup, select
 
 class mini_GUI_admin:
     def __init__(self, limit: pag.Rect) -> None:
-        self.__list = []
+        self.__list: list[desicion_popup|select|simple_popup] = []
         self.__limit = limit
+        self.gui_count = 0
+        self.redraw = 1
     
     def add(self,mini_GUI,func=None,raw_pos=None,group:str=''):
-        self.__list.append({'GUI':mini_GUI,'func':func,'raw_pos':raw_pos,'group':group})
+        self.__list.append({'GUI':mini_GUI,'func':func,'raw_pos':raw_pos,'group':group, 'id':self.gui_count})
         self.__list[-1]['GUI'].limits = self.limit
         self.__list[-1]['GUI'].direccion(self.__list[-1]['GUI'].rect)
+        self.gui_count += 1
+        return self.gui_count-1
 
     
-    def draw(self, surface,pos, update=True):
+    def draw(self, surface,pos):
         l = []
         for x in self.__list:
-            if update and (r := x['GUI'].draw(surface,pos,update)):
+            if (r := x['GUI'].draw(surface,pos)):
                 l.append(r)
         return l
 
     def click(self, pos):
         for i, g in sorted(enumerate(self.__list),reverse=True):
-            if not (result := g['GUI'].click(pos)):
+            if not (result := g['GUI'].click(pos)) and not g['GUI'].rect.collidepoint(pos):
                 continue
-            rect1: pag.Rect = g['GUI'].rect.copy()
             if result == 'exit':
                 self.__list.pop(i)
             elif result or result == 0:
@@ -32,6 +36,7 @@ class mini_GUI_admin:
             elif self.__list[i]['GUI'].rect.collidepoint(pos):
                 self.__list.pop(i)
                 self.__list.append(g)
+                return True
             else:
                 continue
             return True
@@ -43,6 +48,11 @@ class mini_GUI_admin:
     def clear_group(self,group:str):
         for i, g in sorted(enumerate(self.__list),reverse=True):
             if g['group'] == group:
+                self.__list.pop(i)
+    
+    def pop(self,identifier: int):
+        for i, g in sorted(enumerate(self.__list),reverse=True):
+            if g['id'] == identifier:
                 self.__list.pop(i)
     
     @property
@@ -58,4 +68,9 @@ class mini_GUI_admin:
             else:
                 x['GUI'].pos = x['GUI'].pos
 
-
+    def get_update_rects(self):
+        lista = []
+        for x in self.__list:
+            if isinstance(x['GUI'],select):
+                lista.append(x['GUI'].rect)
+        return lista

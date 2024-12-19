@@ -6,10 +6,14 @@ from ..texts import Button
 
 
 class Base(primary_base):
-    def __init__(self,pos,dir = 'center', size = (200,125), border_radius = 10, inside_limits=True) -> None:
+    def __init__(self,pos,dir = 'center', size = (200,125), border_radius = 10, inside_limits=True,border_width = 3) -> None:
         self.limits = pag.Rect(0,0,600,550)
         self.inside_limits = inside_limits
+        self.size = size
         super().__init__(pos,dir)
+
+        self.border_width = border_width
+        self.border_radius = border_radius
 
         self.botones = [{
             'btn':Button('X',24,None,(size[0],0),10,'topright', 'black', color_rect='lightgrey', color_rect_active='darkgrey', border_radius=0, border_top_right_radius=border_radius, border_width=-1),
@@ -22,6 +26,7 @@ class Base(primary_base):
 
         pag.draw.rect(self.surf, (240,240,240), [0,0,*size], 0, border_radius)
         pag.draw.rect(self.surf, 'lightgrey', [0,0,size[0],26], 0, border_top_left_radius=border_radius, border_top_right_radius=border_radius)
+
 
     def direccion(self, rect) -> None:
         rect.center = self.pos
@@ -36,15 +41,16 @@ class Base(primary_base):
             rect.bottom = self.limits.bottom
         elif rect.top < self.limits.top:
             rect.top = self.limits.top
+        self.create_border(self.rect, self.border_width)
 
     def click(self,pos):
         for btn in self.botones:
             if btn['btn'].rect.collidepoint(Vector2(pos)-self.rect.topleft):
                 return btn['result']
 
-    def draw(self, surface,pos,update=True):
+    def draw(self, surface,pos) -> pag.Rect:
         for btn in self.botones:
             btn['btn'].draw(self.surf,Vector2(pos)-self.rect.topleft)
+        pag.draw.rect(surface, (0,0,0), self.rect_border, self.border_width, self.border_radius)
         surface.blit(self.surf,self.rect)
-        if update:
-            return self.rect
+        return self.rect_border

@@ -109,10 +109,12 @@ class Text(Base):
             self.create_border(self.rect, self.border_width)
         self.__width = self.rect.w
         self.__height = self.rect.h
+        if self.redraw < 1:
+            self.redraw = 1
 
     def update(self, pos = None,dt=1):
         super().update(pos,dt=dt)
-
+        self.last_rect = self.last_rect.union(self.rect_border)
         if self.mode == 1:
             self.rect_text.center = self.rect.center
         elif self.mode == 2:
@@ -120,9 +122,10 @@ class Text(Base):
             for i, txt in enumerate(self.lista_text):
                 txt.update((self.pos[0],self.pos[1] + self.text_height*i))
 
-    def draw(self, surface) -> None:
-        # if self.smothmove_bool:
-        # self.update()
+    def draw(self, surface) -> list[pag.Rect]|None:
+        if self.redraw < 1 or self.redraw == 0:
+            return []
+        
         self.rect_text.center = self.rect.center
 
         if self.mode == 2:
@@ -133,7 +136,7 @@ class Text(Base):
                 ,self.border_top_left_radius,self.border_top_right_radius,self.border_bottom_left_radius,self.border_bottom_right_radius)
             for txt in self.lista_text:
                 txt.draw(surface)
-            return
+            return [self.rect_border, self.last_rect]
         
         if self.with_rect:
             pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius
@@ -142,8 +145,15 @@ class Text(Base):
             , self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
 
         surface.blit(self.text_surf, self.rect_text)
-        
-        return self.rect_border
+
+        if self.redraw == 1:
+            self.redraw = 0
+            return [self.rect_border]
+        elif self.redraw == 2:
+            self.redraw = 0
+            r = self.last_rect.union(self.rect_border.copy()).copy()
+            self.last_rect = self.rect_border.copy()
+            return [self.rect_border, r]
 
 
     @property
@@ -180,6 +190,8 @@ class Text(Base):
         elif self.mode == 2:
             for txt in self.lista_text:
                 txt.color = color
+        if self.redraw < 1:
+            self.redraw = 1
     @property
     def width(self):
         return self.__width
@@ -201,6 +213,6 @@ class Text(Base):
         self.direccion(self.rect)
         
     def __str__(self) -> str:
-        return f'{self.raw_text = } - {self.pos = }'
+        return 'text: {} - pos: {} - mode: {}'.format(self.raw_text,self.pos,self.mode)
     def __repr__(self) -> str:
         return self.__str__()

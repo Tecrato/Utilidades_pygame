@@ -12,6 +12,8 @@ from .texts import Button
 from .texts import Input
 from .texts import List
 from .texts import Multi_list
+from .texts import Select_box
+from .texts import App_menu
 
 from .figuras.poligono_regular import Poligono_regular
 from .figuras.poligono_irregular import Poligono_irregular

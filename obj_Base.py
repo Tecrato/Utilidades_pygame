@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Self
 import pygame as pag
 from pygame import Vector2
 
@@ -13,12 +13,17 @@ class Base:
         self.__pos = Vector2(pos)
         self.smothmove_pos = Vector2(0)
         self.rect_border = pag.rect.Rect(0,0,0,0)
+        self.redraw = 1
+        self.last_rect = pag.Rect(0,0,0,0)
 
     def create_border(self, rect, border_width) -> None:
+        if border_width == -1:
+            border_width = 0
         self.rect_border = pag.rect.Rect(0,0,rect.size[0] + border_width,rect.size[1] + border_width)
         self.rect_border.center = rect.center
 
     def direccion(self, rect) -> None:
+        self.last_rect = self.last_rect.union(rect)
         rect.center = self.__pos
         if self.dire == 'center':
             self.rect_border.center = rect.center
@@ -33,6 +38,7 @@ class Base:
         elif self.dire in ['bottom','bottomleft','bottomright']:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
+        self.redraw = 2
             
     def smothmove(self, T, f, z, r) -> None:
         self.smothmove_pos = self.pos
@@ -63,7 +69,8 @@ class Base:
             self.pos = pos
         elif self.__pos == self.smothmove_pos:
             return False
-
+        
+        self.last_rect = self.last_rect.union(self.rect)
         if self.smothmove_type == 'Second order dinamics':
             if abs(sum(self.movimiento.yd.xy)) < 0.01:
                 self.__pos = self.smothmove_pos
@@ -176,6 +183,27 @@ class Base:
     def centery(self,centery) -> None:
         self.pos = (self.pos.x, self.pos.y + (centery - self.rect.centery))
 
+    @property
+    def collide_rect(self) -> str:
+        return self.rect_border
+    def collide(self, rect: pag.Rect) -> bool:
+        return self.rect_border.collidepoint(rect)
+    def collide_all(self, lista: list[Self]) -> str:
+        lista = []
+        for i,x in enumerate(lista):
+            if x.collide(self.collide_rect):
+                lista.append(i)
+        return lista
+    def get_update_rects(self):
+        if self.redraw == 0:
+            return []
+        elif self.redraw == 1:
+            return [self.rect_border]
+        elif self.redraw == 2:
+            return [self.rect_border,self.last_rect]
+    
+    def is_hover(self,pos) -> bool:
+        return self.rect_border.collidepoint(pos)
 
     def copy(self):
         return self

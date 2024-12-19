@@ -34,8 +34,8 @@ class Program:
 
         # Variables por pantalla
         # Principal:
-        self.list_to_draw: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        self.list_to_click: list[uti_pag.Button|uti_pag.Bloque] = []
+        self.list_to_draw_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        self.list_to_click_main: list[uti_pag.Button|uti_pag.Bloque] = []
         self.list_inputs: list[uti_pag.Input] = []
         ...
 
@@ -89,40 +89,36 @@ class Program:
         ...
 
     # Para dibujar los objetos de las utilidades
-    def draw_objs(self,lista):
+    def draw_objs(self, lista: list[pag.Text|pag.Button|pag.Input|pag.Multi_list|pag.Select_box]):
+        if self.draw_background:
+            self.ventana.fill((20, 20, 20))
         mx, my = pag.mouse.get_pos()
+            
         if self.redraw:
-            if self.draw_background:
-                self.ventana.fill(self.background_color)
             for x in lista:
-                if isinstance(x, (uti_pag.Button|uti_pag.Bloque)):
-                    x.draw(self.ventana, (mx,my))
-                elif isinstance(x, uti_pag.Multi_list):
-                    if x.listas[0].lista_palabras:
-                        x.draw(self.ventana)
-                else:
-                    x.draw(self.ventana)
-            self.GUI_manager.draw(self.ventana, (mx, my))
-            self.Mini_GUI_manager.draw(self.ventana, (mx, my))
+                x.redraw = 1
+
+        self.updates.clear()
+        for x in lista:
+            if isinstance(x, (pag.Button,pag.Select_box)):
+                [self.updates.append(r) for r in x.draw(self.ventana, (mx,my))]
+            else:
+                [self.updates.append(r) for r in x.draw(self.ventana)]
+
+        self.updates.append(self.GUI_manager.draw(self.ventana, (mx, my)))
+        for x in self.Mini_GUI_manager.draw(self.ventana, (mx, my)):
+            self.updates.append(x)
+        
+        # Por si quiere agregar un loader cuando la aplicacion no va a responder por estar cargando algo
+        # if self.loading > 0:
+        #     self.loader.update(self.delta_time.dt)
+        #     self.updates.append(self.loader.draw(self.ventana))
+        
+        self.updates = list(filter(lambda ele: isinstance(ele, pag.Rect),self.updates))
+        if self.redraw:
             pag.display.update()
             self.redraw = False
         else:
-            self.updates.clear()
-            for x in lista:
-                if isinstance(x, (uti_pag.Button|uti_pag.Bloque)):
-                    self.updates.append(x.draw(self.ventana, (mx,my)))
-                elif isinstance(x, uti_pag.Multi_list):
-                    if self.lista_descargas.listas[0].lista_palabras:
-                        self.updates.append(x.draw(self.ventana))
-                else:
-                    self.updates.append(x.draw(self.ventana))
-
-            self.updates.append(self.GUI_manager.draw(self.ventana, (mx, my)))
-            for x in self.Mini_GUI_manager.draw(self.ventana, (mx, my)):
-                self.updates.append(x)
-
-            # self.updates = list(filter(lambda ele: isinstance(ele, pag.Rect),self.updates))
-
             pag.display.update(self.updates)
             
     def eventos_en_comun(self,evento):
@@ -134,12 +130,6 @@ class Program:
             momento = datetime.datetime.today().strftime('%y%m%d_%f')
             pag.image.save(self.ventana,'screenshot_{}_{}.png'.format(TITLE,momento))
         elif evento.type == pag.WINDOWRESTORED:
-            return True
-        elif self.GUI_manager.active >= 0:
-            if evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
-                self.GUI_manager.pop()
-            elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
-                self.GUI_manager.click((mx, my))
             return True
         elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3]:
             if self.Mini_GUI_manager.click(evento.pos):
@@ -167,13 +157,18 @@ class Program:
             return True
         elif self.loading > 0:
             return True
+        elif self.GUI_manager.active >= 0:
+            if evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
+                self.GUI_manager.pop()
+            elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
+                self.GUI_manager.click((mx, my))
+            return True
         return False
     
     def main_cycle(self):
         if self.screen_main_bool:
             self.cicle_try = 0
             self.redraw = True
-
         
         while self.screen_main_bool:
             self.relog.tick(self.framerate)
@@ -195,16 +190,16 @@ class Program:
                             if x.typing:
                                 x.set(pyperclip.paste())
                 elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
-                    for i,x in sorted(enumerate(self.list_to_click), reverse=True):
+                    for i,x in sorted(enumerate(self.list_to_click_main), reverse=True):
                         if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click((mx,my),pag.key.get_pressed()[pag.K_LCTRL]):
                             self.redraw = True
                             break
                         elif x.click((mx, my)):
                             self.redraw = True
                             break
-                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event(evento,self.list_to_click):
+                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_main(evento,self.list_to_click_main):
                     ...
-                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event(evento,self.list_to_click):
+                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_main(evento,self.list_to_click_main):
                     ...
                 # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
                 #     if self.lista_descargas.click((mx, my),pag.key.get_pressed()[pag.K_LCTRL],button=3) and (result := self.lista_descargas.get_selects()):
@@ -215,23 +210,19 @@ class Program:
                 #                                                   captured=result),
                 #                                   self.func_select_box)
                 
-            for x in self.list_to_draw:
+            for x in self.list_to_draw_main:
                 x.update(dt=self.delta_time.dt)
             if self.drawing:
-                self.draw_objs(self.list_to_draw)  # La lista a dibujar de esta pantalla
+                self.draw_objs(self.list_to_draw_main)  # La lista a dibujar de esta pantalla
 
-    def wheel_event(self,evento,lista):
+    def wheel_event_main(self,evento,lista):
         for i,x in sorted(enumerate(lista), reverse=True):
             if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
                 x.rodar(evento.y*15)
                 return True
-        if self.graficador.rect.collidepoint(pag.mouse.get_pos()):
-            self.zoom += self.zoom*.05*evento.y
-            self.graficador.zoom = self.zoom
-            return True
         return False
 
-    def mouse_motion_event(self,evento, lista):
+    def mouse_motion_event_main(self,evento, lista):
         for i,x in sorted(enumerate(lista), reverse=True):
             if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
                 x.rodar_mouse(evento.rel[1])
