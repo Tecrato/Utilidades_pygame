@@ -43,6 +43,7 @@ class Barra_de_progreso:
     def draw(self,surface) -> None:
         pag.draw.rect(surface, self.border_color, self.rect)
         pag.draw.rect(surface, self.fill_color, self.rect2, width=self.border_width)
+        return (self.rect2,)
 
     def update(self):
         pass
@@ -86,3 +87,15 @@ class Barra_de_progreso:
         elif self.orientacion == 'horizontal':
             self.rect.topleft = self.__pos
             self.rect2.topleft = self.__pos
+
+    @property
+    def collide_rect(self) -> str:
+        return self.rect2
+    def collide(self, rect: pag.Rect) -> bool:
+        return self.rect2.colliderect(rect)
+    def collide_all(self, lista: list) -> str:
+        lista = []
+        for i,x in enumerate(lista):
+            if x.collide(self.collide_rect):
+                lista.append(i)
+        return lista

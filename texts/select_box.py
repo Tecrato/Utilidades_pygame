@@ -126,7 +126,7 @@ class Select_box:
         if self.redraw < 2:
             self.redraw = 0
             return [self.rect]
-        elif self.redraw < 3:
+        else:
             self.redraw = 0
             r = self.last_rect.union(self.rect.copy()).copy()
             self.last_rect = self.rect.copy()
@@ -135,7 +135,7 @@ class Select_box:
     def collide_rect(self) -> str:
         return self.rect
     def collide(self, rect: pag.Rect) -> bool:
-        return self.rect.collidepoint(rect)
+        return self.rect.colliderect(rect)
     def collide_all(self, lista: list):
         lista = []
         for x in lista:

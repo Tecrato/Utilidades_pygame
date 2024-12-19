@@ -119,7 +119,7 @@ class Multi_list(Base):
             if x.draw(surface):
                 self.redraw = 1
 
-        if self.redraw == 0:
+        if self.redraw < 1:
             return []
 
         for x in self.listas:

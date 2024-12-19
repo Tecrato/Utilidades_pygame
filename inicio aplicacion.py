@@ -89,38 +89,36 @@ class Program:
         ...
 
     # Para dibujar los objetos de las utilidades
-    def draw_objs(self, lista: list[pag.Text|pag.Button|pag.Input|pag.Multi_list|pag.Select_box]):
+    def draw_objs(self, lista: list[uti.Text|uti.Button|uti.Input|uti.Multi_list|uti.Select_box]):
         if self.draw_background:
             self.ventana.fill((20, 20, 20))
-        mx, my = pag.mouse.get_pos()
             
-        if self.redraw:
+        redraw = self.redraw
+        self.redraw = False
+        if redraw:
             for x in lista:
-                x.redraw = 1
+                x.redraw = 2
 
-        self.updates.clear()
-        for x in lista:
-            if isinstance(x, (pag.Button,pag.Select_box)):
-                [self.updates.append(r) for r in x.draw(self.ventana, (mx,my))]
-            else:
-                [self.updates.append(r) for r in x.draw(self.ventana)]
-
-        self.updates.append(self.GUI_manager.draw(self.ventana, (mx, my)))
-        for x in self.Mini_GUI_manager.draw(self.ventana, (mx, my)):
-            self.updates.append(x)
-        
-        # Por si quiere agregar un loader cuando la aplicacion no va a responder por estar cargando algo
         # if self.loading > 0:
         #     self.loader.update(self.delta_time.dt)
-        #     self.updates.append(self.loader.draw(self.ventana))
+        #     self.loader.redraw = 1
+        self.updates.clear()
+        for i,x in sorted(enumerate(lista+[self.GUI_manager,self.Mini_GUI_manager]),reverse=False): #,self.loader
+            if isinstance(x, (uti.Button,uti.Select_box,uti.mini_GUI.mini_GUI_admin,uti.GUI.GUI_admin)):
+                r = x.draw(self.ventana, pag.mouse.get_pos())
+            else:
+                r = x.draw(self.ventana)
+            [self.updates.append(s) for s in r]
+            for y in r:
+                for p in lista[i+1:]:
+                    if p.collide(y):
+                        p.redraw += 1
         
-        self.updates = list(filter(lambda ele: isinstance(ele, pag.Rect),self.updates))
-        if self.redraw:
+        if redraw:
             pag.display.update()
-            self.redraw = False
         else:
             pag.display.update(self.updates)
-            
+
     def eventos_en_comun(self,evento):
         mx, my = pag.mouse.get_pos()
         if evento.type == pag.QUIT:

@@ -66,6 +66,7 @@ class select(Base):
             new_pos_selection = self.txt_tama_h*math.floor((new_pos.y/self.size[1])*len(self.texts)) + 5
             pag.draw.rect(self.surf, 'darkgrey', [0,new_pos_selection,self.size[0],self.txt_tama_h], 0, self.border_radius)
         for btn in self.botones:
+            btn.redraw = 1
             btn.draw(self.surf)
         pag.draw.rect(self.surf, 'black', [0,0,*self.size], 1, self.border_radius)
         surface.blit(self.surf,self.rect)

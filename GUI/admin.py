@@ -19,15 +19,17 @@ class GUI_admin:
     ### Para dibujar:
     self.GUI_manager.draw(self.ventana,(mousex,mousey))
     """
-    def __init__(self, font_simbols:str =None) -> None:
+    def __init__(self) -> None:
         self.__list = []
         self.active = -1
+        self.redraw = 1
     def add(self,clase, func= None) -> None:
         self.__list.append({'GUI':clase.copy(), 'func':func})
         self.active = len(self.__list)-1
     def draw(self,surface, mouse_pos, update=True) -> pag.Rect:
         if self.active >= 0:
             return self.__list[self.active]['GUI'].draw(surface, mouse_pos)
+        return []
     def click(self, pos):
         mx,my = pos
         result = self.__list[self.active]['GUI'].click((mx,my))

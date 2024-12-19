@@ -76,6 +76,7 @@ class Input(Base):
             self.text_value.redraw = 1
             self.text_value.draw(self.input_surface)
         else:
+            self.text.redraw = 1
             self.text.draw(self.input_surface)
         if self.typing_line:
             pag.draw.line(self.input_surface, self.pointer_color, (sum(self.letter_pos[:self.typing_pos])+self.text.left,0),
@@ -105,7 +106,7 @@ class Input(Base):
         if self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]
-        elif self.redraw < 3:
+        else:
             self.redraw = 0
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()

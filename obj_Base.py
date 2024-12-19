@@ -187,7 +187,7 @@ class Base:
     def collide_rect(self) -> str:
         return self.rect_border
     def collide(self, rect: pag.Rect) -> bool:
-        return self.rect_border.collidepoint(rect)
+        return self.rect_border.colliderect(rect)
     def collide_all(self, lista: list[Self]) -> str:
         lista = []
         for i,x in enumerate(lista):
@@ -195,11 +195,11 @@ class Base:
                 lista.append(i)
         return lista
     def get_update_rects(self):
-        if self.redraw == 0:
+        if self.redraw < 1:
             return []
-        elif self.redraw == 1:
+        elif self.redraw < 2:
             return [self.rect_border]
-        elif self.redraw == 2:
+        else:
             return [self.rect_border,self.last_rect]
     
     def is_hover(self,pos) -> bool:

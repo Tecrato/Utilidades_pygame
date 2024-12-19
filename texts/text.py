@@ -63,6 +63,7 @@ class Text(Base):
         self.__generate()
     
     def __generate(self):
+        self.last_rect = self.last_rect.union(self.rect)
         self.raw_text = self.text.replace('\t', '    ').split('\n') if '\n' in self.raw_text else self.raw_text
         if len(self.raw_text) == 1:
             self.raw_text = self.raw_text[0]
@@ -109,8 +110,7 @@ class Text(Base):
             self.create_border(self.rect, self.border_width)
         self.__width = self.rect.w
         self.__height = self.rect.h
-        if self.redraw < 1:
-            self.redraw = 1
+        self.redraw = 2
 
     def update(self, pos = None,dt=1):
         super().update(pos,dt=dt)
@@ -123,7 +123,7 @@ class Text(Base):
                 txt.update((self.pos[0],self.pos[1] + self.text_height*i))
 
     def draw(self, surface) -> list[pag.Rect]|None:
-        if self.redraw < 1 or self.redraw == 0:
+        if self.redraw < 1:
             return []
         
         self.rect_text.center = self.rect.center
@@ -146,14 +146,15 @@ class Text(Base):
 
         surface.blit(self.text_surf, self.rect_text)
 
-        if self.redraw == 1:
+        if self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]
-        elif self.redraw == 2:
+        else:
             self.redraw = 0
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
             return [self.rect_border, r]
+        return []
 
 
     @property

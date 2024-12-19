@@ -154,7 +154,6 @@ class List(Base):
             self.redraw = 1
 
     def draw(self,surface):
-
         if self.smothscroll and self.lista_objetos and abs(sum(self.desplazamiento_movent.yd.xy)) > 0.1:
             self.draw_surf()
 
@@ -170,7 +169,7 @@ class List(Base):
         if self.redraw < 2:
             self.redraw = 0
             return [r]
-        elif self.redraw < 3:
+        else:
             self.redraw = 0
             r2 = self.last_rect.union(r).copy()
             self.last_rect = r.copy()
@@ -353,8 +352,10 @@ class List(Base):
 
     def __str__(self) -> str:
         text = f'{'_':_>20}\n'
-        text += f'{self.text_header if self.header else "   ----   "}\n'
-        if self.lista_palabras:
-            text += '\n'.join(self.lista_palabras)
-        text += f'\n{'-':-^20}\n'
+        text += f'{self.text_header if self.header else "   ----   "}\n['
+        for x in self.lista_palabras:
+            text += '{},'.format(x)
+        # if self.lista_palabras:
+        #     text += '\n'.join(self.lista_palabras)
+        text += f']\n{'-':-^20}\n'
         return text
