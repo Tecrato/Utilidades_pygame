@@ -8,7 +8,7 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier, Vector2
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list, *, auto_open: bool=False, min_width = 30, func: Callable=None, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', **kwargs):
+            self, boton: Button, options: list, *, auto_open: bool=False, min_width = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: pag.font.Font=None, **kwargs):
         
         self.options = options
         self.select_opened = False
@@ -21,13 +21,14 @@ class Select_box:
         self.position = position
         self.redraw = 2
         self.last_rect = pag.Rect(0,0,0,0)
+        self.font = font
 
         
-        self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',16,None,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
+        self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',text_size,self.font,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
         self.txt_tama_w = min_width
 
         for i, op in enumerate(options):
-            t = Text(f'{op}',16,None,(10,self.txt_tama_h*i +5), 'topleft','black', padding= (0,5))
+            t = Text(f'{op}',text_size,None,(10,self.txt_tama_h*i +5), 'topleft','black', padding= (0,5))
             self.txt_tama_w = max(self.txt_tama_w,t.width + 20)
             self.botones.append(t.copy())
 
@@ -133,9 +134,9 @@ class Select_box:
             return [self.rect, r]
     @property
     def collide_rect(self) -> str:
-        return self.rect
+        return self.rect.union(self.last_rect)
     def collide(self, rect: pag.Rect) -> bool:
-        return self.rect.colliderect(rect)
+        return self.rect.copy().union(self.last_rect.copy()).colliderect(rect)
     def collide_all(self, lista: list):
         lista = []
         for x in lista:
