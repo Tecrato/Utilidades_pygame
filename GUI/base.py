@@ -37,7 +37,7 @@ class Base_win:
         surface.blit(self.surface,self.rect)
         pag.draw.rect(surface,'black', self.rect,3, 20)
         if update:
-            return self.rect
+            return [self.rect]
 
     def click(self, pos):
         mx,my = Vector2(pos)-self.rect.topleft

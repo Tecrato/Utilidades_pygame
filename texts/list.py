@@ -162,7 +162,7 @@ class List(Base):
 
         if self.redraw < 1:
             return []
-        self.redraw = 0
+        
         surface.blit(self.lista_surface,self.rect)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
         r = self.rect_border.union(self.text_header.rect) if self.header else self.rect_border

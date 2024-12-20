@@ -112,10 +112,9 @@ class Multi_list(Base):
 
     def draw(self,surface) -> pag.Rect:
         
-        
         for x in self.listas:
             if self.redraw > 0:
-                x.redraw = 2
+                x.redraw += 2
             if x.draw(surface):
                 self.redraw = 1
 
