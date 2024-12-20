@@ -3,6 +3,9 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 
+def lerp(a, b, t):
+    return a + (b - a) * t
+
 class Input(Base):
     '''
     for x in self.lista_inputs:
@@ -198,15 +201,8 @@ class Input(Base):
             self.text.text = self.raw_text
             w = Text(self.raw_text[:self.typing_pos]+t,self.text_size, self.font, (0,0), padding=0).rect.w - sum(self.letter_pos[:self.typing_pos])
             self.letter_pos.insert(self.typing_pos,w)
-            # self.letter_pos.insert(self.typing_pos,Text(t,self.text_size, self.font, (0,0), padding=0).rect.w)
             self.typing_pos += 1
-            suma = sum(self.letter_pos[:self.typing_pos])
-            if suma > self.rect2.w-5:
-                self.text.pos = (self.rect2.w-2,self.input_surface.get_height()/2)
-                self.text.dire = 'right'
-            elif suma + self.text.left < self.rect2.w:
-                self.text.pos = (0,self.input_surface.get_height()/2)
-                self.text.dire = 'left'
+            self.center_text()
         self.typing_line = True
         self.typing_line_time = time.time()
 
@@ -217,12 +213,28 @@ class Input(Base):
         self.typing_pos = max(0,self.typing_pos -1)
         self.typing_line = True
         self.typing_line_time = time.time()
-        suma = sum(self.letter_pos[:self.typing_pos])
-        if self.text.left+self.letter_pos[self.typing_pos-1] > 0:
-            self.text.pos = (0,self.input_surface.get_height()/2)
-            self.text.dire = 'left'
-        elif suma + self.text.left < self.rect2.w/10:
-            self.text.pos += (self.letter_pos[self.typing_pos-1],0)
+        self.center_text()
+
+    def center_text(self) -> None:
+        suma = sum(self.letter_pos[:self.typing_pos+1])
+        text_width = self.text.width
+        surf_width = self.surf_rect.w
+
+        if text_width <= surf_width:
+            self.text.left = 0
+        else:
+            if suma - self.text.left > surf_width:
+                self.text.left = -suma + surf_width - 1
+            elif suma - self.text.left < 0:
+                self.text.left = -suma-1
+            else:
+                # Ensure the cursor is visible within the surface 
+                cursor_x = sum(self.letter_pos[:self.typing_pos])
+                if cursor_x - self.text.left < 0:
+                    self.text.left = -cursor_x-1
+                elif cursor_x - self.text.left > surf_width:
+                    self.text.left = -cursor_x + surf_width-1
+
         self.draw_surf()
 
     def to_right(self) -> None:
@@ -232,13 +244,8 @@ class Input(Base):
         self.typing_pos = min(len(self.raw_text),self.typing_pos + 1)
         self.typing_line = True
         self.typing_line_time = time.time()
-        suma = sum(self.letter_pos[:self.typing_pos])
-        if suma+self.text.left > self.rect2.w*.9 :
-            self.text.pos -= (self.letter_pos[self.typing_pos],0)
-        if self.text.right < self.rect2.w and self.text.width > self.rect2.w:
-            self.text.pos = (self.rect2.w-1,self.input_surface.get_height()/2)
-            self.text.dire = 'right'
-        self.draw_surf()
+        self.center_text()
+        
 
     def del_letter(self,dire=1) -> None:
         if not self.deleting:
@@ -255,21 +262,11 @@ class Input(Base):
                 self.raw_text = self.raw_text[:self.typing_pos-1] + self.raw_text[self.typing_pos:]
                 self.letter_pos.pop(self.typing_pos)
                 self.typing_pos -= 1
-                suma = sum(self.letter_pos[:self.typing_pos])
-                if suma > self.rect2.w-5:
-                    self.text.pos = (self.rect2.w-2,self.input_surface.get_height()/2)
-                    self.text.dire = 'right'
-                elif suma + self.text.left < self.rect2.w:
-                    self.text.pos = (0,self.input_surface.get_height()/2)
-                    self.text.dire = 'left'
+                self.center_text()
             else: 
                 self.raw_text = self.raw_text[:self.typing_pos] + self.raw_text[self.typing_pos+1:]
                 self.letter_pos.pop(self.typing_pos+1)
-                
-                suma = sum(self.letter_pos[:self.typing_pos])
-                if self.text.width  < self.rect2.w:
-                    self.text.pos = (0,self.input_surface.get_height()/2)
-                    self.text.dire = 'left'
+                self.center_text()
 
             self.text.text = self.raw_text
         self.typing_line = True
@@ -284,7 +281,6 @@ class Input(Base):
         self.typing_line_time = time.time()
         self.text.text = self.raw_text
         self.text.pos = (0,self.input_surface.get_height()/2)
-        self.text.dire = 'left'
         self.draw_surf()
 
 
