@@ -117,7 +117,7 @@ class Base:
 
     @property
     def left(self) -> int:
-        return self.rect.left
+        return self.rect_border.left
     @left.setter
     def left(self,left) -> None:
         self.pos = (self.pos.x + (left - self.rect.left),self.pos.y)
