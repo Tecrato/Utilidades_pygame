@@ -6,8 +6,8 @@ import math
 import random
 from Utilidades import memosize, line_intersect
 
-from obj_Base import Base
-from texts import Text
+from ..obj_Base import Base
+from ..texts import Text
 
 @memosize
 def numero(num,size) -> Text:
@@ -114,6 +114,7 @@ class Graficador(Base):
                 num = numero(x,20 if self.zoom > .1 else 15)
                 num.top = self.edge[1] + 15
                 num.centerx = pos_x
+                num.redraw = 2
                 num.draw(self.surf)
             if pos_y > 0 and self.alto > pos_y:
                 pag.draw.line(self.surf, self.scale_color, (self.edge[0], pos_y), (self.edge[0] + 10, pos_y),2)
@@ -121,6 +122,7 @@ class Graficador(Base):
                 
                 num.centery = pos_y
                 num.left = self.edge[0]
+                num.redraw = 2
                 num.draw(self.surf)
 
     def add_coord(self,coord: tuple[int,int], color = None) -> None:

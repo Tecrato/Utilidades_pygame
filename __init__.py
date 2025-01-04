@@ -21,6 +21,8 @@ from .figuras.engranajes import Engranaje
 
 from Utilidades import memosize
 
+from .graficas import *
+
 print(
     "\n"
     "Bienvenido a las utilidades para pygame, Hecho por Edouard Sandoval\n"
