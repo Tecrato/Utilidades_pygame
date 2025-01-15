@@ -100,7 +100,7 @@ class Multi_list(Base):
             self.lineas.append([((self.size.x*self.colums_witdh[x] -1),self.listas[0].text_header.rect.h+1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         self.create_border(self.rect, 2)
 
-    def update(self,pos=None,dt=1):
+    def update(self,pos=None,dt=1, mouse_pos=(-10000,-10000)):
         super().update(pos,dt=1)
         if self.smothmove_bool:
             for x in range(self.num_list):

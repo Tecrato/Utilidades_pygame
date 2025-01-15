@@ -1,6 +1,7 @@
 import pygame as pag
 from typing import Literal, Callable
 from .text import Text
+from ..Animaciones import Vector2
 
 class Button(Text):
     '''
@@ -44,9 +45,10 @@ class Button(Text):
             self.with_rect = False
         self.hover = False
 
-    def draw(self, surface: pag.Surface, pos: tuple[int,int] =False) -> list[pag.Rect]|None:
-        pos = pos if pos else pag.mouse.get_pos()
-        if self.rect.collidepoint(pos) and not self.hover:
+    
+    def update(self, pos=None, dt=1, mouse_pos=(-100000,-100000)):
+        mouse_pos = Vector2(mouse_pos)
+        if self.rect.collidepoint(mouse_pos) and not self.hover:
             if self.sound_to_hover:
                 self.sound_to_hover.play()
             if self.func_to_hover:
@@ -59,7 +61,7 @@ class Button(Text):
                 self.with_rect = True
             if self.redraw < 1:
                 self.redraw = 1
-        elif not self.rect.collidepoint(pos) and self.hover:
+        elif not self.rect.collidepoint(mouse_pos) and self.hover:
             if self.func_to_hover:
                 self.func_to_hover()
             self.hover = False
@@ -70,7 +72,7 @@ class Button(Text):
                 self.with_rect = False
             if self.redraw < 1:
                 self.redraw = 1
-        return super().draw(surface)
+        super().update(pos)
 
     def click(self,pos) -> bool:
         if not self.rect.collidepoint(pos):

@@ -3,6 +3,7 @@ import pygame as pag
 from pygame import Vector2
 
 from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
+from Utilidades import Hipotenuza
 
 class Base:
     def __init__(self,pos,dire: Literal["left","right","top","bottom","center","topleft","topright","bottomleft","bottomright"]) -> None:
@@ -13,7 +14,7 @@ class Base:
         self.__pos = Vector2(pos)
         self.smothmove_pos = Vector2(0)
         self.rect_border = pag.rect.Rect(0,0,0,0)
-        self.redraw = 1
+        self.redraw: int = 2
         self.last_rect = pag.Rect(0,0,0,0)
 
     def create_border(self, rect, border_width) -> None:
@@ -23,8 +24,8 @@ class Base:
         self.rect_border.center = rect.center
 
     def direccion(self, rect) -> None:
-        self.last_rect = self.last_rect.union(rect)
         rect.center = self.__pos
+        self.redraw += 2
         if self.dire == 'center':
             self.rect_border.center = rect.center
             return
@@ -38,7 +39,6 @@ class Base:
         elif self.dire in ['bottom','bottomleft','bottomright']:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
-        self.redraw = 2
             
     def smothmove(self, T, f, z, r) -> None:
         self.smothmove_pos = self.pos
@@ -62,15 +62,14 @@ class Base:
         self.direccion(self.rect)
 
       
-    def update(self,pos=None,dt=1) -> bool:
-        if self.smothmove_bool is False or pos is None:
+    def update(self,pos=None,dt=1, **kwargs) -> bool:
+        if self.smothmove_bool is False or pos is None or not pos:
             return False
         elif pos:
             self.pos = pos
         elif self.__pos == self.smothmove_pos:
             return False
         
-        self.last_rect = self.last_rect.union(self.rect)
         if self.smothmove_type == 'Second order dinamics':
             if abs(sum(self.movimiento.yd.xy)) < 0.01:
                 self.__pos = self.smothmove_pos
@@ -78,7 +77,8 @@ class Base:
         elif self.smothmove_type == 'Simple Acceleration':
             if self.simple_acceleration_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
-                if -self.vel*1.5 < (self.__pos[0]+self.__pos[1]) - (self.smothmove_pos[0]+self.smothmove_pos[1]) < self.vel*1.5:
+                self.redraw += 2
+                if Hipotenuza(self.__pos,self.smothmove_pos) < self.vel+1:
                     self.__pos = self.smothmove_pos
             else:
                 self.__pos = self.movimiento.update()

@@ -1,12 +1,13 @@
 import pygame as pag
 import sys
+import os
 import datetime
 import pyperclip
+from pathlib import Path
 import Utilidades as uti
 import Utilidades_pygame as uti_pag
 
-from pygame import Vector2
-
+os.chdir(Path(__file__).parent)
 TITLE: str = 'Program'
 RESOLUCION = [800, 550]
 MIN_RESOLUTION = [550,450]
@@ -35,6 +36,7 @@ class Program:
         # Variables por pantalla
         # Principal:
         self.list_to_draw_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        self.list_to_update_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
         self.list_to_click_main: list[uti_pag.Button|uti_pag.Bloque] = []
         self.list_inputs: list[uti_pag.Input] = []
         ...
@@ -48,6 +50,10 @@ class Program:
         # Iniciar el programa
         self.load_resources()
         self.generate_objs()
+
+        # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
+        # self.func_ejemplo1()
+        # self.empezar_tarea_en_segundo_plano()
 
 
         # Algoritmo para pasar de pantalla sin que esten unas dentro de otras
@@ -79,7 +85,14 @@ class Program:
         self.Mini_GUI_manager = uti_pag.mini_GUI.mini_GUI_admin(self.ventana_rect)
 
         # El resto de textos y demas cosas
+        self.texto1 = uti_pag.Text('Texto de ejemplo', 20, None, (RESOLUCION[0]/2,50), dire='top')
+        self.boton1 = uti_pag.Button('Boton de ejemplo', 20, None, (100,100), dire='center')
         ...
+
+        # Tambien se debe agregar a las respiectivas listas
+        self.list_to_draw_main.extend([self.texto1,self.boton1])
+        self.list_to_update_main.extend([self.texto1,self.boton1])
+        self.list_to_click_main.extend([self.boton1])
 
         # Y se mueven los objetos a su posicion en pantalla
         self.move_objs()
@@ -89,30 +102,36 @@ class Program:
         ...
 
     # Para dibujar los objetos de las utilidades
-    def draw_objs(self, lista: list[uti.Text|uti.Button|uti.Input|uti.Multi_list|uti.Select_box]):
+    def draw_objs(self, lista: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.Select_box|uti_pag.Bloque]):
         if self.draw_background:
-            self.ventana.fill((20, 20, 20))
+            self.ventana.fill(self.background_color)
             
         redraw = self.redraw
         self.redraw = False
         if redraw:
             for x in lista:
-                x.redraw = 2
+                x.redraw += 1
 
         # if self.loading > 0:
         #     self.loader.update(self.delta_time.dt)
         #     self.loader.redraw = 1
         self.updates.clear()
         for i,x in sorted(enumerate(lista+[self.GUI_manager,self.Mini_GUI_manager]),reverse=False): #,self.loader
-            if isinstance(x, (uti.Button,uti.Select_box,uti.mini_GUI.mini_GUI_admin,uti.GUI.GUI_admin)):
-                r = x.draw(self.ventana, pag.mouse.get_pos())
-            else:
-                r = x.draw(self.ventana)
-            [self.updates.append(s) for s in r]
+            re = x.redraw
+            r = x.draw(self.ventana)
+            for s in r:
+                self.updates.append(s)
             for y in r:
                 for p in lista[i+1:]:
-                    if p.collide(y):
-                        p.redraw += 1
+                    if p.collide(y) and p.redraw < 1:
+                        p.redraw = 1
+            if re < 2:
+                continue
+            for y in r:
+                for p in lista[:i]:
+                    if p.collide(y) and p.redraw < 1:
+                        p.redraw = 1
+        
         
         if redraw:
             pag.display.update()
@@ -128,22 +147,23 @@ class Program:
             momento = datetime.datetime.today().strftime('%y%m%d_%f')
             pag.image.save(self.ventana,'screenshot_{}_{}.png'.format(TITLE,momento))
         elif evento.type == pag.WINDOWRESTORED:
+            self.framerate: int = 60
             return True
-        elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3]:
-            if self.Mini_GUI_manager.click(evento.pos):
-                return True
+        elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3] and self.Mini_GUI_manager.click(evento.pos):
+            return True
         elif evento.type == pag.WINDOWMINIMIZED:
             self.drawing = False
+            self.framerate: int = 30
             return True
         elif evento.type == pag.WINDOWFOCUSLOST:
-            self.framerate = 30
+            self.framerate: int = 30
             return True
         elif evento.type in [pag.WINDOWTAKEFOCUS, pag.WINDOWFOCUSGAINED,pag.WINDOWMAXIMIZED]:
-            self.framerate = 60
             self.drawing = True
+            self.framerate: int = 60
             return True
         elif evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
-            size = Vector2(pag.display.get_window_size())
+            size = pag.Vector2(pag.display.get_window_size())
             if size.x < MIN_RESOLUTION[0]:
                 size.x = MIN_RESOLUTION[0]
             if size.y < MIN_RESOLUTION[1]:
@@ -153,8 +173,8 @@ class Program:
 
             self.move_objs()
             return True
-        elif self.loading > 0:
-            return True
+        # elif self.loading > 0:
+        #     return True
         elif self.GUI_manager.active >= 0:
             if evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
                 self.GUI_manager.pop()
@@ -187,18 +207,17 @@ class Program:
                         for x in self.list_inputs:
                             if x.typing:
                                 x.set(pyperclip.paste())
-                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
+                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and not self.on_mouse_click_general(evento, self.list_to_click_main):
+                    ...
+                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_general(evento,self.list_to_click_main):
+                    ...
+                elif evento.type == pag.MOUSEBUTTONUP:
                     for i,x in sorted(enumerate(self.list_to_click_main), reverse=True):
-                        if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click((mx,my),pag.key.get_pressed()[pag.K_LCTRL]):
-                            self.redraw = True
-                            break
-                        elif x.click((mx, my)):
-                            self.redraw = True
-                            break
-                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_main(evento,self.list_to_click_main):
+                        if isinstance(x, (uti_pag.Multi_list,uti_pag.List, uti_pag.Bloque)):
+                            x.scroll = False
+                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_general(evento,self.list_to_click_main):
                     ...
-                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_main(evento,self.list_to_click_main):
-                    ...
+                # Ejemplo para añadir multiseleccion en las listas
                 # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
                 #     if self.lista_descargas.click((mx, my),pag.key.get_pressed()[pag.K_LCTRL],button=3) and (result := self.lista_descargas.get_selects()):
                 #         self.Mini_GUI_manager.add(mini_GUI.select((mx, my),
@@ -207,24 +226,48 @@ class Program:
                 #                                                    self.txts['reiniciar'], self.txts['cambiar nombre']],
                 #                                                   captured=result),
                 #                                   self.func_select_box)
-                
-            for x in self.list_to_draw_main:
-                x.update(dt=self.delta_time.dt)
+            self.update_general(self.list_to_update_main, (mx,my))
             if self.drawing:
                 self.draw_objs(self.list_to_draw_main)  # La lista a dibujar de esta pantalla
 
-    def wheel_event_main(self,evento,lista):
+    def update_general(self,lista,mouse_pos):
         for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
+            x.update(dt=self.delta_time.dt,mouse_pos=mouse_pos)
+        self.GUI_manager.update(mouse_pos=mouse_pos)
+        self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
+
+    def wheel_event_general(self,evento,lista):
+        for i,x in sorted(enumerate(lista), reverse=True):
+            if isinstance(x, (uti_pag.Multi_list,uti_pag.List,uti_pag.Bloque)) and not x.scroll:
                 x.rodar(evento.y*15)
                 return True
+        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
         return False
 
-    def mouse_motion_event_main(self,evento, lista):
+    def mouse_motion_event_general(self,evento, lista):
         for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.scroll:
+            if isinstance(x, (uti_pag.Multi_list, uti_pag.List, uti_pag.Bloque)) and x.scroll:
                 x.rodar_mouse(evento.rel[1])
                 return True
+            
+        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
+        return False
+    
+    def on_mouse_click_general(self,evento,lista):
+        for i,x in sorted(enumerate(lista), reverse=True):
+            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
+                self.redraw = True
+                return True
+            elif x.click(evento.pos):
+                self.redraw = True
+                return True
+        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
+        ...
+        ...
+        ...
+
+
+
         return False
 
 if __name__ == '__main__':

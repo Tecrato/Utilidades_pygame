@@ -23,10 +23,12 @@ class Text(Base):
     - smothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
     """
     
-    def __init__(self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
-                 dire: Literal["center","left","right","top","bottom","topleft","topright","bottomleft","bottomright"] ='center',
-                 color='white',with_rect = False, color_rect ='black', border_width = -1, padding: int|list|tuple = 20, 
-                 width = 0, height = 0, rect_width= 0, **kwargs) -> None:
+    def __init__(
+            self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
+            dire: Literal["center","left","right","top","bottom","topleft","topright","bottomleft","bottomright"] ='center',
+            color='white',with_rect = False, color_rect ='black', border_width = -1, padding: int|list|tuple = 5, 
+            width = 0, height = 0, rect_width= 0, **kwargs
+            ) -> None:
         super().__init__(pos,dire)
         pag.font.init()
         text = str(text)
@@ -112,7 +114,7 @@ class Text(Base):
         self.__height = self.rect.h
         self.redraw = 2
 
-    def update(self, pos = None,dt=1):
+    def update(self, pos = None,dt=1, **kwargs):
         super().update(pos,dt=dt)
         self.last_rect = self.last_rect.union(self.rect_border)
         if self.mode == 1:
@@ -121,8 +123,11 @@ class Text(Base):
             self.rect.centery = self.rect_text.centery + (self.rect_text.h * (len(self.raw_text)-1))/2
             for i, txt in enumerate(self.lista_text):
                 txt.update((self.pos[0],self.pos[1] + self.text_height*i))
+        self.rect_border.center = self.rect.center
 
-    def draw(self, surface) -> list[pag.Rect]|None:
+    def draw(self, surface, always_draw = False) -> list[pag.Rect]|None:
+        if always_draw:
+            self.redraw += 1
         if self.redraw < 1:
             return []
         
@@ -146,7 +151,9 @@ class Text(Base):
 
         surface.blit(self.text_surf, self.rect_text)
 
-        if self.redraw < 2:
+        if self.redraw < 1:
+            return []
+        elif self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]
         else:
@@ -154,7 +161,6 @@ class Text(Base):
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
             return [self.rect_border, r]
-        return []
 
 
     @property

@@ -16,12 +16,16 @@ class mini_GUI_admin:
         return self.gui_count-1
 
     
-    def draw(self, surface,pos):
+    def draw(self, surface):
         l = []
         for x in self.__list:
-            if (r := x['GUI'].draw(surface,pos)):
+            if (r := x['GUI'].draw(surface)):
                 l.append(r)
         return l
+    
+    def update(self, pos=None, mouse_pos=(-100000,-100000)):
+        for x in self.__list:
+            x['GUI'].update(pos=pos, mouse_pos=mouse_pos)
 
     def click(self, pos):
         for i, g in sorted(enumerate(self.__list),reverse=True):
@@ -54,6 +58,7 @@ class mini_GUI_admin:
         for i, g in sorted(enumerate(self.__list),reverse=True):
             if g['id'] == identifier:
                 self.__list.pop(i)
+
     
     @property
     def limit(self):

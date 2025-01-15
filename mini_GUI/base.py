@@ -48,9 +48,13 @@ class Base(primary_base):
             if btn['btn'].rect.collidepoint(Vector2(pos)-self.rect.topleft):
                 return btn['result']
 
-    def draw(self, surface,pos) -> pag.Rect:
-        for btn in self.botones:
-            btn['btn'].draw(self.surf,Vector2(pos)-self.rect.topleft)
+    def draw(self, surface) -> pag.Rect:
         pag.draw.rect(surface, (0,0,0), self.rect_border, self.border_width, self.border_radius)
+        for x in self.botones:
+            x['btn'].draw(self.surf)
         surface.blit(self.surf,self.rect)
         return self.rect_border
+    def update(self, pos=None, dt=1, mouse_pos=(-1000,-10000), **kwargs):
+        for btn in self.botones:
+            btn['btn'].update(mouse_pos=Vector2(mouse_pos)-self.rect.topleft)
+        return super().update(pos=pos, dt=dt, **kwargs)

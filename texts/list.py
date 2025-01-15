@@ -153,9 +153,13 @@ class List(Base):
         if self.redraw < 1:
             self.redraw = 1
 
-    def draw(self,surface):
+    def draw(self,surface, always_draw = False):
         if self.smothscroll and self.lista_objetos and abs(sum(self.desplazamiento_movent.yd.xy)) > 0.1:
             self.draw_surf()
+
+        if always_draw:
+            self.text_header.redraw += 1
+            self.redraw += 1
 
         if self.header:
             self.text_header.draw(surface)
@@ -176,7 +180,7 @@ class List(Base):
             return [r, r2]
         
 
-    def update(self,dt=1):
+    def update(self,dt=1, **kwargs):
         if self.smothscroll:
             self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento).x)
         super().update()

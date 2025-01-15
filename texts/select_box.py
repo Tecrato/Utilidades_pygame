@@ -8,9 +8,9 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier, Vector2
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list, *, auto_open: bool=False, min_width = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: pag.font.Font=None, **kwargs):
+            self, boton: Button, options: list[str], *, auto_open: bool=False, min_width = 10, min_height = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, **kwargs):
         
-        self.options = options
+        self.__options = options
         self.select_opened = False
         self.auto_open = auto_open
         self.func = func
@@ -20,34 +20,54 @@ class Select_box:
         self.selected_animation = animation_dir
         self.position = position
         self.redraw = 2
+        self.padding_horizontal = padding_horizontal
         self.last_rect = pag.Rect(0,0,0,0)
         self.font = font
+        self.border_radius = 5
+        self.text_size = text_size
+        self.min_width = min_width
+        self.min_height = min_height
+        self.hover_rect = pag.Rect(0,0,0,0)
+        self.mouse_pos = pag.Vector2(0,0)
 
-        
-        self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',text_size,self.font,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
-        self.txt_tama_w = min_width
+        self.animation_open = Curva_de_Bezier        
 
-        for i, op in enumerate(options):
-            t = Text(f'{op}',text_size,None,(10,self.txt_tama_h*i +5), 'topleft','black', padding= (0,5))
-            self.txt_tama_w = max(self.txt_tama_w,t.width + 20)
+        self.dict_animations = {
+            'open': "Curva_de_Bezier(20, [(self.rect.w,self.rect.h), (self.size[0]*1.5,self.size[1]*1.5),(self.size[0],self.size[1])])",
+            'close': "Curva_de_Bezier(10, [\
+                (self.rect.w,self.rect.h), \
+                (self.rect.w,0) if self.selected_animation == 'vertical' else (0,self.rect.h)\
+            ])"
+        }
+
+        self.__generate()
+    
+    def __generate(self):
+        self.botones.clear()
+        self.txt_tama_h = Button(f'{max([f'{x}' for x in self.options])}',self.text_size,self.font,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
+        self.hover_rect.h = self.txt_tama_h
+
+        t_max_l = [self.min_width]
+
+        for i, op in enumerate(self.options):
+            t = Text(f'{op}',self.text_size,None,(self.padding_horizontal,self.txt_tama_h*i +5), 'topleft','black', with_rect=False, padding=(0,5))
+            t_max_l.append(t.width + self.padding_horizontal*2)
             self.botones.append(t.copy())
 
-        self.size = (self.txt_tama_w,(self.txt_tama_h*len(options))+10)
-        self.border_radius = 5
+        self.size = (max(t_max_l),max(self.min_height,(self.txt_tama_h*len(self.options))+10))
+        self.hover_rect.w = self.size[0]
 
         self.surf = pag.Surface(self.size,pag.SRCALPHA)
         self.rect = self.surf.get_rect()
+        self.surf.fill((0,0,0,0))
+
+        for x in self.botones:
+            x.centerx = self.rect.w//2
         if self.selected_animation == 'vertical':
             self.rect.h = 0
         elif self.selected_animation == 'horizontal':
             self.rect.w = 0
         self.rect.topleft = self.boton.bottomleft
-        self.animation_open = Curva_de_Bezier
-
-        self.dict_animations = {
-            'open': "Curva_de_Bezier(20, [(self.rect.w,self.rect.h), (self.size[0]*1.5,self.size[1]*1.5),(self.size[0],self.size[1])])",
-            'close': "Curva_de_Bezier(20, [(self.rect.w,self.rect.h), (self.rect.w,self.rect.h*-.5) if self.selected_animation == 'vertical' else (self.rect.w*-.5,self.rect.h), (self.rect.w,0) if self.selected_animation == 'vertical' else (0,self.rect.h)])"
-        }
 
     def open_it(self) -> None:
         self.select_opened = True
@@ -65,7 +85,7 @@ class Select_box:
             return True
         if (self.boton.click(mouse_pos) and self.select_opened and not self.auto_open) or (not self.rect.collidepoint(mouse_pos) and self.auto_open):
             self.close_it()
-            return True
+            return False
         if not self.rect.collidepoint(mouse_pos):
             self.close_it()
             return False
@@ -77,16 +97,28 @@ class Select_box:
         return True
 
     def update(self, dt=1, mouse_pos=(-10000,-10000)) -> None:
-        self.boton.update(dt)
-
         if self.auto_open and self.boton.is_hover(mouse_pos) and not self.select_opened:
              self.open_it()
         elif self.auto_open and not self.boton.is_hover(mouse_pos) and not self.rect.collidepoint(mouse_pos) and self.select_opened:
              self.close_it()
+
+        for btn in self.botones:
+            btn.update()
+
+        if self.mouse_pos != Vector2(mouse_pos)-self.rect.topleft:
+            if self.rect.collidepoint(mouse_pos):
+                self.mouse_pos = Vector2(mouse_pos)-self.rect.topleft
+                self.hover_rect.top = self.txt_tama_h*math.floor((self.mouse_pos.y/self.size[1])*len(self.botones)) + 5
+                self.redraw += 1
+            else:
+                if self.hover_rect != -1:
+                    self.redraw += 1
+
+                self.hover_rect.top = -1
+                
         
         if self.in_animation:
-            self.redraw = 2
-            self.last_rect = self.last_rect.union(self.rect.copy())
+            self.redraw += 2
             r = self.animation_open.update()
             if r == True:
                 self.in_animation = False
@@ -109,21 +141,25 @@ class Select_box:
             elif self.position == 'left':
                 self.rect.topleft = self.boton.rect_border.bottomright
 
-    def draw(self, surface: pag.Surface, mouse_pos) -> None:
+    def draw(self, surface: pag.Surface, always_draw = False) -> None:
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.rect.size], 0)
-        if self.rect.collidepoint(mouse_pos):
-            new_pos = Vector2(mouse_pos)-self.rect.topleft
-            new_pos_selection = self.txt_tama_h*math.floor((new_pos.y/self.size[1])*len(self.botones)) + 5
-            pag.draw.rect(self.surf, 'darkgrey', [0,new_pos_selection,self.size[0],self.txt_tama_h], 0, self.border_radius)
-            if self.redraw < 1:
-                self.redraw = 1
-        for btn in self.botones:
-            btn.redraw = 1
-            btn.draw(self.surf)
-        surface.blit(self.surf, self.rect.topleft,[0,0,self.rect.w,self.rect.h])
         
+        if always_draw:
+            self.redraw += 1
+
         if self.redraw < 1:
             return []
+        
+        if self.hover_rect.top >= 0:
+            pag.draw.rect(self.surf, 'darkgrey', self.hover_rect, 0, self.border_radius)
+            if self.redraw < 1:
+                self.redraw += 1
+        for btn in self.botones:
+            btn.redraw += 2
+            btn.draw(self.surf)
+        
+        surface.blit(self.surf, self.rect.topleft,[0,0,self.rect.w,self.rect.h])
+        
         if self.redraw < 2:
             self.redraw = 0
             return [self.rect]
@@ -146,3 +182,12 @@ class Select_box:
     
     def is_hover(self,pos) -> bool:
         return self.rect_border.collidepoint(pos)
+    
+    @property
+    def options(self):
+        return self.__options
+    
+    @options.setter
+    def options(self, options):
+        self.__options = options
+        self.__generate()

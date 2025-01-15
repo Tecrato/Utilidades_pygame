@@ -68,11 +68,11 @@ class Text_return(Base_win):
         })
         self.inputs.append(self.input)
         
-    def draw(self,surface, mouse_pos) -> None:
+    def draw(self,surface) -> None:
         self.input.draw(self.surface)
-        super().draw(surface, mouse_pos)
+        super().draw(surface)
     
-    def update(self,eventos) -> None:
+    def update(self,eventos, mouse_pos=(-10000,-100000), **kwargs) -> None:
         for inp in self.inputs:
             inp.eventos_teclado(eventos)
 

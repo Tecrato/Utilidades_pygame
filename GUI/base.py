@@ -30,14 +30,13 @@ class Base_win:
         self.inputs:list[Input] = []
         
 
-    def draw(self, surface: pag.Surface, mouse_pos, update=True) -> None|pag.Surface:
-        mx,my = Vector2(mouse_pos)-self.rect.topleft
+    def draw(self, surface: pag.Surface) -> None|pag.Surface:
         [inp.draw(self.surface) for inp in self.inputs]
-        [btn['btn'].draw(self.surface,(mx,my)) for btn in self.botones]
+        [btn['btn'].draw(self.surface) for btn in self.botones]
         surface.blit(self.surface,self.rect)
         pag.draw.rect(surface,'black', self.rect,3, 20)
-        if update:
-            return [self.rect]
+        return [self.rect]
+        
 
     def click(self, pos):
         mx,my = Vector2(pos)-self.rect.topleft
@@ -50,6 +49,11 @@ class Base_win:
             
         if pag.Rect([0,0,500,40]).collidepoint((mx,my)):
             self.pressed_click = True
+
+    def update(self, mouse_pos = (-1000,-10000), **kwargs):
+        mouse_pos = Vector2(mouse_pos)-self.rect.topleft
+        [btn['btn'].update(mouse_pos=mouse_pos) for btn in self.botones]
+        [inp.draw(mouse_pos=mouse_pos) for inp in self.inputs]
 
     def copy(self):
         return self

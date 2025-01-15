@@ -13,6 +13,7 @@ class Barra_de_progreso:
         self.rect = pag.rect.Rect(0, 0, *self.__size)
         self.rect2 = pag.rect.Rect(0, 0, *self.__size)
         self.__volumen = 1.0
+        self.redraw = 2
         if orientacion == 'vertical':
             self.rect.bottomleft = self.__pos
             self.rect2.bottomleft = self.__pos
@@ -45,7 +46,8 @@ class Barra_de_progreso:
         pag.draw.rect(surface, self.fill_color, self.rect2, width=self.border_width)
         return (self.rect2,)
 
-    def update(self):
+    def update(self, dt=1, **kwargs):
+        self.redraw = 2
         pass
 
     @property
