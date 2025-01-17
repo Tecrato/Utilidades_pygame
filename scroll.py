@@ -1,15 +1,16 @@
 import pygame as pag
+from .Animaciones import Second_Order_Dinamics
 
 class Screen_scroll:
     def __init__(
             self, limit: int, inside_height: int = 1, visible: bool = True, min_bar_lenght: int = 10, bar_thickness: int = 10,
-                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255)
+                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smoth = True
         ) -> None:
         self.limit = limit
         self.inside_height = inside_height
         self.visible = visible
         self.pos = pag.Vector2(0, 0)
-        self.desplazamiento = 0
+        self.__desplazamiento = 0
         self.bar_length = 10
         self.bar_thickness = bar_thickness
         self.bar_active = True
@@ -18,7 +19,12 @@ class Screen_scroll:
         self.color = color
         self.top = 0
         self.scroll = False
+        self.redraw = 1
         self.set_bar_length()
+
+        self.smoth = smoth
+        self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
+        self.smoth_pos = 0
 
     def set_bar_length(self) -> None:
         if self.limit >= self.inside_height:
@@ -26,24 +32,14 @@ class Screen_scroll:
             return
         self.bar_active = True
         self.bar_length = max(self.min_bar_lenght,self.limit * (self.limit / (self.inside_height+self.limit)))
-        self.rodar(0)
 
     def rodar(self, y) -> None:
         self.desplazamiento += y
-        self.desplazamiento = min(0, self.desplazamiento)
-        self.desplazamiento = max(-self.inside_height, self.desplazamiento)
-        if self.bar_orientation == 'vertical':
-            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height)
 
     def rodar_mouse(self, delta):
-        self.top += delta
-        if self.top <= 0:
-            self.top = 0
-            self.desplazamiento = 0
-            self.rodar(0)
-            return
-        self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / self.top))
-        self.rodar(0)
+        # self.top += delta
+        self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / (-(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height) + delta)))
+        # self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / self.top))
 
     def draw(self, surface) -> None:
         if not self.visible:
@@ -63,8 +59,12 @@ class Screen_scroll:
         self.scroll = False
         return False
 
-    def update(self, pos=None) -> None:
-        ...
+    def update(self, dt=1, pos=None, **kwargs) -> None:
+        if self.bar_orientation == 'vertical':
+            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height)
+        if self.smoth:
+            self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
+            return True
 
     @property
     def inside_height(self):
@@ -75,3 +75,16 @@ class Screen_scroll:
         if self.__inside_height <= 0:
             self.__inside_height = 1
         self.set_bar_length()
+    
+    @property
+    def desplazamiento(self):
+        return self.__desplazamiento
+    @desplazamiento.setter
+    def desplazamiento(self,d):
+        self.__desplazamiento = d
+        self.__desplazamiento = min(0, self.__desplazamiento)
+        self.__desplazamiento = max(-self.inside_height, self.__desplazamiento)
+
+    @property
+    def diff(self) -> float:
+        return self.__desplazamiento if not self.smoth else self.smoth_pos

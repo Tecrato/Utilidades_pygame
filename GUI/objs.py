@@ -10,7 +10,7 @@ class Info(Base_win):
     def __init__(self,centro: tuple[int,int],encabezado: str,text: str|list[str],size=(500,300)):
         super().__init__(centro,encabezado,size)
 
-        Text(text,25,None,(30,size[1]/2.3),'left', 'black').draw(self.surface)
+        Text(text,25,None,(30,size[1]/2.3),'left', 'black', padding=20).draw(self.surface)
 
         self.botones.append({
             'btn':Button('Aceptar',30,None,Vector2(size)-(20,20), 20, 'bottomright','black','white', border_width=-1),
@@ -22,7 +22,7 @@ class Desicion(Base_win):
     def __init__(self,centro: tuple[int,int],encabezado: str,text: str|list[str], size=(500,300)):
         super().__init__(centro,encabezado,size)
 
-        Text(text,25,None,(30,size[1]/2.3),'left', 'black').draw(self.surface)
+        Text(text,25,None,(30,size[1]/2.3),'left', 'black', padding=20).draw(self.surface)
 
         self.botones.append({
             'btn':Button('Cancelar',24,None,Vector2(size)-(20,20), 15, 'bottomright','black','white', border_width=-1),
@@ -43,7 +43,7 @@ class Text_return(Base_win):
         except Exception as err:
             raise Exception('Debes incluir la siguiente linea de codigo: Utilidades.GUI.configs[\'fuente_simbolos\'] = "tu path hasta la fuente de symbols"')
         
-        Text(texto,30,None,(250,50),'center', 'black').draw(self.surface)
+        Text(texto,30,None,(250,50),'center', 'black', padding=20).draw(self.surface)
         if large:
             self.input = Input((50,150), 20, None, width=375, height=40, border_top_left_radius=20, border_bottom_left_radius=20, max_letter=400)
         else:

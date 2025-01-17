@@ -1,9 +1,13 @@
 from typing import Tuple, Literal
+from .Animaciones import Second_Order_Dinamics
 import pygame as pag
 
 class Barra_de_progreso:
-    def __init__(self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical',
-                 border_color: tuple[int,int,int] = (0,255,0), fill_color: tuple[int,int,int] = (0,128,255), border_width: int = 2):
+    def __init__(
+            self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical',
+            border_color: tuple[int,int,int] = (0,255,0), fill_color: tuple[int,int,int] = (0,128,255), border_width: int = 2,
+            smoth = False
+            ):
         self.__size = pag.Vector2(size)
         self.__pos = pag.Vector2(pos)
         self.orientacion = orientacion
@@ -14,6 +18,8 @@ class Barra_de_progreso:
         self.rect2 = pag.rect.Rect(0, 0, *self.__size)
         self.__volumen = 1.0
         self.redraw = 2
+        self.smoth = smoth
+        self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
         if orientacion == 'vertical':
             self.rect.bottomleft = self.__pos
             self.rect2.bottomleft = self.__pos
@@ -41,13 +47,24 @@ class Barra_de_progreso:
                 self.rect.w = self.rect2.bottom - g
             self.volumen = float(self.rect.w / self.__size.x)
 
-    def draw(self,surface) -> None:
+    def draw(self,surface, *, always_draw=False, **kwargs) -> None:
+        if always_draw:
+            self.redraw = 2
         pag.draw.rect(surface, self.border_color, self.rect)
         pag.draw.rect(surface, self.fill_color, self.rect2, width=self.border_width)
         return (self.rect2,)
 
     def update(self, dt=1, **kwargs):
         self.redraw = 2
+        if self.smoth:
+            v = self.smoth_movent.update(self.__volumen)[0]
+        else:
+            v = self.__volumen
+        if self.orientacion == 'vertical':
+            self.rect.height = self.__size.y*v
+            self.rect.bottom = self.pos[1]
+        elif self.orientacion == 'horizontal':
+            self.rect.w = self.__size.x*v
         pass
 
     @property
@@ -61,11 +78,6 @@ class Barra_de_progreso:
             volumen = 0
 
         self.__volumen = float(volumen)
-        if self.orientacion == 'vertical':
-            self.rect.height = self.__size.y*volumen
-            self.rect.bottom = self.pos[1]
-        elif self.orientacion == 'horizontal':
-            self.rect.w = self.__size.x*volumen
 
     @property
     def size(self):
@@ -75,7 +87,6 @@ class Barra_de_progreso:
         self.__size = pag.Vector2(size)
         self.rect = pag.rect.Rect(0, 0, *self.__size)
         self.rect2 = pag.rect.Rect(0, 0, *self.__size)
-        self.volumen = self.__volumen
 
     @property
     def pos(self):

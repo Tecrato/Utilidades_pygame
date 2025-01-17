@@ -4,11 +4,8 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dinamics
-from Utilidades import memosize
 
-@memosize
-def get_inside_objs(dez, height, size, padd,separation) -> list:
-    return [math.floor((-dez-padd)/(size+separation)), math.ceil((height+(-dez-padd))/(size+separation))]
+
 
 class List(Base):
     '''
@@ -142,7 +139,7 @@ class List(Base):
                 self.select_box.top = self.padding_top + ((self.letter_size+self.separacion)*num) + self.desplazamiento_smoth - self.separacion/2
                 pag.draw.rect(self.lista_surface, self.selected_color, self.select_box)
 
-        o = get_inside_objs(self.desplazamiento_smoth, self.lista_surface_rect.h, self.letter_size, self.padding_top,self.separacion)
+        o = (math.floor((-self.desplazamiento_smoth-self.padding_top)/(self.letter_size+self.separacion)), math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smoth-self.padding_top))/(self.letter_size+self.separacion)))
         for x in range(min(o[0],len(self.lista_objetos)-1),min(o[1],len(self.lista_objetos))):
             if x < 0:
                 continue
@@ -154,7 +151,7 @@ class List(Base):
             self.redraw = 1
 
     def draw(self,surface, always_draw = False):
-        if self.smothscroll and self.lista_objetos and abs(sum(self.desplazamiento_movent.yd.xy)) > 0.1:
+        if self.smothscroll and self.lista_objetos and abs(sum(self.desplazamiento_movent.yd.xy)) > 0.01:
             self.draw_surf()
 
         if always_draw:

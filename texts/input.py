@@ -89,8 +89,6 @@ class Input(Base):
 
     def draw(self, surface) -> None:
         self.update_pressed_keys()
-        if self.redraw < 1:
-            return []
 
         pag.draw.rect(surface, self.background_color, self.rect, 0, self.border_radius, self.border_top_left_radius, 
                       self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
@@ -106,6 +104,8 @@ class Input(Base):
         self.surf_rect.center = self.rect.center
         surface.blit(self.input_surface, self.surf_rect)
         
+        if self.redraw < 1:
+            return []
         if self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]

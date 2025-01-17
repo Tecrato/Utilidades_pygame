@@ -34,7 +34,6 @@ class Spark():
 		movement[0] *= friction
 		self.angle = atan2(movement[1], movement[0])
 		self.angle = self.angle % (2 * pi)
-		# self.angle = Angulo(movement[1], movement[0])
         # if you want to get more realistic, the speed should be adjusted here
 
 	def move(self, dt):
@@ -55,10 +54,10 @@ class Spark():
 
 	def draw(self, surf, offset=[0, 0]):
 		if self.alive:
-			points = [
-				[self.loc[0] + cos(self.angle) * self.speed * self.scale, self.loc[1] + sin(self.angle) * self.speed * self.scale],
-				[self.loc[0] + cos(self.angle + pi / 2) * self.speed * self.scale * 0.3, self.loc[1] + sin(self.angle + pi / 2) * self.speed * self.scale * 0.3],
-				[self.loc[0] - cos(self.angle) * self.speed * self.scale * 3.5, self.loc[1] - sin(self.angle) * self.speed * self.scale * 3.5],
-				[self.loc[0] + cos(self.angle - pi / 2) * self.speed * self.scale * 0.3, self.loc[1] - sin(self.angle + pi / 2) * self.speed * self.scale * 0.3],
-			]
+			points = (
+				(self.loc[0] + cos(self.angle) * self.speed * self.scale, self.loc[1] + sin(self.angle) * self.speed * self.scale),
+				(self.loc[0] + cos(self.angle + pi / 2) * self.speed * self.scale * 0.3, self.loc[1] + sin(self.angle + pi / 2) * self.speed * self.scale * 0.3),
+				(self.loc[0] - cos(self.angle) * self.speed * self.scale * 3.5, self.loc[1] - sin(self.angle) * self.speed * self.scale * 3.5),
+				(self.loc[0] + cos(self.angle - pi / 2) * self.speed * self.scale * 0.3, self.loc[1] - sin(self.angle + pi / 2) * self.speed * self.scale * 0.3),
+			)
 			pag.draw.polygon(self.surface, self.color, points)

@@ -22,9 +22,6 @@ def eval_func(ec,condition,x):
     except:
         return None
 
-@memosize
-def get_v(ancho,edge):
-    return (ancho//2) + (ancho//2 - int(edge[0]))
 
 class Graficador(Base):
     def __init__(
@@ -79,8 +76,6 @@ class Graficador(Base):
 
     def calcular_puntos(self):
         self.puntos.clear()
-        l = self.ancho + int(self.edge[0])
-        v = get_v(self.ancho,self.edge)
         for i, (ec, condition) in enumerate(self.ecuaciones):
             self.puntos.append([])
             for x in range(0,self.ancho*2, self.step):
