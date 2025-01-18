@@ -8,17 +8,17 @@ from .particle import Particle
 from Utilidades import Angulo, Hipotenuza
 
 def apply_gravity(part):
-    angle = Angulo((0,0),part.direccion)
+    angle = Angulo((0,0),part.angle)
     v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
     v.y += part.gravity*dt
     part.vel = Hipotenuza((0,0),v)
-    part.direccion = v.normalize()
+    part.angle = v.normalize()
 
 class Particles:
     def __init__(
-            self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity=0, direccion = (0,1), radio_down: float = 0,
+            self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity=0, angle = 0, radio_down: float = 0,
             vel_dispersion = 0, angle_dispersion = 0, radio_dispersion = 0, max_particles = 100, time_between_spawns = .1,
-            max_distance = 1000, spawn_count = 1, random_color = False
+            max_distance = 1000, spawn_count = 1, random_color = False, auto_spawn: bool = True
         ) -> None:
         self.particles: list[Particle] = []
         self.spawn_pos = spawn_pos
@@ -32,20 +32,18 @@ class Particles:
         self.radio_dispersion = radio_dispersion
         self.max_particles = max_particles
         self.time_between_spawns = time_between_spawns
-        self.direccion = direccion
+        self.angle = angle
         self.max_distance = max_distance
         self.spawn_count = spawn_count
         self.random_color = random_color
+        self.auto_spawn = auto_spawn
+        self.updates_rects = []
+        self.redraw = 2
 
         self.last_pos = 0
         self.last_time = time.time()
 
-    def update(self, dt = 1) -> None:
-        if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1:
-            for _ in range(self.spawn_count):
-                self.__add_particle()
-            self.last_time = time.time()
-
+    def update(self, dt = 1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
             part.update(dt)
             part.radio -= self.radio_down
@@ -53,25 +51,38 @@ class Particles:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
-                angle = Angulo((0,0),part.direccion)
+                angle = part.angle
                 v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
                 v.y += self.gravity*dt
                 part.vel = Hipotenuza((0,0),v)
-                part.direccion = v.normalize()
+                part.angle = pag.Vector2(0).angle_to(v)
             if Hipotenuza(part.pos, part.start_pos) > self.max_distance:
                 self.particles.pop(i)
+
+        if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
+            self.spawn_particles()
+            return True
+
             
     def draw(self,surface):
+        self.updates_rects.clear()
         for part in self.particles:
-            part.draw(surface)
+            for r in part.draw(surface):
+                self.updates_rects.append(r)
+        return self.updates_rects
+
+    def spawn_particles(self):
+        for _ in range(self.spawn_count):
+            self.__add_particle()
+        self.last_time = time.time()
+        return True
 
     def __add_particle(self):
-        vel = self.velocity + self.vel_dispersion * random.uniform(0, 1)
-        radio = self.radio + self.radio_dispersion * random.uniform(-1, 1)
-        direccion = Angulo((0,0),self.direccion) + self.angle_dispersion * random.uniform(-1, 1)
-        direccion = Vector2(math.cos(math.radians(direccion)),math.sin(math.radians(direccion))).normalize()
+        vel = self.velocity + self.vel_dispersion * random.random()
+        radio = self.radio + self.radio_dispersion * (random.random()*2 -1)
+        angle = self.angle + (self.angle_dispersion * (random.random()*2 - 1) )
         color = self.color if not self.random_color else (random.randrange(0,255,50),random.randrange(0,255,50),random.randrange(0,255,50))
-        particula = Particle(self.spawn_pos, radio, color, vel, direccion)
+        particula = Particle(self.spawn_pos, radio, color, vel, angle)
         particula.start_pos = self.spawn_pos
         self.particles.append(particula)
 
@@ -80,3 +91,9 @@ class Particles:
 
     def __len__(self):
         return len(self.particles)
+    
+    def collide(self, rect):
+        for part in self.particles:
+            if pag.Rect(part.pos[0]-part.radio,part.pos[1]-part.radio,part.radio*2,part.radio*2).colliderect(rect):
+                return True
+        return False

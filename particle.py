@@ -1,10 +1,10 @@
-import pygame as pag
+import pygame as pag, math
 from pygame import Vector2
 from Utilidades.optimize import memosize
 
 @memosize
 def radial(radius, startcolor, endcolor):
-    print(str(radius),str(startcolor),str(endcolor))
+    # print(str(radius),str(startcolor),str(endcolor))
     """
     Draws a linear raidal gradient on a square sized surface and returns
     that surface.
@@ -29,22 +29,27 @@ def radial(radius, startcolor, endcolor):
     return bigSurf
 
 class Particle:
-    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, direccion=(0,0)):
+    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle=0):
         self.__pos = Vector2(pos)
         self.__radio = radio
         self.color = color
         self.vel = velocidad
-        self.direccion = Vector2(direccion)
+        self.angle = float(angle)
         self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
+        self.last_rect = pag.Rect(0,0,0,0)
 
     def draw(self,surface: pag.Surface):
         surface.blit(self.surf,(self.pos-(self.radio,self.radio)))
+        r = self.last_rect.copy()
+        self.last_rect = pag.Rect(*(self.pos-(self.radio,self.radio)),self.radio*2,self.radio*2)
+        return (pag.Rect(*(self.pos-(self.radio,self.radio)),self.radio*2,self.radio*2),r)
 
     def generate(self):
         self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
 
     def update(self,dt=1):
-        self.pos += self.direccion*self.vel*dt
+        d = pag.Vector2(math.cos(math.radians(self.angle)),math.sin(math.radians(self.angle)))
+        self.pos += d*self.vel*dt
 
     @property
     def pos(self) -> Vector2:
@@ -71,8 +76,8 @@ class Particle:
         self.generate()
           
     @property
-    def direccion(self) -> Vector2:
-        return self.__direccion
-    @direccion.setter
-    def direccion(self,direccion):
-        self.__direccion = Vector2(direccion)
+    def angle(self) -> Vector2:
+        return self.__angle
+    @angle.setter
+    def angle(self,angle):
+        self.__angle = float(angle)
