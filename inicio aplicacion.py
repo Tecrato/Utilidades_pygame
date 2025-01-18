@@ -11,9 +11,13 @@ os.chdir(Path(__file__).parent)
 TITLE: str = 'Program'
 RESOLUCION = [800, 550]
 MIN_RESOLUTION = [550,450]
+RETURNCODE = 0
+MAX_FPS = 60
 
 class Program:
     def __init__(self) -> None:
+        pag.init()
+        pag.font.init()
         self.ventana: pag.Surface = pag.display.set_mode(RESOLUCION, pag.RESIZABLE|pag.DOUBLEBUF)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(TITLE)
@@ -24,6 +28,7 @@ class Program:
         self.framerate: int = 60
         self.loading: int = 0
         self.redraw: bool = True
+        self.hitboxes = False
         self.relog: pag.time.Clock = pag.time.Clock()
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
@@ -35,10 +40,18 @@ class Program:
 
         # Variables por pantalla
         # Principal:
-        self.list_to_draw_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        self.list_to_update_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        self.list_to_click_main: list[uti_pag.Button|uti_pag.Bloque] = []
-        self.list_inputs: list[uti_pag.Input] = []
+        # self.list_to_draw_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        # self.list_to_update_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
+        # self.list_to_click_main: list[uti_pag.Button|uti_pag.Bloque] = []
+        # self.list_inputs: list[uti_pag.Input] = []
+        self.lists_screens = {
+            "main":{
+                "draw": [],
+                "update": [],
+                "click": [],
+                "inputs": []
+                }
+            }
         ...
 
         # Pantalla de configuracion
@@ -57,16 +70,16 @@ class Program:
 
 
         # Algoritmo para pasar de pantalla sin que esten unas dentro de otras
-        self.screen_main_bool: bool = True
-        ...                                         # Agregar variables booleanas para cada pantalla
+        self.screens_bools: dict[str, bool] = {'main': True}
 
-        self.ciclo_general = [self.main_cycle]
+        self.ciclo_general = [self.screen_main]
         self.cicle_try = 0
 
         while self.cicle_try < 5:
             self.cicle_try += 1
             for x in self.ciclo_general:
                 x()
+        pag.quit()
 
     def load_resources(self):
         # Para cargar tu archivo json de configuraciones
@@ -90,14 +103,14 @@ class Program:
         ...
 
         # Tambien se debe agregar a las respiectivas listas
-        self.list_to_draw_main.extend([self.texto1,self.boton1])
-        self.list_to_update_main.extend([self.texto1,self.boton1])
-        self.list_to_click_main.extend([self.boton1])
+        self.lists_screens["main"]["draw"].extend([self.texto1,self.boton1])
+        self.lists_screens["main"]["update"].extend([self.texto1,self.boton1])
+        self.lists_screens["main"]["click"].extend([self.boton1])
 
         # Y se mueven los objetos a su posicion en pantalla
         self.move_objs()
 
-    # Para mover los objetos denuevo, por ejemplo cuando la ventana cambie de tamaño
+    # Para mover los objetos denuevo, cuando la ventana cambie de tamaño
     def move_objs(self):
         ...
 
@@ -112,15 +125,18 @@ class Program:
             for x in lista:
                 x.redraw += 1
 
-        # if self.loading > 0:
-        #     self.loader.update(self.delta_time.dt)
-        #     self.loader.redraw = 1
+        new_list = lista+[self.GUI_manager,self.Mini_GUI_manager]
+        if self.loading > 0 and self.loader:
+            new_list.append(self.loader)
         self.updates.clear()
         for i,x in sorted(enumerate(lista+[self.GUI_manager,self.Mini_GUI_manager]),reverse=False): #,self.loader
             re = x.redraw
             r = x.draw(self.ventana)
             for s in r:
                 self.updates.append(s)
+            if self.hitboxes:
+                for x in r:
+                    pag.draw.rect(self.ventana, 'green', x, 1)
             for y in r:
                 for p in lista[i+1:]:
                     if p.collide(y) and p.redraw < 1:
@@ -138,16 +154,21 @@ class Program:
         else:
             pag.display.update(self.updates)
 
+    def exit(self):
+        for x in self.screens_bools.keys():
+            self.screens_bools[x] = False
+
     def eventos_en_comun(self,evento):
         mx, my = pag.mouse.get_pos()
         if evento.type == pag.QUIT:
-            pag.quit()
-            sys.exit()
+            self.exit()
         elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12:
             momento = datetime.datetime.today().strftime('%y%m%d_%f')
             pag.image.save(self.ventana,'screenshot_{}_{}.png'.format(TITLE,momento))
+        elif evento.type == pag.KEYDOWN and evento.key == pag.K_F11:
+            self.hitboxes = not self.hitboxes
         elif evento.type == pag.WINDOWRESTORED:
-            self.framerate: int = 60
+            self.framerate: int = MAX_FPS
             return True
         elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3] and self.Mini_GUI_manager.click(evento.pos):
             return True
@@ -160,7 +181,7 @@ class Program:
             return True
         elif evento.type in [pag.WINDOWTAKEFOCUS, pag.WINDOWFOCUSGAINED,pag.WINDOWMAXIMIZED]:
             self.drawing = True
-            self.framerate: int = 60
+            self.framerate: int = MAX_FPS
             return True
         elif evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
@@ -173,8 +194,8 @@ class Program:
 
             self.move_objs()
             return True
-        # elif self.loading > 0:
-        #     return True
+        elif self.loading > 0:
+            return True
         elif self.GUI_manager.active >= 0:
             if evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
                 self.GUI_manager.pop()
@@ -183,39 +204,37 @@ class Program:
             return True
         return False
     
-    def main_cycle(self):
-        if self.screen_main_bool:
+    def screen_main(self):
+        if self.screens_bools['main']:
             self.cicle_try = 0
             self.redraw = True
         
-        while self.screen_main_bool:
+        while self.screens_bools['main']:
             self.relog.tick(self.framerate)
             self.delta_time.update()
 
             mx, my = pag.mouse.get_pos()
             eventos = pag.event.get()
-            self.GUI_manager.input_update(eventos)
             for evento in eventos:
                 if self.eventos_en_comun(evento):
                     self.redraw = True
                     continue
                 elif evento.type == pag.KEYDOWN:
                     if evento.key == pag.K_ESCAPE:
-                        pag.quit()
-                        sys.exit()
+                        self.exit()
                     elif evento.key == pag.K_v and pag.key.get_pressed()[pag.K_LCTRL]:
-                        for x in self.list_inputs:
+                        for x in self.lists_screens["main"]["inputs"]:
                             if x.typing:
                                 x.set(pyperclip.paste())
-                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and not self.on_mouse_click_general(evento, self.list_to_click_main):
+                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and not self.on_mouse_click_general(evento, self.lists_screens["main"]["click"]):
                     ...
-                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_general(evento,self.list_to_click_main):
+                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_general(evento,self.lists_screens["main"]["click"]):
                     ...
                 elif evento.type == pag.MOUSEBUTTONUP:
-                    for i,x in sorted(enumerate(self.list_to_click_main), reverse=True):
+                    for i,x in sorted(enumerate(self.lists_screens["main"]["click"]), reverse=True):
                         if isinstance(x, (uti_pag.Multi_list,uti_pag.List, uti_pag.Bloque)):
                             x.scroll = False
-                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_general(evento,self.list_to_click_main):
+                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_general(evento,self.lists_screens["main"]["click"]):
                     ...
                 # Ejemplo para añadir multiseleccion en las listas
                 # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
@@ -226,15 +245,21 @@ class Program:
                 #                                                    self.txts['reiniciar'], self.txts['cambiar nombre']],
                 #                                                   captured=result),
                 #                                   self.func_select_box)
-            self.update_general(self.list_to_update_main, (mx,my))
+
+            self.update_general(self.lists_screens["main"]["update"], (mx,my))
+            # Y pones el resto de cosas que quieres que se actualizen
+            ...
+
             if self.drawing:
-                self.draw_objs(self.list_to_draw_main)  # La lista a dibujar de esta pantalla
+                self.draw_objs(self.lists_screens["main"]["draw"])  # La lista a dibujar de esta pantalla
 
     def update_general(self,lista,mouse_pos):
         for i,x in sorted(enumerate(lista), reverse=True):
             x.update(dt=self.delta_time.dt,mouse_pos=mouse_pos)
         self.GUI_manager.update(mouse_pos=mouse_pos)
         self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
+        if self.loading > 0 and self.loader:
+            self.loader.update(self.delta_time.dt)
 
     def wheel_event_general(self,evento,lista):
         for i,x in sorted(enumerate(lista), reverse=True):
@@ -265,11 +290,8 @@ class Program:
         ...
         ...
         ...
-
-
-
         return False
 
 if __name__ == '__main__':
-    pag.init()
     Program()
+    sys.exit(RETURNCODE)
