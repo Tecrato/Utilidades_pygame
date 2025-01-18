@@ -30,7 +30,8 @@ class Text(Base):
             width = 0, height = 0, rect_width= 0, **kwargs
             ) -> None:
         super().__init__(pos,dire)
-        pag.font.init()
+        if not pag.font.get_init():
+            pag.font.init()
         text = str(text)
         self.raw_text = text.replace('\t', '    ').split('\n') if '\n' in text else text
         if len(self.raw_text) == 1:
@@ -141,7 +142,16 @@ class Text(Base):
                 ,self.border_top_left_radius,self.border_top_right_radius,self.border_bottom_left_radius,self.border_bottom_right_radius)
             for txt in self.lista_text:
                 txt.draw(surface)
-            return [self.rect_border, self.last_rect]
+            if self.redraw < 1:
+                return []
+            elif self.redraw < 2:
+                self.redraw = 0
+                return [self.rect_border]
+            else:
+                self.redraw = 0
+                r = self.last_rect.union(self.rect_border.copy()).copy()
+                self.last_rect = self.rect_border.copy()
+                return [self.rect_border, r]
         
         if self.with_rect:
             pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius

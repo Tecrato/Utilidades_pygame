@@ -1,6 +1,7 @@
 import pygame as pag
 from pygame import Vector2
 
+from Utilidades.maths import Hipotenuza
 from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
 from .obj_Base import Base
 from .scroll import Screen_scroll
@@ -23,12 +24,14 @@ class Bloque(Base):
         self.border_width = border_width
         self.border_color = border_color
         self.size = size
+        self.index = -1
 
         self.updates = []
 
         self.list_objs: list[dict[str,Any]] = []
         self.scroll_class = Screen_scroll(self.rect.h)
         self.scroll_class.pos = (self.rect.w,0)
+        self.actual_smoth_pos = 0
         self.pos = pos
 
     def add(self,clase, relative_pos, *, drawing: bool=True, clicking=False) -> int:
@@ -41,18 +44,23 @@ class Bloque(Base):
          - pag.Vector2(self.rect.size)*.4
          - (self.rect.w*.1,self.rect.h*.4)
         """
-        self.list_objs.append({"GUI":clase,"pos":relative_pos,"drawing":drawing,"clicking":clicking})
-        self.list_objs[-1]["GUI"].pos = pag.Vector2(eval(f"{self.list_objs[-1]["pos"]}"))+(0,self.scroll_class.desplazamiento)
+        self.list_objs.append({"GUI":clase,"pos":relative_pos,"drawing":drawing,"clicking":clicking, "index":self.index})
+        # self.list_objs[-1]["GUI"].pos = pag.Vector2(eval(f"{self.list_objs[-1]["pos"]}"))+(0,self.scroll_class.diff)
+        setattr(self.list_objs[-1]["GUI"],"bloque_index",int("{i}".format(i=self.index)))
+        setattr(self.list_objs[-1]["GUI"],"move",lambda *args, **kwargs: self.move(*args, index=self.list_objs[-1]["GUI"].bloque_index, **kwargs))
         self.scroll_class.inside_height = max([x['GUI'].bottom for x in self.list_objs])
+        self.index += 1
+        self.move_objs()
         return len(self.list_objs)-1
+    
+    def move(self, pos, index):
+        self.list_objs[index]["pos"] = pos
+        self.move_objs()
 
     def clear(self):
         self.list_objs.clear()
         self.scroll_class.inside_height = 1
 
-    def move_objs(self):
-        for x in self.list_objs:
-            x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+(0,self.scroll_class.desplazamiento)
 
     def click(self,pos):
         pos = Vector2(pos)
@@ -105,15 +113,25 @@ class Bloque(Base):
 
 
     def update(self, pos=None, dt=1, mouse_pos=(-100000,-100000)):
+        
+        self.scroll_class.update()
+        
+        if self.actual_smoth_pos != int(self.scroll_class.diff):
+            self.actual_smoth_pos = self.scroll_class.diff
+            self.move_objs()
+
         for x in self.list_objs:
             x["GUI"].update(mouse_pos=Vector2(mouse_pos)-self.topleft)
-            if x["GUI"].redraw > 0 and self.redraw < x["GUI"].redraw:
-                self.redraw = x["GUI"].redraw
+            if x["GUI"].redraw > 0 and self.redraw < 1:
+                self.redraw = 1
+        
         return super().update(pos)
     
-    def move_obj(self, index, pos: str):
-        self.list_objs[index]['pos'] = pos
-        self.move_objs()
+    def move_objs(self):
+        for x in self.list_objs:
+            x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+(0,self.scroll_class.diff)
+        if self.redraw < 1:
+            self.redraw = 1
 
     def rodar_mouse(self, delta):
         self.scroll_class.rodar_mouse(delta)

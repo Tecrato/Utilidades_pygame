@@ -94,6 +94,9 @@ class Base:
         self.direccion(self.rect)
         return True
 
+    def move(self, pos):
+        self.pos = pos
+
     @property
     def pos(self):
         return self.__pos if not self.smothmove_bool else self.smothmove_pos
