@@ -23,10 +23,41 @@ from Utilidades import memosize
 
 from .graficas import *
 
+__all__ = [
+    # Optimizacion
+    "memosize",
+    
+    # Texts
+    "Text",
+    "Button",
+    "Input",
+    "List",
+    "Multi_list",
+    "Select_box",
+
+    # Figures
+    "Poligono_regular",
+    "Poligono_irregular",
+    "Engranaje",
+    "Barra_de_progreso",
+
+    # GUI
+    "GUI",
+    "mini_GUI",
+
+    # other classes
+    "Curva_de_Bezier",
+    "Second_Order_Dinamics",
+    "Simple_acceleration",
+    "Particles",
+    "Spark",
+    "Bloque",
+]
+
 print(
     "\n"
     "Bienvenido a las utilidades para pygame, Hecho por Edouard Sandoval\n"
     "\n"
-    "Para Empezar puedes copiar el codigo del archivo inicio aplicacion dentro de la libreria\n"
-    "te facilitara el codigo necesario para iniciar la aplicacion por primera vez"
+    "Para Empezar puedes copiar el codigo del archivo inicio aplicacion dentro de la libreria.\n"
+    "te facilitara el codigo necesario para iniciar una aplicacion nueva"
 )
