@@ -44,9 +44,9 @@ class select(Base):
         self.captured = captured
         self.opciones: list[Text] = []
         self.volatile = volatile
-        self.new_pos_selection = 0
+        self.new_pos_selection = -1
 
-        self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',16,None,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
+        self.txt_tama_h = Button(f'{max([f'{x}' for x in options])}',16,None,(0,280), 5, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=-1, border_color='white').rect_border.h
         self.txt_tama_w = min_width
         
         for i, op in enumerate(options):
@@ -65,8 +65,8 @@ class select(Base):
             return []
         self.redraw = 0
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.size], 0, self.border_radius)
-        if self.new_pos_selection > -1:
-            pag.draw.rect(self.surf, 'darkgrey', [0,self.new_pos_selection,self.size[0],self.txt_tama_h], 0, self.border_radius)
+        if self.new_pos_selection > -1 and self.new_pos_selection < len(self.texts):
+            pag.draw.rect(self.surf, 'darkgrey', [0,self.txt_tama_h*self.new_pos_selection + 5,self.size[0],self.txt_tama_h], 0, self.border_radius)
         for btn in self.opciones:
             btn.redraw = 1
             btn.draw(self.surf)
@@ -74,19 +74,20 @@ class select(Base):
         surface.blit(self.surf,self.rect)
         return self.rect
 
-    def click(self, pos):
-        if self.rect.collidepoint(pos) and self.new_pos_selection > -1:
-            new_pos = Vector2(pos)-self.rect.topleft
-            final_index = math.floor((new_pos.y/self.size[1])*len(self.texts))
-            return {'index': final_index, 'text': self.opciones[final_index].text, 'obj':self.captured}
+    def click(self, pos = (-10000,-10000), *args, **kwargs):
+        if self.new_pos_selection > -1 and self.new_pos_selection < len(self.texts)-1:
+            return {'index': self.new_pos_selection, 'text': self.opciones[self.new_pos_selection].text, 'obj':self.captured}
         elif self.volatile:
             return 'exit'
         return False
+    
+    def set_new_pos_selection(self, mouse_pos):
+        new_pos = Vector2(mouse_pos)-self.rect.topleft-(0,5)
+        self.new_pos_selection = math.floor((new_pos.y/(self.size[1]-10))*len(self.texts))
 
     def update(self, dt=1, mouse_pos=(-10000,-10000), **kwargs) -> None:
         if self.rect.collidepoint(mouse_pos):
-            new_pos = Vector2(mouse_pos)-self.rect.topleft-(0,5)
-            self.new_pos_selection = self.txt_tama_h*math.floor((new_pos.y/self.size[1])*len(self.texts)) + 5
+            self.set_new_pos_selection(mouse_pos)
             self.redraw += 2
         else:
             self.new_pos_selection = -100000
