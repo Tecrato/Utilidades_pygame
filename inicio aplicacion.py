@@ -114,8 +114,8 @@ class Program:
     def move_objs(self):
         ...
 
-    # Para dibujar los objetos de las utilidades
-    def draw_objs(self, lista: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.Select_box|uti_pag.Bloque]):
+    # Para dibujar los objetos de las utilidades de manera optimizada, full epica (solo se actualiza la parte de la pantalla donde algun objeto se movio o actualizo)
+    def draw_optimized(self, lista: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.Select_box|uti_pag.Bloque]):
         if self.draw_background:
             self.ventana.fill(self.background_color)
             
@@ -129,7 +129,7 @@ class Program:
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
         self.updates.clear()
-        for i,x in sorted(enumerate(lista+[self.GUI_manager,self.Mini_GUI_manager]),reverse=False): #,self.loader
+        for i,x in sorted(enumerate(new_list),reverse=False): #,self.loader
             re = x.redraw
             r = x.draw(self.ventana)
             for s in r:
@@ -153,6 +153,22 @@ class Program:
             pag.display.update()
         else:
             pag.display.update(self.updates)
+
+    # Se dibuja todo y listo, pa' que tanto peo
+    def draw_always(self, lista):
+        if self.draw_background:
+            self.ventana.fill(self.background_color)
+        for x in lista:
+            x.redraw += 1
+
+        new_list = lista+[self.GUI_manager,self.Mini_GUI_manager]
+        if self.loading > 0 and self.loader:
+            new_list.append(self.loader)
+
+        for i,x in sorted(enumerate(new_list),reverse=False):
+            x.draw(self.ventana)
+
+        pag.display.update()
 
     def exit(self):
         for x in self.screens_bools.keys():
@@ -247,11 +263,11 @@ class Program:
                 #                                   self.func_select_box)
 
             self.update_general(self.lists_screens["main"]["update"], (mx,my))
-            # Y pones el resto de cosas que quieres que se actualizen
+            # Y pones el resto de logica que quieras en tu aplicacion
             ...
 
             if self.drawing:
-                self.draw_objs(self.lists_screens["main"]["draw"])  # La lista a dibujar de esta pantalla
+                self.draw_optimized(self.lists_screens["main"]["draw"])  # La lista a dibujar de esta pantalla
 
     def update_general(self,lista,mouse_pos):
         for i,x in sorted(enumerate(lista), reverse=True):
