@@ -16,7 +16,7 @@ class Base_win:
         self.surface.set_colorkey((254,1,1))
         pag.draw.rect(self.surface,'white',[0,0,*size], border_radius=20)
         pag.draw.rect(self.surface,'lightgrey',[0,0,size[0],40], border_top_left_radius=20, border_top_right_radius=20)
-        Text(title, 30, None, (0,0), 'topleft', 'black', False).draw(self.surface)
+        Text(title, 30, None, (0,0), 'topleft', 'black', False, padding=20).draw(self.surface)
 
         self.state: str = 'minimized' # minimized | maximized
         self.pressed_click: bool = False
@@ -26,12 +26,9 @@ class Base_win:
             'return': 'destroy',
             'result': lambda:'',
             }]
-
-        self.inputs:list[Input] = []
         
 
     def draw(self, surface: pag.Surface) -> None|pag.Surface:
-        [inp.draw(self.surface) for inp in self.inputs]
         [btn['btn'].draw(self.surface) for btn in self.botones]
         surface.blit(self.surface,self.rect)
         pag.draw.rect(surface,'black', self.rect,3, 20)
@@ -40,9 +37,6 @@ class Base_win:
 
     def click(self, pos):
         mx,my = Vector2(pos)-self.rect.topleft
-        for inp in self.inputs:
-            inp.click((mx,my))
-
         for btn in self.botones:
             if btn['btn'].rect.collidepoint((mx,my)):
                 return btn
@@ -53,7 +47,6 @@ class Base_win:
     def update(self, mouse_pos = (-1000,-10000), **kwargs):
         mouse_pos = Vector2(mouse_pos)-self.rect.topleft
         [btn['btn'].update(mouse_pos=mouse_pos) for btn in self.botones]
-        [inp.draw(mouse_pos=mouse_pos) for inp in self.inputs]
 
     def copy(self):
         return self

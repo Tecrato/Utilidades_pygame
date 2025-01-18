@@ -1,5 +1,4 @@
 import pygame as pag
-from .objs import Text_return
 
 class GUI_admin:
     """
@@ -53,8 +52,4 @@ class GUI_admin:
         if len(self.__list) > 0:
             self.__list.pop(index)
             self.active = len(self.__list)-1
-    def input_update(self,eventos):
-        for x in self.__list:
-            if isinstance(x['GUI'],Text_return):
-                x['GUI'].update(eventos)
 
