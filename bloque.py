@@ -48,7 +48,7 @@ class Bloque(Base):
         # self.list_objs[-1]["GUI"].pos = pag.Vector2(eval(f"{self.list_objs[-1]["pos"]}"))+(0,self.scroll_class.diff)
         setattr(self.list_objs[-1]["GUI"],"bloque_index",int("{i}".format(i=self.index)))
         setattr(self.list_objs[-1]["GUI"],"move",lambda *args, **kwargs: self.move(*args, index=self.list_objs[-1]["GUI"].bloque_index, **kwargs))
-        self.scroll_class.inside_height = max([x['GUI'].bottom for x in self.list_objs])
+        # self.scroll_class.inside_height = max([x['GUI'].bottom+10 for x in self.list_objs])
         self.index += 1
         self.move_objs()
         return len(self.list_objs)-1
@@ -117,7 +117,8 @@ class Bloque(Base):
         self.scroll_class.update()
         
         if self.actual_smoth_pos != int(self.scroll_class.diff):
-            self.actual_smoth_pos = self.scroll_class.diff
+            self.actual_smoth_pos = int(self.scroll_class.diff)
+            print(self.actual_smoth_pos)
             self.move_objs()
 
         for x in self.list_objs:
@@ -130,6 +131,8 @@ class Bloque(Base):
     def move_objs(self):
         for x in self.list_objs:
             x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+(0,self.scroll_class.diff)
+        self.scroll_class.inside_height = max([eval(f"{x['pos']}")[1]+x["GUI"].height for x in self.list_objs])
+        self.scroll_class.rodar(0)
         if self.redraw < 1:
             self.redraw = 1
 

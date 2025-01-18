@@ -25,7 +25,8 @@ class Base:
 
     def direccion(self, rect) -> None:
         rect.center = self.__pos
-        self.redraw += 2
+        if self.redraw < 2:
+            self.redraw += 2
         if self.dire == 'center':
             self.rect_border.center = rect.center
             return

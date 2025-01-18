@@ -58,6 +58,7 @@ class List(Base):
         self.total_content_height = 0
         self.desplazamiento_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
         self.desplazamiento_smoth = 0
+        self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
 
 
@@ -151,8 +152,9 @@ class List(Base):
             self.redraw = 1
 
     def draw(self,surface, always_draw = False):
-        if self.smothscroll and self.lista_objetos and abs(sum(self.desplazamiento_movent.yd.xy)) > 0.01:
+        if self.smothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y):
             self.draw_surf()
+            self.last_dezplazamiento_pos = int(self.desplazamiento_movent.y.y)
 
         if always_draw:
             self.text_header.redraw += 1

@@ -7,14 +7,14 @@ class Screen_scroll:
                  bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smoth = True
         ) -> None:
         self.limit = limit
-        self.inside_height = inside_height
         self.visible = visible
         self.pos = pag.Vector2(0, 0)
         self.__desplazamiento = 0
+        self.min_bar_lenght = min_bar_lenght
+        self.inside_height = inside_height
         self.bar_length = 10
         self.bar_thickness = bar_thickness
         self.bar_active = True
-        self.min_bar_lenght = min_bar_lenght
         self.bar_orientation = bar_orientation
         self.color = color
         self.top = 0
@@ -27,19 +27,20 @@ class Screen_scroll:
         self.smoth_pos = 0
 
     def set_bar_length(self) -> None:
-        if self.limit >= self.inside_height:
+        if self.inside_height < self.limit:
             self.bar_active = False
             return
+        
         self.bar_active = True
-        self.bar_length = max(self.min_bar_lenght,self.limit * (self.limit / (self.inside_height+self.limit)))
+        self.bar_length = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
 
     def rodar(self, y) -> None:
+        if not self.bar_active:
+            return
         self.desplazamiento += y
 
     def rodar_mouse(self, delta):
-        # self.top += delta
         self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / (-(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height) + delta)))
-        # self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / self.top))
 
     def draw(self, surface) -> None:
         if not self.visible:
@@ -61,7 +62,7 @@ class Screen_scroll:
 
     def update(self, dt=1, pos=None, **kwargs) -> None:
         if self.bar_orientation == 'vertical':
-            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height)
+            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
             return True
@@ -71,9 +72,13 @@ class Screen_scroll:
         return self.__inside_height
     @inside_height.setter
     def inside_height(self, inside_height):
-        self.__inside_height = inside_height - self.limit
+        self.__inside_height = inside_height
         if self.__inside_height <= 0:
             self.__inside_height = 1
+        if self.inside_height < self.limit:
+            self.desplazamiento = 0
+        else:
+            self.desplazamiento += 0
         self.set_bar_length()
     
     @property
@@ -81,9 +86,11 @@ class Screen_scroll:
         return self.__desplazamiento
     @desplazamiento.setter
     def desplazamiento(self,d):
-        self.__desplazamiento = d
-        self.__desplazamiento = min(0, self.__desplazamiento)
-        self.__desplazamiento = max(-self.inside_height, self.__desplazamiento)
+        self.__desplazamiento = min(0, d)
+        self.__desplazamiento = max(-(abs(self.inside_height-self.limit)), self.__desplazamiento)
+
+        if self.inside_height < self.limit:
+            self.__desplazamiento = 0
 
     @property
     def diff(self) -> float:
