@@ -51,6 +51,11 @@ class Button(Text):
         if self.toggle_rect:
             self.with_rect = False
 
+    def update_hover(self,mouse_pos):
+        if self.rect.collidepoint(mouse_pos):
+            self.hover = True
+        else:
+            self.hover = False
 
     @property
     def hover(self):

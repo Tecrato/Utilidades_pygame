@@ -44,9 +44,13 @@ class Base_win:
         if pag.Rect([0,0,500,40]).collidepoint((mx,my)):
             self.pressed_click = True
 
-    def update(self, mouse_pos = (-1000,-10000), **kwargs):
-        mouse_pos = Vector2(mouse_pos)-self.rect.topleft
-        [btn['btn'].update(mouse_pos=mouse_pos) for btn in self.botones]
+    def update(self,  **kwargs):
+        [btn['btn'].update() for btn in self.botones]
+    
+    def update_hover(self, mouse_pos):
+        mx,my = Vector2(mouse_pos)-self.rect.topleft
+        for btn in self.botones:
+            btn['btn'].update_hover((mx,my))
 
     def copy(self):
         return self

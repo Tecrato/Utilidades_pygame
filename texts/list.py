@@ -259,11 +259,11 @@ class List(Base):
         else:
             raise ValueError('Invalid index, must be an int or False')
 
-    def click(self, pos, ctrl=False, button=1):
-        if not self.rect.collidepoint(pos):
+    def click(self, mouse_pos, ctrl=False, button=1):
+        if not self.rect.collidepoint(mouse_pos):
             self.select(False)
             return False
-        m = Vector2(pos) - self.rect.topleft
+        m = Vector2(mouse_pos) - self.rect.topleft
         m += (0,5)
 
         if self.scroll_bar_active and self.barra.collidepoint(m):
@@ -290,6 +290,7 @@ class List(Base):
         self.lista_palabras.pop(index)
         self.lista_objetos.pop(index)
         self.set_height()
+        self.select(False, False)
         self.rodar(0)
 
     def clear(self):

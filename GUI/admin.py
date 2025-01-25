@@ -29,9 +29,12 @@ class GUI_admin:
         if self.active >= 0:
             return self.__list[self.active]['GUI'].draw(surface)
         return []
-    def update(self, pos=None, mouse_pos=(-100000,-100000)):
+    def update(self, pos=None, **kwargs) -> None:
         if self.active >= 0:
-            self.__list[self.active]['GUI'].update(pos=pos, mouse_pos=mouse_pos)
+            self.__list[self.active]['GUI'].update(pos=pos)
+    def update_hover(self, pos):
+        if self.active >= 0:
+            self.__list[self.active]['GUI'].update_hover(pos)
     def click(self, pos):
         mx,my = pos
         result = self.__list[self.active]['GUI'].click((mx,my))

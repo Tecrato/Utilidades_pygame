@@ -160,14 +160,15 @@ class Multi_list(Base):
     def clear(self) -> None:
         [x.clear() for x in self.listas]
 
-    def click(self,ctrl=False,button=1):
-        if not self.rect.collidepoint(self.mouse_pos):
+    def click(self,mouse_pos,ctrl=False,button=1):
+        m = Vector2(mouse_pos)
+        if not self.rect.collidepoint(m):
             return
         
         for i,x in sorted(enumerate(self.listas),reverse=True):
-            if not x.rect.collidepoint(self.mouse_pos):
+            if not x.rect.collidepoint(mouse_pos):
                 continue
-            a = x.click(self.mouse_pos,ctrl,button)
+            a = x.click(m,ctrl,button)
             if a == 'scrolling' and i==len(self.listas)-1:
                 self.scroll = True
                 x.scroll = False
