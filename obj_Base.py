@@ -16,6 +16,8 @@ class Base:
         self.rect_border = pag.rect.Rect(0,0,0,0)
         self.redraw: int = 2
         self.last_rect = pag.Rect(0,0,0,0)
+        self.mouse_pos = Vector2(0,0)
+        self.hover = False
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
