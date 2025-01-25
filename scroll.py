@@ -2,9 +2,14 @@ import pygame as pag
 from .Animaciones import Second_Order_Dinamics
 
 class Screen_scroll:
+    '''
+    ## Scroll bar
+    ### Other options:
+        - color_hover
+    '''
     def __init__(
             self, limit: int, inside_height: int = 1, visible: bool = True, min_bar_lenght: int = 10, bar_thickness: int = 10,
-                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smoth = True
+                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smoth = True, **kwargs
         ) -> None:
         self.limit = limit
         self.visible = visible
@@ -17,9 +22,13 @@ class Screen_scroll:
         self.bar_active = True
         self.bar_orientation = bar_orientation
         self.color = color
+        self.color_hover = kwargs.get('color_hover',(150,150,150))
         self.top = 0
         self.scroll = False
         self.redraw = 1
+        self.hover = False
+        self.rect = pag.Rect(0,0,0,0)
+        self.last_rect = pag.Rect(0,0,0,0)
         self.set_bar_length()
 
         self.smoth = smoth
@@ -32,7 +41,11 @@ class Screen_scroll:
             return
         
         self.bar_active = True
-        self.bar_length = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
+        if self.bar_orientation == 'vertical':
+            self.rect.h = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
+            self.bar_length = self.rect.h
+            self.rect.w = self.bar_thickness
+            self.rect.x = self.pos[0] - self.bar_thickness
 
     def rodar(self, y) -> None:
         if not self.bar_active:
@@ -40,32 +53,44 @@ class Screen_scroll:
         self.desplazamiento += y
 
     def rodar_mouse(self, delta):
-        self.desplazamiento = -(self.inside_height / ((self.limit - self.bar_length) / (-(self.limit - self.bar_length) * (self.desplazamiento / self.inside_height) + delta)))
+        try:
+            self.top += delta
+            self.desplazamiento = -((self.inside_height-self.limit) / ((self.limit - self.bar_length) / self.top))
+        except ZeroDivisionError:
+            pass
 
     def draw(self, surface) -> None:
-        if not self.visible:
-            return False
-        if not self.bar_active:
-            return False
-        if self.bar_orientation == 'vertical':
-            r = pag.Rect(self.pos[0]-self.bar_thickness, self.pos[1]+self.top, self.bar_thickness, self.bar_length)
-        pag.draw.rect(surface, self.color, r)
-        return True
+        if not self.visible or not self.bar_active:
+            return [] 
+        self.redraw = 0
+        pag.draw.rect(surface, self.color, self.rect)
+        r = self.last_rect.union(self.rect.copy()).copy()
+        self.last_rect = self.rect.copy()
+        return (self.rect,r)
     
     def click(self, pos):
-        if self.bar_orientation == 'vertical' and \
-            pag.Rect(self.pos[0]-self.bar_thickness, self.pos[1]+self.top, self.bar_thickness, self.bar_length).collidepoint(pos):
+        if self.bar_orientation == 'vertical' and self.rect.collidepoint(pos):
             self.scroll = True
             return True
         self.scroll = False
         return False
 
-    def update(self, dt=1, pos=None, **kwargs) -> None:
-        if self.bar_orientation == 'vertical':
-            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
+    def update(self, dt=1, pos=None, mouse_pos=(-10000,-1000), **kwargs) -> None:
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
-            return True
+            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
+
+        if self.bar_orientation == 'vertical' and int(self.top) != int(self.rect.top):
+            # self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
+            self.rect.top = self.top
+            if self.redraw < 1:
+                self.redraw += 1
+
+        if (self.rect.collidepoint(pag.Vector2(mouse_pos)) and self.bar_active and not self.hover and self.visible) or \
+            (not self.rect.collidepoint(pag.Vector2(mouse_pos)) and self.bar_active and self.hover and self.visible):
+            self.hover = not self.hover
+            self.redraw += 1
+
 
     @property
     def inside_height(self):
@@ -95,3 +120,7 @@ class Screen_scroll:
     @property
     def diff(self) -> float:
         return self.__desplazamiento if not self.smoth else self.smoth_pos
+    
+    def collide(self, rect: pag.Rect) -> bool:
+        return self.rect.collidepoint(rect.center)
+    
