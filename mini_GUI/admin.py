@@ -23,9 +23,12 @@ class mini_GUI_admin:
                 l.append(r)
         return l
     
-    def update(self, pos=None, mouse_pos=(-100000,-100000)):
+    def update(self, pos=None, **kwargs):
         for x in self.__list:
-            x['GUI'].update(pos=pos, mouse_pos=mouse_pos)
+            x['GUI'].update(pos=pos, **kwargs)
+    def update_hover(self, mouse_pos=(-100000,-100000)):
+        for x in self.__list:
+            x['GUI'].update_hover(mouse_pos=mouse_pos)
 
     def click(self, pos):
         for i, g in sorted(enumerate(self.__list),reverse=True):

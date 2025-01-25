@@ -54,7 +54,10 @@ class Base(primary_base):
             x['btn'].draw(self.surf)
         surface.blit(self.surf,self.rect)
         return self.rect_border
-    def update(self, pos=None, dt=1, mouse_pos=(-1000,-10000), **kwargs):
+    def update(self, pos=None, dt=1, **kwargs):
         for btn in self.botones:
-            btn['btn'].update(mouse_pos=Vector2(mouse_pos)-self.rect.topleft)
+            btn['btn'].update()
         return super().update(pos=pos, dt=dt, **kwargs)
+    def update_hover(self, mouse_pos=(-1000,-10000)):
+        for btn in self.botones:
+            btn['btn'].update_hover(mouse_pos=Vector2(mouse_pos)-self.rect.topleft)

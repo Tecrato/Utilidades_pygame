@@ -75,7 +75,7 @@ class select(Base):
         return self.rect
 
     def click(self, pos = (-10000,-10000), *args, **kwargs):
-        if self.new_pos_selection > -1 and self.new_pos_selection < len(self.texts)-1:
+        if self.new_pos_selection > -1 and self.new_pos_selection < len(self.texts):
             return {'index': self.new_pos_selection, 'text': self.opciones[self.new_pos_selection].text, 'obj':self.captured}
         elif self.volatile:
             return 'exit'

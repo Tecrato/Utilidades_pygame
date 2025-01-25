@@ -80,10 +80,10 @@ class Select_box:
         self.animation_open = eval(self.dict_animations['close'])
 
     def click(self, mouse_pos) -> bool:
-        if self.boton.click(mouse_pos) and not self.select_opened and not self.auto_open:
+        if self.boton.hover and not self.select_opened and not self.auto_open:
             self.open_it()
             return True
-        if (self.boton.click(mouse_pos) and self.select_opened and not self.auto_open) or (not self.rect.collidepoint(mouse_pos) and self.auto_open):
+        if (self.boton.hover and self.select_opened and not self.auto_open) or (not self.rect.collidepoint(mouse_pos) and self.auto_open):
             self.close_it()
             return False
         if not self.rect.collidepoint(mouse_pos):

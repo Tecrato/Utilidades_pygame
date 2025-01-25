@@ -174,9 +174,9 @@ class Input(Base):
         else:
             return len(self.raw_text)
 
-    def click(self, pos) -> None:
+    def click(self, mouse_pos) -> None:
 
-        if self.rect.collidepoint(pos): 
+        if self.rect.collidepoint(mouse_pos): 
             self.typing = True
             if 'left' in self.dire:
                 neg = self.pos.x
@@ -184,7 +184,7 @@ class Input(Base):
                 neg = self.pos.x - self.rect.w/2
             elif 'right' in self.dire:
                 neg = self.pos.x - self.rect.w
-            self.typing_pos = self.check_pos_letter_click(pos[0]-neg-(self.padding.x)-self.text_size/3)
+            self.typing_pos = self.check_pos_letter_click(mouse_pos[0]-neg-(self.padding.x)-self.text_size/3)
             self.typing_line = True
             self.typing_line_time = time.time()
         else:
