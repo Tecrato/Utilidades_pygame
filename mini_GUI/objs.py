@@ -11,8 +11,8 @@ class simple_popup(Base):
 
         super().__init__(pos,dir, size, border_radius, inside_limits)
 
-        Text(title, 16, None, (0,0), 'topleft', 'black', padding=(20,20)).draw(self.surf)
-        Text(text, 16, None, (10,40), 'left', 'black', padding=(20,20)).draw(self.surf)
+        Text(title, 16, None, (0,0), 'topleft', 'black', padding=20).draw(self.surf)
+        Text(text, 16, None, (10,30), 'topleft', 'black', padding=1).draw(self.surf)
 
         self.botones.append({
             'btn':Button('Aceptar',16,None,self.rect.bottomright, (20,15), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
@@ -24,8 +24,8 @@ class desicion_popup(Base):
 
         super().__init__(pos,dir, size, border_radius, inside_limits)
 
-        Text(title, 16, None, (0,0), 'topleft', 'black', padding=(20,20)).draw(self.surf)
-        Text(text, 16, None, (10,40), 'left', 'black', padding=(20,20)).draw(self.surf)
+        Text(title, 16, None, (0,0), 'topleft', 'black', padding=20).draw(self.surf)
+        Text(text, 16, None, (10,30), 'topleft', 'black', padding=1).draw(self.surf)
 
         
         self.botones.append({
