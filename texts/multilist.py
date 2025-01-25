@@ -10,6 +10,9 @@ class Multi_list(Base):
      - with_index
      - padding_top
      - padding_left
+     - border_color
+     - background_color
+     - header_radius
     
     ## Plantillas
     elif evento.type == MOUSEMOTION:
@@ -48,7 +51,7 @@ class Multi_list(Base):
 
         self.listas: list[List] = []
         self.lineas = []
-        self.scroll = False
+        self.__scroll = False
         self.smothmove_bool = False
         self.actual_index = -1
 
@@ -71,14 +74,15 @@ class Multi_list(Base):
             l_scroll_bar_active = False if x != num_lists-1 else True
             l_header_top_left_radius = 20 if x == 0 else 0
             l_header_top_right_radius = 20 if x == self.num_list-1 else 0
+            txt_header = self.text_header[x] if self.header else None
 
             self.listas.append(List(l_size, l_pos, l_list, self.text_size, l_separacion, self.selected_color, self.text_color, 
                 background_color=self.background_color, smothscroll=self.smothscroll, padding_top=l_padding_top,
                 padding_left=self.padding_left, with_index=l_with_index, scroll_bar_active=l_scroll_bar_active,
-                header=True, text_header=self.text_header[x], header_top_left_radius=l_header_top_left_radius, 
+                header=self.header, text_header=txt_header, header_top_left_radius=l_header_top_left_radius, 
                 header_top_right_radius=l_header_top_right_radius, font=self.fonts[x], header_border_color=self.border_color,
                 border_width=-1))
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),self.listas[0].text_header.rect.h+1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),(self.listas[0].text_header.rect.h+1)if self.header else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         
         self.create_border(self.rect, 2)
 
@@ -97,36 +101,38 @@ class Multi_list(Base):
             self.listas[x].resize(((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y))
             self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
             
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),self.listas[0].text_header.rect.h+1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),((self.listas[0].text_header.rect.h+1)if self.header else 1)), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         self.create_border(self.rect, 2)
 
     def update(self,pos=None,dt=1, mouse_pos=(-10000,-10000)):
         super().update(pos,dt=1)
+        for x in self.listas:
+            x.update(mouse_pos=mouse_pos)
         if self.smothmove_bool:
             for x in range(self.num_list):
                 self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
         
-        for x in self.listas:
-            x.update()
-
-
     def draw(self,surface) -> pag.Rect:
-        
+        for x in self.listas:
+            if x.redraw > 0:
+                self.redraw += 1
+                break
+
         for x in self.listas:
             if self.redraw > 0:
-                x.redraw += 2
-            if x.draw(surface):
-                self.redraw = 1
+                x.redraw += 1
+            if x.draw(surface) and self.redraw < 1:
+                self.redraw += 1
 
         if self.redraw < 1:
             return []
 
         for x in self.listas:
             pag.draw.rect(surface, self.border_color, x.rect, 1)
-            
+
         for line in self.lineas[1:]:
             pag.draw.line(surface, self.border_color, Vector2(line[0])+self.raw_pos-(0,0)-(0,30), Vector2(line[1])+self.raw_pos-(0,1), 2)
-        
+
         self.redraw = 0
         return (self.rect,)
 
@@ -154,32 +160,26 @@ class Multi_list(Base):
     def clear(self) -> None:
         [x.clear() for x in self.listas]
 
-    def click(self,pos,ctrl=False,button=1):
-        m = Vector2(pos)
-        if not self.rect.collidepoint(m):
+    def click(self,ctrl=False,button=1):
+        if not self.rect.collidepoint(self.mouse_pos):
             return
         
         for i,x in sorted(enumerate(self.listas),reverse=True):
-            if not x.rect.collidepoint(pos):
+            if not x.rect.collidepoint(self.mouse_pos):
                 continue
-            a = x.click(m,ctrl,button)
+            a = x.click(self.mouse_pos,ctrl,button)
             if a == 'scrolling' and i==len(self.listas)-1:
                 self.scroll = True
                 x.scroll = False
+                self.listas[-1].scroll = True
                 return
             elif isinstance(a,dict):
-                minilista = {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in self.listas]}
-                return minilista
+                return {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in self.listas]}
         for x in self.listas:
             x.select(False)
 
     def select(self, index: int = False, diff: bool=True) -> str:
         return [l.select(index=int(index),diff=diff)['text'] for l in self.listas]
-
-    def detener_scroll(self) -> None:
-        self.scroll = False
-        for x in self.listas:
-            x.scroll = False
 
     def get_list(self) -> list:
         var1 = [x.get_list() for x in self.listas]
@@ -204,6 +204,15 @@ class Multi_list(Base):
         self.__smothscroll = smothscroll
         for x in self.listas:
             x.smothscroll = self.smothscroll
+
+    @property
+    def scroll(self):
+        return self.__scroll
+    @scroll.setter
+    def scroll(self, value: bool):
+        self.__scroll = value
+        for x in self.listas:
+            x.scroll = value
         
     def __len__(self) -> int:
         return len(self.listas[0])
