@@ -12,7 +12,13 @@ class List(Base):
     ### More options
      - padding_top
      - padding_left
-     - self.scroll_bar_active
+     - scroll_bar_active
+     - barra_color
+     - barra_color_hover
+
+     - header_top_right_radius
+     - header_top_left_radius
+     - header_border_color
 
     ## Ejemplo Codigo:
 
@@ -53,6 +59,9 @@ class List(Base):
         self.lista_objetos: list[pag.Surface] = []
 
         self.barra = pag.rect.Rect(0, 0, 15, 50)
+        self.barra_hover = False
+        self.barra_color = kwargs.get('barra_color',(255,255,255))
+        self.barra_color_hover = kwargs.get('barra_color_hover',(150,150,150))
 
         self.desplazamiento = 0
         self.total_content_height = 0
@@ -87,9 +96,6 @@ class List(Base):
 
         self.__gen_list()
         self.resize(self.__size)
-
-
-
 
     def resize(self,size):
         self.__width = max(size[0],30)
@@ -147,12 +153,12 @@ class List(Base):
             self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smoth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
-            pag.draw.rect(self.lista_surface, 'white', self.barra,border_radius=5)
+            pag.draw.rect(self.lista_surface, self.barra_color_hover if (self.barra_hover or self.scroll) else self.barra_color, self.barra,border_radius=5)
         if self.redraw < 1:
             self.redraw = 1
 
     def draw(self,surface, always_draw = False):
-        if self.smothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y):
+        if (self.smothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
             self.draw_surf()
             self.last_dezplazamiento_pos = int(self.desplazamiento_movent.y.y)
 
@@ -179,13 +185,18 @@ class List(Base):
             return [r, r2]
         
 
-    def update(self,dt=1, **kwargs):
+    def update(self,dt=1, mouse_pos=(-100000,-10000), **kwargs):
         if self.smothscroll:
             self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento).x)
         super().update()
         if self.header:
             self.text_header.bottomleft = self.rect.topleft
             self.rect_border.bottom = self.rect.bottom
+
+        if (self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and not self.barra_hover) or \
+            (not self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and self.barra_hover):
+            self.barra_hover = not self.barra_hover
+            self.redraw += 1
 
     def set_height(self):
         if not self.lista_palabras:
