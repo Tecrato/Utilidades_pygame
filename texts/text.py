@@ -97,8 +97,6 @@ class Text(Base):
             self.rect_text = self.text_surf.get_rect()
             self.rect = self.text_surf.get_rect()
 
-            for txt in range(len(self.raw_text)):
-                self.lista_text.append(Text(self.raw_text[txt], self.__size, self.raw_font, (self.pos[0],self.pos[1] + self.rect.h*txt), self.dire, self.color, False, self.color_rect, padding=self.padding, rect_width=0))
             
             if self.border_radius == -1:
                 self.border_radius = 100_000
@@ -108,9 +106,11 @@ class Text(Base):
                 self.rect.height = (self.text_height * (len(self.raw_text)-1)) + self.padding[0]
 
             self.direccion(self.rect)
-            self.rect.centery = self.rect_text.centery + (self.text_height * (len(self.raw_text)-1))/2
-            
             self.create_border(self.rect, self.border_width)
+
+            for txt in range(len(self.raw_text)):
+                self.lista_text.append(Text(self.raw_text[txt], self.__size, self.raw_font, (self.left,self.top + self.text_height*txt), self.dire, self.color, False, self.color_rect, padding=self.padding, rect_width=0))
+            
         self.__width = self.rect.w
         self.__height = self.rect.h
         self.redraw = 2
