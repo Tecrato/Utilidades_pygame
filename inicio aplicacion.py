@@ -3,32 +3,47 @@ import sys
 import os
 import datetime
 import pyperclip
+import platformdirs
+import time
 from pathlib import Path
 import Utilidades as uti
 import Utilidades_pygame as uti_pag
 
 os.chdir(Path(__file__).parent)
-TITLE: str = 'Program'
+TITLE: str = 'Programa_ejemplo'
+MY_COMPANY = 'Mi compañia'
 RESOLUCION = [800, 550]
 MIN_RESOLUTION = [550,450]
 RETURNCODE = 0
 MAX_FPS = 60
+SCREENSHOTS_DIR = platformdirs.user_pictures_path().joinpath(f'./{MY_COMPANY}/{TITLE}')
+SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 class Program:
-    def __init__(self) -> None:
+    def __init__(self, window_resize: bool = True) -> None:
         pag.init()
         pag.font.init()
-        self.ventana: pag.Surface = pag.display.set_mode(RESOLUCION, pag.RESIZABLE|pag.DOUBLEBUF)
+        self.flags = pag.DOUBLEBUF|pag.HWACCEL
+        if window_resize:
+             self.flags |= pag.RESIZABLE
+        self.ventana: pag.Surface = pag.display.set_mode(RESOLUCION,  self.flags)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(TITLE)
         
         # Variables necesarias
-        self.drawing: bool = True
-        self.draw_background: bool = True
         self.framerate: int = 60
         self.loading: int = 0
+        self.scroll_speed: int = 15
+        self.drawing: bool = True
+        self.draw_background: bool = True
         self.redraw: bool = True
         self.hitboxes = False
+        self.can_resize = True
+        self.click = False
+        self.navegate_with_keys = True
+        self.last_click = time.time()
+        self.hwnd = pag.display.get_wm_info()['window']
+        self.window_resize = window_resize
         self.relog: pag.time.Clock = pag.time.Clock()
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
@@ -46,10 +61,12 @@ class Program:
         # self.list_inputs: list[uti_pag.Input] = []
         self.lists_screens = {
             "main":{
+                "func": self.screen_main,
                 "draw": [],
                 "update": [],
                 "click": [],
-                "inputs": []
+                "inputs": [],
+                "active": True
                 }
             }
         ...
@@ -70,15 +87,17 @@ class Program:
 
 
         # Algoritmo para pasar de pantalla sin que esten unas dentro de otras
-        self.screens_bools: dict[str, bool] = {'main': True}
-
         self.ciclo_general = [self.screen_main]
         self.cicle_try = 0
 
         while self.cicle_try < 5:
             self.cicle_try += 1
-            for x in self.ciclo_general:
-                x()
+            for x in self.lists_screens:
+                if not self.lists_screens[x]["active"]:
+                    continue
+                self.redraw = True
+                self.lists_screens[x]["func"]()
+                self.cicle_try = 0
         pag.quit()
 
     def load_resources(self):
@@ -93,19 +112,35 @@ class Program:
     # Donde se va a generar el texto, inputs, y demas cosas
     def generate_objs(self) -> None:
         # Cosas varias
-        # uti.GUI.configs['fuente_simbolos'] = self.font_simbolos      ----   # Esto es para la GUI que retorna texto, mientras lo la uses no es obligatorio
         self.GUI_manager = uti_pag.GUI.GUI_admin()
         self.Mini_GUI_manager = uti_pag.mini_GUI.mini_GUI_admin(self.ventana_rect)
+        self.loader = None # Aqui el loader que quieras hacer
 
         # El resto de textos y demas cosas
         self.texto1 = uti_pag.Text('Texto de ejemplo', 20, None, (RESOLUCION[0]/2,50), dire='top')
-        self.boton1 = uti_pag.Button('Boton de ejemplo', 20, None, (100,100), dire='center')
+        self.boton1 = uti_pag.Button('Boton de ejemplo', 20, None, (100,100), dire='center', func=lambda: print('Boton de ejemplo'))
+        self.boton2 = uti_pag.Button('Boton de ejemplo', 20, None, (150,150), dire='center', func=lambda: print('Hola mundo'))
         ...
 
-        # Tambien se debe agregar a las respiectivas listas
-        self.lists_screens["main"]["draw"].extend([self.texto1,self.boton1])
-        self.lists_screens["main"]["update"].extend([self.texto1,self.boton1])
-        self.lists_screens["main"]["click"].extend([self.boton1])
+        # Antes de continuar, tambien se le pueden agregar que controles tienen en sus alrededores
+        # Para que se puedan usar las flechas para mover los controles
+        self.boton1.controles_adyacentes = {
+            'top': self.boton2,
+            'left': self.boton2,
+            'right': self.boton2,
+            'bottom': self.boton2
+        }
+        self.boton2.controles_adyacentes = {
+            'top': self.boton1,
+            'left': self.boton1,
+            'right': self.boton1,
+            'bottom': self.boton1
+        }
+
+        # Tambien se debe agregar a las respectivas listas
+        self.lists_screens["main"]["draw"].extend([self.texto1,self.boton1,self.boton2])
+        self.lists_screens["main"]["update"].extend([self.texto1,self.boton1,self.boton2])
+        self.lists_screens["main"]["click"].extend([self.boton1,self.boton2])
 
         # Y se mueven los objetos a su posicion en pantalla
         self.move_objs()
@@ -129,7 +164,7 @@ class Program:
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
         self.updates.clear()
-        for i,x in sorted(enumerate(new_list),reverse=False): #,self.loader
+        for i,x in enumerate(new_list): #,self.loader
             re = x.redraw
             r = x.draw(self.ventana)
             for s in r:
@@ -165,22 +200,78 @@ class Program:
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
 
-        for i,x in sorted(enumerate(new_list),reverse=False):
+        for i,x in enumerate(new_list):
             x.draw(self.ventana)
 
         pag.display.update()
 
     def exit(self):
-        for x in self.screens_bools.keys():
-            self.screens_bools[x] = False
+        for x in self.lists_screens.keys():
+            self.lists_screens[x]["active"] = False
 
+    def move_hover(self, direccion: str, lista):
+        for i,x in sorted(enumerate(lista), reverse=True):
+            if isinstance(x, uti_pag.Button) and x.controles_adyacentes.get('right',False) and x.hover:
+                if not x.controles_adyacentes.get(direccion,False):
+                    break
+                x.hover = False
+                x.controles_adyacentes.get(direccion,False).hover = True
+                break
+        else:
+            for x in lista:
+                if isinstance(x, uti_pag.Button):
+                    x.hover = False
+            for x in lista:
+                if isinstance(x, uti_pag.Button):
+                    x.hover = True
+                    break
+
+    def select_btns_with_arrows(self, evento: pag.event.Event, screen_alias: str):
+        if evento.key == pag.K_RIGHT:
+            self.move_hover('right',self.lists_screens[screen_alias]["click"])
+        elif evento.key == pag.K_LEFT:
+            self.move_hover('left',self.lists_screens[screen_alias]["click"])
+        elif evento.key == pag.K_UP:
+            self.move_hover('top',self.lists_screens[screen_alias]["click"])
+        elif evento.key == pag.K_DOWN:
+            self.move_hover('bottom',self.lists_screens[screen_alias]["click"])
+        else: return False
+        return True
+    
+    def select_inputs_with_TAB(self, evento: pag.event.Event, screen_alias: str):
+        if len(self.lists_screens[screen_alias]["inputs"]) == 0:
+            return False
+        if evento.key == pag.K_TAB:
+            next_typ = False
+            for x in self.lists_screens[screen_alias]["inputs"]:
+                if x.typing:
+                    x.typing = False
+                    next_typ = True
+                elif next_typ:
+                    x.typing = True
+                    break
+            else:
+                return False # ojojojojojooojojojojojojojojojojojojojojojojo
+            return True
+        else: 
+            return False
+    
     def eventos_en_comun(self,evento):
         mx, my = pag.mouse.get_pos()
+        if evento.type == pag.MOUSEBUTTONDOWN:
+            self.last_click = time.time()
+            if evento.button == 1:
+                self.click = True
+        elif evento.type == pag.MOUSEBUTTONUP:
+            self.click = False
+
         if evento.type == pag.QUIT:
             self.exit()
         elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12:
-            momento = datetime.datetime.today().strftime('%y%m%d_%f')
-            pag.image.save(self.ventana,'screenshot_{}_{}.png'.format(TITLE,momento))
+            momento = datetime.datetime.today().strftime('%d-%m-%y %f')
+            result = uti.win32_tools.take_window_snapshot(self.hwnd)
+            surf = pag.image.frombuffer(result['buffer'],(result['bmpinfo']['bmWidth'], result['bmpinfo']['bmHeight']),'BGRA')
+            pag.image.save(surf,SCREENSHOTS_DIR.joinpath('Download Manager {}.png'.format(momento)))
         elif evento.type == pag.KEYDOWN and evento.key == pag.K_F11:
             self.hitboxes = not self.hitboxes
         elif evento.type == pag.WINDOWRESTORED:
@@ -199,13 +290,13 @@ class Program:
             self.drawing = True
             self.framerate: int = MAX_FPS
             return True
-        elif evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
+        elif self.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
             if size.x < MIN_RESOLUTION[0]:
                 size.x = MIN_RESOLUTION[0]
             if size.y < MIN_RESOLUTION[1]:
                 size.y = MIN_RESOLUTION[1]
-            self.ventana = pag.display.set_mode(size, pag.RESIZABLE|pag.DOUBLEBUF)
+            self.ventana = pag.display.set_mode(size,  self.flags)
             self.ventana_rect = self.ventana.get_rect()
 
             self.move_objs()
@@ -221,11 +312,7 @@ class Program:
         return False
     
     def screen_main(self):
-        if self.screens_bools['main']:
-            self.cicle_try = 0
-            self.redraw = True
-        
-        while self.screens_bools['main']:
+        while self.lists_screens['main']["active"]:
             self.relog.tick(self.framerate)
             self.delta_time.update()
 
@@ -238,19 +325,32 @@ class Program:
                 elif evento.type == pag.KEYDOWN:
                     if evento.key == pag.K_ESCAPE:
                         self.exit()
-                    elif evento.key == pag.K_v and pag.key.get_pressed()[pag.K_LCTRL]:
+                    elif evento.key == pag.K_TAB:
+                        self.select_inputs_with_TAB(evento, 'main') # Opcional para que se puedan usar TAB para seleccionar otro input de la lista
+                    elif self.select_btns_with_arrows(evento, 'main') and self.navegate_with_keys: # Opcional
+                        continue
+                    elif evento.key == pag.K_SPACE and self.navegate_with_keys:
+                        for i,x in sorted(enumerate(self.lists_screens['main']["click"]),reverse=True):
+                            if x.hover:
+                                x.click((mx,my))
+                                break
+                    elif evento.key == pag.K_v and pag.key.get_pressed()[pag.K_LCTRL]: # Opcional
                         for x in self.lists_screens["main"]["inputs"]:
                             if x.typing:
                                 x.set(pyperclip.paste())
-                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and not self.on_mouse_click_general(evento, self.lists_screens["main"]["click"]):
+                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and not self.on_mouse_click_general(evento, 'main'):
+                    # aqui va el codigo que el programador desee por si no se la lo del click general
                     ...
-                elif evento.type == pag.MOUSEWHEEL and not self.wheel_event_general(evento,self.lists_screens["main"]["click"]):
+                elif evento.type == pag.MOUSEWHEEL and not self.on_wheel_event_general(evento,'main'):
+                    # lo mismo aqui
                     ...
                 elif evento.type == pag.MOUSEBUTTONUP:
                     for i,x in sorted(enumerate(self.lists_screens["main"]["click"]), reverse=True):
                         if isinstance(x, (uti_pag.Multi_list,uti_pag.List, uti_pag.Bloque)):
                             x.scroll = False
-                elif evento.type == pag.MOUSEMOTION and not self.mouse_motion_event_general(evento,self.lists_screens["main"]["click"]):
+                    # lo mismo aqui
+                elif evento.type == pag.MOUSEMOTION and not self.on_mouse_motion_event_general(evento,'main'):
+                    # lo mismo aqui
                     ...
                 # Ejemplo para añadir multiseleccion en las listas
                 # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
@@ -262,7 +362,7 @@ class Program:
                 #                                                   captured=result),
                 #                                   self.func_select_box)
 
-            self.update_general(self.lists_screens["main"]["update"], (mx,my))
+            self.update_general(self.lists_screens['main']["update"], (mx,my))
             # Y pones el resto de logica que quieras en tu aplicacion
             ...
 
@@ -277,35 +377,36 @@ class Program:
         if self.loading > 0 and self.loader:
             self.loader.update(self.delta_time.dt)
 
-    def wheel_event_general(self,evento,lista):
-        for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List,uti_pag.Bloque)) and not x.scroll:
-                x.rodar(evento.y*15)
+    def on_wheel_event_general(self,evento,screen_alias: str):
+        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+            if isinstance(x, (uti_pag.Multi_list,uti_pag.List,uti_pag.Bloque)) and not x.scroll and x.rect.collidepoint(pag.mouse.get_pos()):
+                x.rodar(evento.y*self.scroll_speed)
                 return True
-        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
         return False
 
-    def mouse_motion_event_general(self,evento, lista):
-        for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list, uti_pag.List, uti_pag.Bloque)) and x.scroll:
-                x.rodar_mouse(evento.rel[1])
-                return True
-            
-        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
+    def on_mouse_motion_event_general(self,evento, screen_alias: str):
+        if self.click:
+            for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+                if isinstance(x, (uti_pag.Multi_list, uti_pag.List, uti_pag.Bloque)) and x.scroll:
+                    x.rodar_mouse(evento.rel[1])
+                    return True
+        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+            if isinstance(x, uti_pag.Button):
+                if x.rect.collidepoint(evento.pos):
+                    x.hover = True
+                    break
+                else:
+                    x.hover = False
         return False
     
-    def on_mouse_click_general(self,evento,lista):
-        for i,x in sorted(enumerate(lista), reverse=True):
+    def on_mouse_click_general(self,evento,screen_alias: str):
+        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
             if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
                 self.redraw = True
                 return True
             elif x.click(evento.pos):
                 self.redraw = True
                 return True
-        # aqui va el codigo que el programador desee (recordar acabar con return True para que no ejecute el resto de eventos)
-        ...
-        ...
-        ...
         return False
 
 if __name__ == '__main__':
