@@ -61,3 +61,14 @@ print(
     "Para Empezar puedes copiar el codigo del archivo inicio aplicacion dentro de la libreria.\n"
     "te facilitara el codigo necesario para iniciar una aplicacion nueva"
 )
+
+import platformdirs
+
+TITLE: str = 'Programa_ejemplo'
+MY_COMPANY = 'Mi compañia'
+RESOLUCION = [800, 550]
+MIN_RESOLUTION = [550,450]
+RETURNCODE = 0
+MAX_FPS = 60
+SCREENSHOTS_DIR = platformdirs.user_pictures_path().joinpath(f'./{MY_COMPANY}/{TITLE}')
+SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
