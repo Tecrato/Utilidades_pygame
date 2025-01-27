@@ -82,3 +82,6 @@ class mini_GUI_admin:
             if isinstance(x['GUI'],select):
                 lista.append(x['GUI'].rect)
         return lista
+    
+    def collide(self, rect):
+        return True

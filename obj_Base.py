@@ -18,6 +18,7 @@ class Base:
         self.last_rect = pag.Rect(0,0,0,0)
         self.mouse_pos = Vector2(0,0)
         self.hover = False
+        self.__scroll = False
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -64,7 +65,6 @@ class Base:
 
         self.direccion(self.rect)
 
-      
     def update(self,pos=None,dt=1, **kwargs) -> bool:
         if self.smothmove_bool is False or pos is None or not pos:
             return False
@@ -96,6 +96,12 @@ class Base:
         
         self.direccion(self.rect)
         return True
+
+    def update_hover(self, mouse_pos):
+        if self.rect.collidepoint(mouse_pos) and not self.hover:
+            self.hover = True
+        elif not self.rect.collidepoint(mouse_pos) and self.hover:
+            self.hover = False
 
     def move(self, pos):
         self.pos = pos
@@ -193,7 +199,7 @@ class Base:
     def collide_rect(self) -> str:
         return self.rect_border
     def collide(self, rect: pag.Rect) -> bool:
-        return self.rect_border.colliderect(rect)
+        return self.rect_border.colliderect(rect) or self.last_rect.colliderect(rect)
     def collide_all(self, lista: list[Self]) -> str:
         lista = []
         for i,x in enumerate(lista):

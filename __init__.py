@@ -28,6 +28,7 @@ __all__ = [
     "memosize",
     
     # Texts
+    "App_menu",
     "Text",
     "Button",
     "Input",
@@ -55,20 +56,6 @@ __all__ = [
 ]
 
 print(
-    "\n"
     "Bienvenido a las utilidades para pygame, Hecho por Edouard Sandoval\n"
-    "\n"
-    "Para Empezar puedes copiar el codigo del archivo inicio aplicacion dentro de la libreria.\n"
-    "te facilitara el codigo necesario para iniciar una aplicacion nueva"
+    "Para empezar leer la guia y crear una clase que herede de 'Utilidades_pygame.base_app_class.Base_class'"
 )
-
-import platformdirs
-
-TITLE: str = 'Programa_ejemplo'
-MY_COMPANY = 'Mi compañia'
-RESOLUCION = [800, 550]
-MIN_RESOLUTION = [550,450]
-RETURNCODE = 0
-MAX_FPS = 60
-SCREENSHOTS_DIR = platformdirs.user_pictures_path().joinpath(f'./{MY_COMPANY}/{TITLE}')
-SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)

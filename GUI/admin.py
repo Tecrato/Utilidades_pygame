@@ -56,3 +56,5 @@ class GUI_admin:
             self.__list.pop(index)
             self.active = len(self.__list)-1
 
+    def collide(self, rect):
+        return True

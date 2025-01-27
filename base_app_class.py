@@ -3,9 +3,12 @@ import pygame as pag
 import time
 import datetime
 import Utilidades as uti
-import Utilidades_pygame as uti_pag
+from . import *
+from .config_default import Config
 
-from . import TITLE, RESOLUCION, MIN_RESOLUTION, MAX_FPS, SCREENSHOTS_DIR
+__all__ = [
+    "Base_class",
+]
 
 class Base_class:
     '''
@@ -13,7 +16,7 @@ class Base_class:
     1) post_init()
     2) generate_objs()
     3) load_resources()
-    5) other_variables()
+    5) otras_variables()
     6) move_objs()
     7) other_event()
     8) on_exit()
@@ -24,15 +27,18 @@ class Base_class:
     1) self.registrar_pantalla(alias: str)
     2) Agregar los botones y otros widgets a self.lists_screens[alias_de_pantalla]["draw"|"update"|"click"|"inputs"]
     '''
-    def __init__(self, window_resize: bool = True) -> None:
+    def __init__(self,config: Config = Config()) -> None:
         pag.init()
         pag.font.init()
+        self.config = config
         self.flags = pag.DOUBLEBUF|pag.HWACCEL
-        if window_resize:
-             self.flags |= pag.RESIZABLE
-        self.ventana: pag.Surface = pag.display.set_mode(RESOLUCION,  self.flags)
+        if self.config.window_resize:
+            self.flags |= pag.RESIZABLE
+        if self.config.scaled:
+            self.flags |= pag.SCALED
+        self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
-        pag.display.set_caption(TITLE)
+        pag.display.set_caption(self.config.title)
         
         # Variables necesarias
         self.draw_mode: Literal["optimized","always"] = 'optimized'
@@ -49,23 +55,17 @@ class Base_class:
         self.running = True
         self.last_click = time.time()
         self.hwnd = pag.display.get_wm_info()['window']
-        self.window_resize = window_resize
         self.relog: pag.time.Clock = pag.time.Clock()
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
 
         # Otras variables
         self.delta_time: uti.Deltatime = uti.Deltatime(self.framerate)
-        self.other_variables()
+        self.otras_variables()
         ...
         ...
 
         # Variables por pantalla
-        # Principal:
-        # self.list_to_draw_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        # self.list_to_update_main: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        # self.list_to_click_main: list[uti_pag.Button|uti_pag.Bloque] = []
-        # self.list_inputs: list[uti_pag.Input] = []
         self.lists_screens = {
             "main":{
                 "draw": [],
@@ -76,23 +76,15 @@ class Base_class:
             }
         self.actual_screen = 'main'
 
-        # Pantalla de configuracion
-        # self.list_to_draw_config: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.List|uti_pag.Bloque] = []
-        # self.list_to_click_config: list[uti_pag.Button|uti_pag.Bloque] = []
-        # self.list_inputs_config: list[uti_pag.Input] = []
-        # ... --------------------> Es un ejemplo de como se puede hacer una pantalla de configuracion
-
         # Iniciar el programa
-        self.GUI_manager = uti_pag.GUI.GUI_admin()
-        self.Mini_GUI_manager = uti_pag.mini_GUI.mini_GUI_admin(self.ventana_rect)
+        self.GUI_manager = GUI.GUI_admin()
+        self.Mini_GUI_manager = mini_GUI.mini_GUI_admin(self.ventana_rect)
         self.load_resources()
         self.generate_objs()
 
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
-        # self.func_ejemplo1()
-        # self.empezar_tarea_en_segundo_plano()
-
         self.post_init()
+
         self.screen_main()
 
         self.on_exit()
@@ -100,7 +92,7 @@ class Base_class:
     
     def load_resources(self): ...
     def post_init(self): ...
-    def other_variables(self): ...
+    def otras_variables(self): ...
     def move_objs(self): ...
     def on_exit(self): ...
     def update(self, actual_screen: str): ...
@@ -116,7 +108,7 @@ class Base_class:
     def goto(self, alias):
         self.actual_screen = alias
 
-    def draw_optimized(self, lista: list[uti_pag.Text|uti_pag.Button|uti_pag.Input|uti_pag.Multi_list|uti_pag.Select_box|uti_pag.Bloque]):
+    def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque]):
         if self.draw_background:
             self.ventana.fill(self.background_color)
             
@@ -131,13 +123,12 @@ class Base_class:
             new_list.append(self.loader)
         self.updates.clear()
         for i,x in enumerate(new_list):
+            if not x.collide(self.ventana_rect):
+                continue
             re = x.redraw
             r = x.draw(self.ventana)
             for s in r:
                 self.updates.append(s)
-            if self.hitboxes:
-                for x in r:
-                    pag.draw.rect(self.ventana, 'green', x, 1)
             for y in r:
                 for p in lista[i+1:]:
                     if p.collide(y) and p.redraw < 1:
@@ -148,6 +139,10 @@ class Base_class:
                 for p in lista[:i]:
                     if p.collide(y) and p.redraw < 1:
                         p.redraw = 1
+        # f
+        if self.hitboxes:
+            for x in self.updates:
+                pag.draw.rect(self.ventana, 'green', x, 1)
         
         
         if redraw:
@@ -175,7 +170,7 @@ class Base_class:
     
     def move_hover(self, direccion: str, lista):
         for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, uti_pag.Button) and x.controles_adyacentes.get('right',False) and x.hover:
+            if isinstance(x, Button) and x.controles_adyacentes.get('right',False) and x.hover:
                 if not x.controles_adyacentes.get(direccion,False):
                     break
                 x.hover = False
@@ -183,10 +178,10 @@ class Base_class:
                 break
         else:
             for x in lista:
-                if isinstance(x, uti_pag.Button):
+                if isinstance(x, Button):
                     x.hover = False
             for x in lista:
-                if isinstance(x, uti_pag.Button):
+                if isinstance(x, Button):
                     x.hover = True
                     break
 
@@ -231,15 +226,15 @@ class Base_class:
 
         if evento.type == pag.QUIT:
             self.exit()
-        elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12:
+        elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12 and self.config.screen_shots_dir:
             momento = datetime.datetime.today().strftime('%d-%m-%y %f')
             result = uti.win32_tools.take_window_snapshot(self.hwnd)
             surf = pag.image.frombuffer(result['buffer'],(result['bmpinfo']['bmWidth'], result['bmpinfo']['bmHeight']),'BGRA')
-            pag.image.save(surf,SCREENSHOTS_DIR.joinpath('Download Manager {}.png'.format(momento)))
+            pag.image.save(surf,self.config.screen_shots_dir.joinpath('Download Manager {}.png'.format(momento)))
         elif evento.type == pag.KEYDOWN and evento.key == pag.K_F11:
             self.hitboxes = not self.hitboxes
         elif evento.type == pag.WINDOWRESTORED:
-            self.framerate: int = MAX_FPS
+            self.framerate: int = self.config.max_fps
             return True
         elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3] and self.Mini_GUI_manager.click(evento.pos):
             return True
@@ -252,14 +247,14 @@ class Base_class:
             return True
         elif evento.type in [pag.WINDOWTAKEFOCUS, pag.WINDOWFOCUSGAINED,pag.WINDOWMAXIMIZED]:
             self.drawing = True
-            self.framerate: int = MAX_FPS
+            self.framerate: int = self.config.max_fps
             return True
-        elif self.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
+        elif self.config.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
-            if size.x < MIN_RESOLUTION[0]:
-                size.x = MIN_RESOLUTION[0]
-            if size.y < MIN_RESOLUTION[1]:
-                size.y = MIN_RESOLUTION[1]
+            if size.x < self.config.min_resolution[0]:
+                size.x = self.config.min_resolution[0]
+            if size.y < self.config.min_resolution[1]:
+                size.y = self.config.min_resolution[1]
             self.ventana = pag.display.set_mode(size,  self.flags)
             self.ventana_rect = self.ventana.get_rect()
 
@@ -285,7 +280,7 @@ class Base_class:
 
     def on_wheel_event_general(self,evento,screen_alias: str):
         for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List,uti_pag.Bloque)) and not x.scroll and x.rect.collidepoint(pag.mouse.get_pos()):
+            if isinstance(x, (Multi_list,List,Bloque)) and not x.scroll and x.rect.collidepoint(pag.mouse.get_pos()):
                 x.rodar(evento.y*self.scroll_speed)
                 return True
         return False
@@ -293,21 +288,16 @@ class Base_class:
     def on_mouse_motion_event_general(self,evento, screen_alias: str):
         if self.click:
             for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-                if isinstance(x, (uti_pag.Multi_list, uti_pag.List, uti_pag.Bloque)) and x.scroll:
+                if isinstance(x, (Multi_list, List, Bloque)) and x.scroll:
                     x.rodar_mouse(evento.rel[1])
                     return True
         for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-            if isinstance(x, uti_pag.Button):
-                if x.rect.collidepoint(evento.pos):
-                    x.hover = True
-                    break
-                else:
-                    x.hover = False
+            x.update_hover(evento.pos)
         return False
     
     def on_mouse_click_general(self,evento,screen_alias: str):
         for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
+            if isinstance(x, (Multi_list,List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
                 self.redraw = True
                 return True
             elif x.click(evento.pos):
@@ -317,7 +307,7 @@ class Base_class:
     
     def on_mouse_click_up_general(self,screen_alias: str):
         for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-            if isinstance(x, (uti_pag.Multi_list,uti_pag.List, uti_pag.Bloque)) and x.scroll == True:
+            if isinstance(x, (Multi_list,List, Bloque)) and x.scroll == True:
                 x.scroll = False
                 return True
         return False
