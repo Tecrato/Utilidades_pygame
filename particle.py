@@ -32,24 +32,28 @@ class Particle:
     def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle=0):
         self.__pos = Vector2(pos)
         self.__radio = radio
-        self.color = color
+        self.__color = color
         self.vel = velocidad
         self.angle = float(angle)
-        self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
         self.last_rect = pag.Rect(0,0,0,0)
+        self.rect = pag.Rect(0,0,0,0)
+        self.generate()
 
     def draw(self,surface: pag.Surface):
-        surface.blit(self.surf,(self.pos-(self.radio,self.radio)))
+        surface.blit(self.image,self.rect)
         r = self.last_rect.copy()
-        self.last_rect = pag.Rect(*(self.pos-(self.radio,self.radio)),self.radio*2,self.radio*2)
-        return (pag.Rect(*(self.pos-(self.radio,self.radio)),self.radio*2,self.radio*2),r)
+        self.last_rect = self.rect.copy()
+        return (self.rect,r)
 
     def generate(self):
-        self.surf = radial(int(self.radio), self.color+(255,), self.color+(0,))
+        if self.radio > 1 and int(self.rect.width) != int(self.radio*2):
+            self.image = radial(int(self.radio), self.color+(255,), self.color+(0,))
+            self.rect = self.image.get_rect(center=self.pos)
 
     def update(self,dt=1):
         d = pag.Vector2(math.cos(math.radians(self.angle)),math.sin(math.radians(self.angle)))
         self.pos += d*self.vel*dt
+        self.rect.center = self.pos
 
     @property
     def pos(self) -> Vector2:

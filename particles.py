@@ -45,19 +45,20 @@ class Particles:
 
     def update(self, dt = 1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
-            part.update(dt)
+            part.update()
             part.radio -= self.radio_down
             if part.radio-self.radio_down < 1:
+                self.particles.pop(i)
+                continue
+            if Hipotenuza(part.pos, part.start_pos) > self.max_distance:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
                 angle = part.angle
                 v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
-                v.y += self.gravity*dt
+                v.y += self.gravity
                 part.vel = Hipotenuza((0,0),v)
                 part.angle = pag.Vector2(0).angle_to(v)
-            if Hipotenuza(part.pos, part.start_pos) > self.max_distance:
-                self.particles.pop(i)
 
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
             self.spawn_particles()
@@ -93,7 +94,4 @@ class Particles:
         return len(self.particles)
     
     def collide(self, rect):
-        for part in self.particles:
-            if pag.Rect(part.pos[0]-part.radio,part.pos[1]-part.radio,part.radio*2,part.radio*2).colliderect(rect):
-                return True
-        return False
+        return True
