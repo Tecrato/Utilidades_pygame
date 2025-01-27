@@ -22,7 +22,7 @@ class Screen_scroll:
         self.bar_active = True
         self.bar_orientation = bar_orientation
         self.color = color
-        self.color_hover = kwargs.get('color_hover',(150,150,150))
+        self.color_hover = kwargs.get('color_hover',(150,150,150,255))
         self.top = 0
         self.scroll = False
         self.redraw = 1
@@ -63,7 +63,7 @@ class Screen_scroll:
         if not self.visible or not self.bar_active:
             return [] 
         self.redraw = 0
-        pag.draw.rect(surface, self.color, self.rect)
+        pag.draw.rect(surface, self.color if not self.hover else self.color_hover, self.rect)
         r = self.last_rect.union(self.rect.copy()).copy()
         self.last_rect = self.rect.copy()
         return (self.rect,r)
@@ -75,7 +75,7 @@ class Screen_scroll:
         self.scroll = False
         return False
 
-    def update(self, dt=1, pos=None, mouse_pos=(-10000,-1000), **kwargs) -> None:
+    def update(self, dt=1, pos=None, **kwargs) -> None:
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
             self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
@@ -86,11 +86,12 @@ class Screen_scroll:
             if self.redraw < 1:
                 self.redraw += 1
 
+
+    def update_hover(self, mouse_pos=(-10000,-1000)):
         if (self.rect.collidepoint(pag.Vector2(mouse_pos)) and self.bar_active and not self.hover and self.visible) or \
             (not self.rect.collidepoint(pag.Vector2(mouse_pos)) and self.bar_active and self.hover and self.visible):
             self.hover = not self.hover
             self.redraw += 1
-
 
     @property
     def inside_height(self):

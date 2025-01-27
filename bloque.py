@@ -2,6 +2,7 @@ from typing import Any
 import pygame as pag
 from pygame import Vector2
 
+from .texts import Text, Button, List, Multi_list
 from .obj_Base import Base
 from .scroll import Screen_scroll
 
@@ -22,6 +23,9 @@ class Bloque(Base):
         self.border_color = border_color
         self.size = size
         self.index = -1
+        self.__scroll = False
+        self.scroll_item = -1
+        self.last_mouse_pos = pag.Vector2(0)
 
         self.updates = []
 
@@ -58,16 +62,22 @@ class Bloque(Base):
 
 
     def click(self,pos):
+        self.scroll_item = -1
         pos = Vector2(pos)
         if not self.rect.collidepoint(pos):
             return False
         if self.scroll_class.click(pos-self.topleft):
+            if self.scroll_class.scroll:
+                self.scroll = True
             return True
-        for x in self.list_objs:
+        for i,x in enumerate(self.list_objs):
             if not x["clicking"]:
                 continue
             if x["GUI"].click(pos-self.topleft):
                 self.redraw += 1
+                if x["GUI"].scroll:
+                    self.scroll = True
+                    self.scroll_item = i
                 return True
         return True
     
@@ -82,9 +92,10 @@ class Bloque(Base):
 
         self.updates.clear()
         for i,x in sorted(enumerate(self.list_objs),reverse=False):
-            if not x['drawing']:
+            h = self.rect.copy()
+            h.topleft = (0,0)
+            if not x['drawing'] or not x["GUI"].collide(h):
                 continue
-            # r = x['GUI'].draw(self.surf)
             re = x["GUI"].redraw
             r = x['GUI'].draw(self.surf)
             for s in r:
@@ -121,22 +132,32 @@ class Bloque(Base):
             return [self.rect_border, r]
 
 
-    def update(self, pos=None, dt=1, mouse_pos=(-100000,-100000), **kwargs):
-        self.scroll_class.update(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
+    def update(self, pos=None, dt=1, **kwargs):
+        self.scroll_class.update()
         if self.scroll_class.redraw > 1 and self.redraw < 1:
             self.redraw += 1
 
-        
         if self.actual_smoth_pos != int(self.scroll_class.diff):
             self.actual_smoth_pos = int(self.scroll_class.diff)
             self.move_objs()
 
         for x in self.list_objs:
-            x["GUI"].update(mouse_pos=Vector2(mouse_pos)-self.topleft)
+            x["GUI"].update()
             if x["GUI"].redraw > 0 and self.redraw < 1:
                 self.redraw += 1
         
         return super().update(pos)
+
+    def update_hover(self, mouse_pos=(-100000,-100000)):
+        self.last_mouse_pos = pag.Vector2(mouse_pos)
+        if self.scroll:
+            return True
+        self.scroll_class.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
+        for i,x in enumerate(self.list_objs):
+            x["GUI"].update_hover(mouse_pos=Vector2(mouse_pos)-self.topleft)
+            if x["GUI"].redraw > 0 and self.redraw < 1:
+                self.redraw += 1
+
     
     def move_objs(self):
         for x in self.list_objs:
@@ -149,22 +170,37 @@ class Bloque(Base):
     def rodar_mouse(self, delta):
         if not self.list_objs:
             return
-        self.scroll_class.rodar_mouse(delta)
-        self.move_objs()
-        if self.redraw < 1:
-            self.redraw += 1
+        if self.scroll_item >= 0:
+            self.list_objs[self.scroll_item]["GUI"].rodar_mouse(delta)
+            if self.redraw < 1:
+                self.redraw += 1
+        else:
+            self.scroll_class.rodar_mouse(delta)
+            self.move_objs()
         
     def rodar(self, delta):
         if not self.list_objs:
             return
+        for i,x in enumerate(self.list_objs):
+            if isinstance(x["GUI"], (List, Bloque, Multi_list)) and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
+                x["GUI"].rodar(delta)
+                if self.redraw < 1:
+                    self.redraw += 1
+                return
         self.scroll_class.rodar(delta)
         self.move_objs()
-        if self.redraw < 1:
-            self.redraw += 1
 
     @property
     def scroll(self):
-        return self.scroll_class.scroll
+        return self.__scroll
     @scroll.setter
     def scroll(self,scroll):
-        self.scroll_class.scroll = scroll
+        self.__scroll = scroll
+        self.scroll_class.scroll = False
+        for x in self.list_objs:
+            x["GUI"].scroll = False
+
+    @property
+    def height(self):
+        return self.rect.h
+    

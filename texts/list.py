@@ -185,7 +185,7 @@ class List(Base):
             return [r, r2]
         
 
-    def update(self,dt=1, mouse_pos=(-100000,-10000), **kwargs):
+    def update(self,dt=1, **kwargs):
         if self.smothscroll:
             self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento).x)
         super().update()
@@ -193,6 +193,7 @@ class List(Base):
             self.text_header.bottomleft = self.rect.topleft
             self.rect_border.bottom = self.rect.bottom
 
+    def update_hover(self, mouse_pos):
         if (self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and not self.barra_hover) or \
             (not self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and self.barra_hover):
             self.barra_hover = not self.barra_hover
