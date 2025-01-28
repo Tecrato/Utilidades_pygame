@@ -13,21 +13,24 @@ __all__ = [
 class Base_class:
     '''
     # Definiras las siguientes funciones:
-    1) post_init()
-    2) generate_objs()
-    3) load_resources()
-    5) otras_variables()
-    6) move_objs()
-    7) other_event()
-    8) on_exit()
-    9) update(actual_screen: str)
-    10) otro_evento(actual_screen: str, evento: pag.event.Event)
+    1) otras_variables()
+    2) load_resources()
+    3) generate_objs()
+    4) move_objs()
+    5) post_init()
+    6) otro_evento(actual_screen: str, evento: pag.event.Event)
+    7) update(actual_screen: str)
+    8) draw_before(actual_screen: str)
+    9) draw_after(actual_screen: str)
+    10) on_exit()
 
     # Para agregar pantallas
     1) self.registrar_pantalla(alias: str)
     2) Agregar los botones y otros widgets a self.lists_screens[alias_de_pantalla]["draw"|"update"|"click"|"inputs"]
     '''
-    def __init__(self,config: Config = Config()) -> None:
+    def __init__(self,config: Config = Config(), *args, **kwargs) -> None:
+        self.args = args
+        self.kwargs = kwargs
         pag.init()
         pag.font.init()
         self.config = config
@@ -38,7 +41,7 @@ class Base_class:
             self.flags |= pag.SCALED
         self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
-        pag.display.set_caption(self.config.title)
+        pag.display.set_caption(self.config.window_title)
         
         # Variables necesarias
         self.draw_mode: Literal["optimized","always"] = 'optimized'
@@ -97,6 +100,8 @@ class Base_class:
     def on_exit(self): ...
     def update(self, actual_screen: str): ...
     def otro_evento(self, actual_screen: str, evento: pag.event.Event): ...
+    def draw_before(self, actual_screen: str): ...
+    def draw_after(self, actual_screen: str): ...
 
     def registrar_pantalla(self, alias):
         self.lists_screens[alias] = {
@@ -111,6 +116,7 @@ class Base_class:
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque]):
         if self.draw_background:
             self.ventana.fill(self.background_color)
+        self.updates.clear()
             
         redraw = self.redraw
         self.redraw = False
@@ -118,10 +124,11 @@ class Base_class:
             for x in lista:
                 x.redraw += 1
 
+        self.draw_before(self.actual_screen)
+
         new_list = lista+[self.GUI_manager,self.Mini_GUI_manager]
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
-        self.updates.clear()
         for i,x in enumerate(new_list):
             if not x.collide(self.ventana_rect):
                 continue
@@ -139,6 +146,7 @@ class Base_class:
                 for p in lista[:i]:
                     if p.collide(y) and p.redraw < 1:
                         p.redraw = 1
+        self.draw_after(self.actual_screen)
         # f
         if self.hitboxes:
             for x in self.updates:
@@ -160,8 +168,10 @@ class Base_class:
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
 
+        self.draw_before(self.actual_screen)
         for i,x in enumerate(new_list):
             x.draw(self.ventana)
+        self.draw_after(self.actual_screen)
 
         pag.display.update()
 
