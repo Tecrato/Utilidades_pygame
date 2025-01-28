@@ -36,8 +36,11 @@ class Base:
 	def pos(self,pos):
 		self.x = pos[0]
 		self.y = pos[1]
+		diferencia = Vector2(pos) - self.__pos
 		self.__pos = Vector2(pos)
-		self.generate()
+		for i,x in enumerate(self.figure):
+			self.figure[i] = (x[0]+diferencia[0],x[1]+diferencia[1])
+		# self.generate()
 	@property
 	def angle(self) -> float:
 		return float(self.__angle)

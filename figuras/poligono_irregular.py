@@ -10,7 +10,6 @@ class Poligono_irregular(Base):
 	- "flecha"
 	- "estrella"
 	- "rectangulo"
-	- "engranaje"
 	- "x"
 	## O tambien puede personalizar su figura:
 	- coordenadas en una lista mediante la variable type
@@ -32,7 +31,7 @@ class Poligono_irregular(Base):
 		xs = [self.x + cos(radians(a['angle']+self.angle)) * a['radio'] * self.radio for a in l]
 		ys = [self.y - sin(radians(a['angle']+self.angle)) * a['radio'] * self.radio for a in l]
 		for x,y in zip(xs,ys):
-			nose.append(list((x,y)))
+			nose.append((x,y))
 		return nose
 
 	def import_file(self, path):
