@@ -1,3 +1,4 @@
+from typing import Iterable
 import pygame as pag
 from pygame.math import Vector2
 from ..obj_Base import Base
@@ -13,21 +14,17 @@ class Multi_list(Base):
      - border_color
      - background_color
      - header_radius
-    
-    ## Plantillas
-    elif evento.type == MOUSEMOTION:
-        for x in self.listas:
-            if x.scroll:
-                x.rodar(-evento.rel[1])
     '''
     def __init__(self, size:tuple,pos:tuple,num_lists:int=2,lista: list[list] = None, text_size: int = 20, separation: int = 0,
         background_color = 'black', selected_color = (100,100,100,100), text_color= 'white', colums_witdh= -1, header: bool =True,
         header_text: list = None, dire: str = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
         smothscroll=False, **kwargs) -> None:
         
+        self.listas = []
+        self.__use_mouse_motion = False
         super().__init__(pos,dire)
         self.size = Vector2(size)
-        self.default = [None for _ in range(num_lists)] if not default else default
+        self.default = [[None] for _ in range(num_lists)] if not default else default
         self.lista_palabras = self.default if not lista else lista
         self.text_size = text_size
         self.separation = separation
@@ -51,9 +48,10 @@ class Multi_list(Base):
 
         self.listas: list[List] = []
         self.lineas = []
-        self.__scroll = False
         self.smothmove_bool = False
         self.actual_index = -1
+        self.use_mouse_motion = False
+        self.use_mouse_wheel = True
 
         self.rect = pag.rect.Rect(pos[0], pos[1], size[0], size[1])
         self.direccion(self.rect)
@@ -67,7 +65,7 @@ class Multi_list(Base):
 
             l_size = ((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y)
             l_pos = Vector2(self.size.x*self.colums_witdh[x],0) + self.pos
-            l_list = [self.lista_palabras[x]]
+            l_list = self.lista_palabras[x]
             l_separacion = self.separation+(separar if x != num_lists-1 else 0)
             l_padding_top = self.padding_top-(separar//2 if x == num_lists-1 else 0)
             l_with_index = self.with_index if x == 0 and self.with_index else False
@@ -111,6 +109,12 @@ class Multi_list(Base):
         if self.smothmove_bool:
             for x in range(self.num_list):
                 self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
+            
+
+    def update_hover(self, mouse_pos):
+        super().update_hover(mouse_pos=mouse_pos)
+        for x in self.listas:
+            x.update_hover(mouse_pos)
         
     def draw(self,surface) -> pag.Rect:
         for x in self.listas:
@@ -136,14 +140,14 @@ class Multi_list(Base):
         self.redraw = 0
         return (self.rect,)
 
-    def rodar(self,y) -> None:
+    def on_wheel(self,y) -> None:
         for x in self.listas:
-            x.rodar(y)
-    def rodar_mouse(self,y) -> None:
-        self.listas[-1].rodar_mouse(y)
+            x.on_wheel(y)
+    def on_mouse_motion(self,evento) -> None:
+        self.listas[-1].on_mouse_motion(evento)
         for i,x in sorted(enumerate(self.listas[:-1]),reverse=True):
             x.desplazamiento = self.listas[-1].desplazamiento
-            self.rodar(0)
+            self.on_wheel(0)
 
     def append(self,data) -> None:
         for i in range(self.num_list):
@@ -173,8 +177,10 @@ class Multi_list(Base):
                 self.scroll = True
                 x.scroll = False
                 self.listas[-1].scroll = True
+                self.use_mouse_motion = True
                 return
             elif isinstance(a,dict):
+                self.redraw += 1
                 return {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in self.listas]}
         for x in self.listas:
             x.select(False)
@@ -207,13 +213,13 @@ class Multi_list(Base):
             x.smothscroll = self.smothscroll
 
     @property
-    def scroll(self):
-        return self.__scroll
-    @scroll.setter
-    def scroll(self, value: bool):
-        self.__scroll = value
+    def use_mouse_motion(self):
+        return self.__use_mouse_motion
+    @use_mouse_motion.setter
+    def use_mouse_motion(self, value: bool):
+        self.__use_mouse_motion = value
         for x in self.listas:
-            x.scroll = value
+            x.use_mouse_motion = value
         
     def __len__(self) -> int:
         return len(self.listas[0])
@@ -221,7 +227,12 @@ class Multi_list(Base):
     def __getitem__(self,index: int):
         return self.listas[index]
     def __setitem__(self,index,value):
-        self.listas[index] = value
+        print(index)
+        if not isinstance(value,Iterable) or len(value) < self.num_list:
+            return False
+        for x in range(self.num_list):
+            self.listas[x][index] = value[x]
+        self.redraw += 1
     def __repr__(self) -> str:
         var = ''
         for x in self.listas:

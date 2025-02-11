@@ -1,56 +1,60 @@
 import pygame as pag
 
-from ..texts import Button, Text, Input
-from pygame.math import Vector2
+from..bloque import Bloque
+from ..texts import Button, Text
+from ..scroll import Screen_scroll
 
+"""
+Van a ser bloques, y se colocaran en la lista de dibujado principal
+asi que tendran una variable active, que lo muestre, tambien servira para que no ejecute los updates, y el draw.
+Tambien tendra una animacion de apertura, de abajo hacia arriba, ademas, se pondra en practica la maquina de estados finitos. 
+"""
 
-class Base_win:
-    def __init__(self, centro, title, size:tuple[int,int]=(500,300)) -> None:
-        self.rect = pag.Rect(0,0,*size)
-        self.rect.center = centro
-        self.size = size
+class Base_win(Bloque):
+    def __init__(self, centro, size:tuple[int,int]=(500,300), **kwargs) -> None:
+        super().__init__(pos=centro, size=size, **kwargs)
 
-
-        self.surface: pag.Surface = pag.Surface(size)
-        self.surface.fill((254,1,1))
-        self.surface.set_colorkey((254,1,1))
-        pag.draw.rect(self.surface,'white',[0,0,*size], border_radius=20)
-        pag.draw.rect(self.surface,'lightgrey',[0,0,size[0],40], border_top_left_radius=20, border_top_right_radius=20)
-        Text(title, 30, None, (0,0), 'topleft', 'black', False, padding=20).draw(self.surface)
-
-        self.state: str = 'minimized' # minimized | maximized
+        self.active: bool = False
         self.pressed_click: bool = False
-
-        self.botones = [{
-            'btn':Button('X',30,None,(size[0],0),20,'topright', 'black', color_rect='lightgrey', color_rect_active='darkgrey', border_radius=0, border_top_right_radius=20, border_width=-1),
-            'return': 'destroy',
-            'result': lambda:'',
-            }]
-        
-
-    def draw(self, surface: pag.Surface) -> None|pag.Surface:
-        [btn['btn'].draw(self.surface) for btn in self.botones]
-        surface.blit(self.surface,self.rect)
-        pag.draw.rect(surface,'black', self.rect,3, 20)
-        return [self.rect]
-        
-
-    def click(self, pos):
-        mx,my = Vector2(pos)-self.rect.topleft
-        for btn in self.botones:
-            if btn['btn'].rect.collidepoint((mx,my)):
-                return btn
-            
-        if pag.Rect([0,0,500,40]).collidepoint((mx,my)):
-            self.pressed_click = True
-
-    def update(self,  **kwargs):
-        [btn['btn'].update() for btn in self.botones]
+        self.__use_mouse_wheel = True
     
-    def update_hover(self, mouse_pos):
-        mx,my = Vector2(mouse_pos)-self.rect.topleft
-        for btn in self.botones:
-            btn['btn'].update_hover((mx,my))
+    def func_cerrar(self):
+        self.active = False
+        return True
 
-    def copy(self):
-        return self
+    def click(self, mouse_pos):
+        if not self.active:
+            return False
+        r = super().click(mouse_pos)
+        if not r and self.rect.collidepoint(mouse_pos):
+            return True
+        return super().click(mouse_pos)
+
+    def draw_before(self):
+        ...
+
+    def draw_after(self):
+        ...
+
+    def draw(self, surface):
+        if not self.active:
+            return []
+        self.redraw += 1
+        return super().draw(surface)
+
+    def update(self, pos=None, dt=1, **kwargs):
+        if not self.active:
+            return False
+        super().update(pos=pos, dt=dt, **kwargs)
+    def on_wheel(self, delta=None, **kwargs):
+        if not self.active:
+            return False
+        super().on_wheel(delta, **kwargs)
+
+
+    @property
+    def use_mouse_wheel(self):
+        return self.__use_mouse_wheel if self.active else False
+    @use_mouse_wheel.setter
+    def use_mouse_wheel(self,use_mouse_wheel):
+        self.__use_mouse_wheel = use_mouse_wheel

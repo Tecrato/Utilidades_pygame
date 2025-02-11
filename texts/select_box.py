@@ -2,9 +2,10 @@ import pygame as pag
 import math
 from typing import Callable, Literal
 
+from pygame import Vector2
 from .boton import Text
 from .boton import Button
-from Utilidades_pygame.Animaciones import Curva_de_Bezier, Vector2
+from Utilidades_pygame.Animaciones import Curva_de_Bezier
         
 class Select_box:
     def __init__(
@@ -29,6 +30,7 @@ class Select_box:
         self.min_height = min_height
         self.hover_rect = pag.Rect(0,0,0,0)
         self.mouse_pos = pag.Vector2(0,0)
+        self.use_mouse_motion = False
 
         self.animation_open = Curva_de_Bezier        
 
@@ -96,27 +98,7 @@ class Select_box:
         self.close_it()
         return True
 
-    def update(self, dt=1, mouse_pos=(-10000,-10000)) -> None:
-        if self.auto_open and self.boton.is_hover(mouse_pos) and not self.select_opened:
-             self.open_it()
-        elif self.auto_open and not self.boton.is_hover(mouse_pos) and not self.rect.collidepoint(mouse_pos) and self.select_opened:
-             self.close_it()
-
-        for btn in self.botones:
-            btn.update()
-
-        if self.mouse_pos != Vector2(mouse_pos)-self.rect.topleft:
-            if self.rect.collidepoint(mouse_pos):
-                self.mouse_pos = Vector2(mouse_pos)-self.rect.topleft
-                self.hover_rect.top = self.txt_tama_h*math.floor((self.mouse_pos.y/self.size[1])*len(self.botones)) + 5
-                self.redraw += 1
-            else:
-                if self.hover_rect != -1:
-                    self.redraw += 1
-
-                self.hover_rect.top = -1
-                
-        
+    def update(self, dt=1, **kwargs) -> None:
         if self.in_animation:
             self.redraw += 2
             r = self.animation_open.update()
@@ -140,6 +122,28 @@ class Select_box:
                 self.rect.topleft = self.boton.rect_border.topright
             elif self.position == 'left':
                 self.rect.topleft = self.boton.rect_border.bottomright
+
+    def update_hover(self, mouse_pos=(-10000,-10000)):
+        self.boton.update_hover(mouse_pos)
+        if self.auto_open and self.boton.is_hover(mouse_pos) and not self.select_opened:
+             self.open_it()
+        elif self.auto_open and not self.boton.is_hover(mouse_pos) and not self.rect.collidepoint(mouse_pos) and self.select_opened:
+             self.close_it()
+
+        for btn in self.botones:
+            btn.update()
+
+        if self.mouse_pos != Vector2(mouse_pos)-self.rect.topleft:
+            if self.rect.collidepoint(mouse_pos):
+                self.mouse_pos = Vector2(mouse_pos)-self.rect.topleft
+                self.hover_rect.top = self.txt_tama_h*math.floor((self.mouse_pos.y/self.size[1])*len(self.botones)) + 5
+                self.redraw += 1
+            else:
+                if self.hover_rect != -1:
+                    self.redraw += 1
+
+                self.hover_rect.top = -1
+                
 
     def draw(self, surface: pag.Surface, always_draw = False) -> None:
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.rect.size], 0)
@@ -181,7 +185,7 @@ class Select_box:
         return lista
     
     def is_hover(self,pos) -> bool:
-        return self.rect_border.collidepoint(pos)
+        return self.rect.collidepoint(pos)
     
     @property
     def options(self):

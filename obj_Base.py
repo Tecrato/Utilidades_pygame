@@ -1,9 +1,10 @@
 from typing import Literal, Self
 import pygame as pag
-from pygame import Vector2
 
-from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
+from Utilidades.Animaciones import Curva_de_Bezier, Second_Order_Dinamics, DynamicMovement
 from Utilidades import Hipotenuza
+
+from pygame import Vector2
 
 class Base:
     def __init__(self,pos,dire: Literal["left","right","top","bottom","center","topleft","topright","bottomleft","bottomright"]) -> None:
@@ -18,7 +19,9 @@ class Base:
         self.last_rect = pag.Rect(0,0,0,0)
         self.mouse_pos = Vector2(0,0)
         self.hover = False
-        self.__scroll = False
+        self.use_mouse_motion = False
+        self.smothmove_type = None
+        self.use_mouse_wheel = False
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -28,8 +31,7 @@ class Base:
 
     def direccion(self, rect) -> None:
         rect.center = self.__pos
-        if self.redraw < 2:
-            self.redraw += 2
+        self.redraw += 2
         if self.dire == 'center':
             self.rect_border.center = rect.center
             return
@@ -44,41 +46,41 @@ class Base:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
             
-    def smothmove(self, T, f, z, r) -> None:
+    def smothmove(self,f, z, r) -> None:
         self.smothmove_pos = self.pos
-        self.movimiento = Second_Order_Dinamics(T, f, z, r, self.pos)
+        self.movimiento = Second_Order_Dinamics(f, z, r, self.pos)
         self.smothmove_bool = True
         self.smothmove_type = 'Second order dinamics'
-    def Cubic_bezier_move(self, fps, puntos, multiplicador:float = 1):
+    def Cubic_bezier_move(self, puntos, multiplicador:float = 1):
         self.smothmove_pos = self.pos
         self.smothmove_bool = True
         self.smothmove_type = 'Cubic Bezier'
-        self.movimiento = Curva_de_Bezier(fps,puntos,multiplicador)
-    def simple_acceleration_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> None:
+        self.movimiento = Curva_de_Bezier(puntos,multiplicador)
+    def DynamicMovement_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> None:
         self.smothmove_pos = self.pos
-        self.movimiento = Simple_acceleration(vel, dir, self.pos)
+        self.movimiento = DynamicMovement(vel, dir, self.pos)
         self.smothmove_bool = True
         self.smothmove_type = 'Simple Acceleration'
-        self.simple_acceleration_type = tipo
+        self.DynamicMovement_type = tipo
 
         self.vel = float(vel)
 
         self.direccion(self.rect)
 
-    def update(self,pos=None,dt=1, **kwargs) -> bool:
-        if self.smothmove_bool is False or pos is None or not pos:
+    def update(self,pos=None,dt=1/60, **kwargs) -> bool:
+        if not self.smothmove_bool and not pos:
             return False
         elif pos:
             self.pos = pos
-        elif self.__pos == self.smothmove_pos:
+        if self.__pos == self.smothmove_pos:
             return False
         
         if self.smothmove_type == 'Second order dinamics':
-            if abs(sum(self.movimiento.yd.xy)) < 0.01:
+            if abs(sum(self.movimiento.yd)) < 0.01:
                 self.__pos = self.smothmove_pos
             self.__pos = Vector2(self.movimiento.update(self.smothmove_pos,dt=dt))
         elif self.smothmove_type == 'Simple Acceleration':
-            if self.simple_acceleration_type == 'follow':
+            if self.DynamicMovement_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
                 self.redraw += 2
                 if Hipotenuza(self.__pos,self.smothmove_pos) < self.vel+1:
@@ -129,7 +131,7 @@ class Base:
 
     @property
     def left(self) -> int:
-        return self.rect_border.left
+        return self.rect.left
     @left.setter
     def left(self,left) -> None:
         self.pos = (self.pos.x + (left - self.rect.left),self.pos.y)

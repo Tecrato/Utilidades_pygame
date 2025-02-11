@@ -4,23 +4,15 @@
 import pygame as pag
 import math
 import random
-from Utilidades import memosize, line_intersect
+from Utilidades import lineal_interception
+from functools import lru_cache
 
 from ..obj_Base import Base
 from ..texts import Text
 
-@memosize
+@lru_cache
 def numero(num,size) -> Text:
     return Text(num, size, None, (0, 0))
-
-@memosize
-def eval_func(ec,condition,x):
-    try:
-        if eval(condition):
-            y = eval(ec)
-            return (x, -y)
-    except:
-        return None
 
 
 class Graficador(Base):
@@ -81,11 +73,14 @@ class Graficador(Base):
             for x in range(0,self.ancho*2, self.step):
                 x -= self.edge[0]
                 x = x / (self.escala * self.zoom)
-                
-                point = eval_func(ec,condition,x)
-                if not point:
+                try:
+                    if eval(condition):
+                        point = eval(ec)
+                    else:
+                        continue
+                except:
                     continue
-                point = (point[0] * self.escala * self.zoom) + self.edge[0], (point[1] * self.escala * self.zoom) + self.edge[1]
+                point = (x * self.escala * self.zoom) + self.edge[0], (point * self.escala * self.zoom) + self.edge[1]
                 self.puntos[i].append(point)
     
     def dibujar_escala(self):
@@ -137,7 +132,7 @@ class Graficador(Base):
                 x = 100
                 point2_2 = eval(self.ecuaciones[j][0])
 
-            result = line_intersect((0,point1_1),(100,point2_1),(0,point1_2),(100,point2_2))
+            result = lineal_interception((0,point1_1),(100,point2_1),(0,point1_2),(100,point2_2))
             if result:
                 self.add_coord((result[0], result[1]),random.choice(pag.colordict.THECOLORS.keys()))
             

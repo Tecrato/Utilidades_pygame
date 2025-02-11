@@ -1,8 +1,8 @@
 import pygame as pag, math
 from pygame import Vector2
-from Utilidades.optimize import memosize
+from functools import lru_cache
 
-@memosize
+@lru_cache(maxsize=1000)
 def radial(radius, startcolor, endcolor):
     # print(str(radius),str(startcolor),str(endcolor))
     """

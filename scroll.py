@@ -24,7 +24,7 @@ class Screen_scroll:
         self.color = color
         self.color_hover = kwargs.get('color_hover',(150,150,150,255))
         self.top = 0
-        self.scroll = False
+        self.use_mouse_motion = False
         self.redraw = 1
         self.hover = False
         self.rect = pag.Rect(0,0,0,0)
@@ -52,7 +52,7 @@ class Screen_scroll:
             return
         self.desplazamiento += y
 
-    def rodar_mouse(self, delta):
+    def on_mouse_motion(self, delta):
         try:
             self.top += delta
             self.desplazamiento = -((self.inside_height-self.limit) / ((self.limit - self.bar_length) / self.top))
@@ -60,8 +60,8 @@ class Screen_scroll:
             pass
 
     def draw(self, surface) -> None:
-        if not self.visible or not self.bar_active:
-            return [] 
+        if not self.visible or not self.bar_active or self.redraw < 1:
+            return []
         self.redraw = 0
         pag.draw.rect(surface, self.color if not self.hover else self.color_hover, self.rect)
         r = self.last_rect.union(self.rect.copy()).copy()
@@ -70,19 +70,19 @@ class Screen_scroll:
     
     def click(self, pos):
         if self.bar_orientation == 'vertical' and self.rect.collidepoint(pos):
-            self.scroll = True
+            self.use_mouse_motion = True
             return True
-        self.scroll = False
+        self.use_mouse_motion = False
         return False
 
     def update(self, dt=1, pos=None, **kwargs) -> None:
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
-            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
+            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit)) + self.pos[1]
 
         if self.bar_orientation == 'vertical' and int(self.top) != int(self.rect.top):
             # self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
-            self.rect.top = self.top
+            self.rect.top = int(self.top)
             if self.redraw < 1:
                 self.redraw += 1
 

@@ -5,14 +5,7 @@ import math
 from pygame.math import Vector2
 
 from .particle import Particle
-from Utilidades import Angulo, Hipotenuza
-
-def apply_gravity(part):
-    angle = Angulo((0,0),part.angle)
-    v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
-    v.y += part.gravity*dt
-    part.vel = Hipotenuza((0,0),v)
-    part.angle = v.normalize()
+from Utilidades import Hipotenuza
 
 class Particles:
     def __init__(
@@ -39,29 +32,31 @@ class Particles:
         self.auto_spawn = auto_spawn
         self.updates_rects = []
         self.redraw = 2
+        self.use_mouse_motion = False
+        self.use_wheel = False
 
         self.last_pos = 0
         self.last_time = time.time()
 
-    def update(self, dt = 1, **kwargs) -> None:
+    def update(self, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
             part.update()
             part.radio -= self.radio_down
             if part.radio-self.radio_down < 1:
                 self.particles.pop(i)
                 continue
-            if Hipotenuza(part.pos, part.start_pos) > self.max_distance:
+            if math.hypot(*(part.pos-part.start_pos)) > self.max_distance:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
                 angle = part.angle
                 v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
                 v.y += self.gravity
-                part.vel = Hipotenuza((0,0),v)
+                part.vel = math.hypot(*(pag.Vector2(0,0)-v))
                 part.angle = pag.Vector2(0).angle_to(v)
 
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
-            self.spawn_particles()
+            self.spawn()
             return True
 
             
@@ -72,7 +67,7 @@ class Particles:
                 self.updates_rects.append(r)
         return self.updates_rects
 
-    def spawn_particles(self):
+    def spawn(self):
         for _ in range(self.spawn_count):
             self.__add_particle()
         self.last_time = time.time()
@@ -95,3 +90,9 @@ class Particles:
     
     def collide(self, rect):
         return True
+    def update_hover(self,*args, **kwargs):
+        pass
+    def is_hover(self,*args, **kwargs):
+        pass
+    def click(self,*args, **kwargs):
+        return False

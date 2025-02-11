@@ -1,0 +1,27 @@
+# Registrar pantalla
+para agregar una nueva pantalla y elementosse deben ejecutar la siguiente funcion:
+
+self.registrar_pantalla([alias])
+
+ - alias -> Nombre de la pantalla que se desea registrar
+
+
+# regenerar elementos
+si se va a utilizar algun metodo para cambiar de idioma y se llama varias veces a generate_objs();
+se deben igualar las listas de list_screens, ejemplo
+
+self.lists_screen['main']['draw'] = []
+
+en vez de
+
+self.lists_screen['main']['draw'].extend([])
+
+en en caso contrario se quedaran guardados los elementos y quedaran duplicados.
+
+# Orden en 'draw'
+para evitar que los botones solapen los selectBox el programador debe colocar
+los selects al final de la lista, cuando se abra el select se dibujara de ultimo
+y se mostraran siempre al frente.
+
+Lo mismo aplica para todo lo demas, el ordene nel que se agregan a la lista de dibujado
+es importante

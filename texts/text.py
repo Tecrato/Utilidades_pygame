@@ -2,12 +2,12 @@ import pygame as pag
 from pygame.math import Vector2
 from typing import Literal
 from ..obj_Base import Base
+from functools import lru_cache
 
 
-'''
-1) Hacer superficies y normalizar una funcion draw.
-4) Hacer otra clase multilista, donde las listas sean tuplas y no List_box.
-'''
+# @lru_cache(maxsize=10)
+def create_text(text, font, color):
+    return font.render(text, True, color)
 
 class Text(Base):
     """
@@ -27,7 +27,7 @@ class Text(Base):
             self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
             dire: Literal["center","left","right","top","bottom","topleft","topright","bottomleft","bottomright"] ='center',
             color='white',with_rect = False, color_rect ='black', border_width = -1, padding: int|list|tuple = 5, 
-            width = 0, height = 0, rect_width= 0, **kwargs
+            width = 0, height = 0, rect_width= 0, always_draw=False, **kwargs
             ) -> None:
         super().__init__(pos,dire)
         if not pag.font.get_init():
@@ -47,6 +47,7 @@ class Text(Base):
         self.default_height = height
         self.__width = width
         self.__height = height
+        self.always_draw = always_draw
         
         self.border_radius = kwargs.get('border_radius',0)
         self.border_top_left_radius = kwargs.get('border_top_left_radius',-1)
@@ -75,7 +76,7 @@ class Text(Base):
         if not isinstance(self.raw_text, list):
             self.mode = 1
 
-            self.text_surf = self.__font.render(f'{self.raw_text}', 1, self.__color)
+            self.text_surf = self.__font.render(str(self.raw_text), True, self.__color)
             self.rect = self.text_surf.get_rect()
             self.rect_text = self.text_surf.get_rect()
             if self.border_radius == -1:
@@ -91,7 +92,7 @@ class Text(Base):
             self.mode = 2
             self.lista_text.clear()
 
-            self.text_surf = self.__font.render(f'{self.raw_text[0]}', 1, self.__color)
+            self.text_surf = self.__font.render(str(self.raw_text[0]), True, self.__color)
             self.text_lines = len(self.raw_text)
             self.text_height = self.text_surf.get_rect().h
             self.rect_text = self.text_surf.get_rect()
@@ -100,9 +101,9 @@ class Text(Base):
             
             if self.border_radius == -1:
                 self.border_radius = 100_000
-                self.rect.size = (max(self.rect.h * len(self.raw_text) + self.padding[0],max(self.__font.render(txt, 1, self.__color).get_rect().width + self.padding[0] for txt in self.raw_text)), max(self.rect.h * len(self.raw_text) + self.padding[2],max(self.__font.render(tixt, 1, self.color).get_rect().width + self.padding[1] for tixt in self.raw_text)))
+                self.rect.size = (max(self.rect.h * len(self.raw_text) + self.padding[0],max(self.__font.render(str(txt), True, self.__color).get_rect().width + self.padding[0] for txt in self.raw_text)), max(self.rect.h * len(self.raw_text) + self.padding[2],max(self.__font.render(str(tixt), True, self.__color).get_rect().width + self.padding[1] for tixt in self.raw_text)))
             else:
-                self.rect.width = min(max(self.__font.render(tixt, 1, self.__color).get_rect().width * 1.2 for tixt in self.raw_text), max(self.__font.render(tixt, 1, self.color).get_rect().width + self.padding[0] for tixt in self.raw_text))
+                self.rect.width = min(max(self.__font.render(str(tixt), True, self.__color).get_rect().width * 1.2 for tixt in self.raw_text), max(self.__font.render(str(tixt), True, self.__color).get_rect().width + self.padding[0] for tixt in self.raw_text))
                 self.rect.height = (self.text_height * (len(self.raw_text)-1)) + self.padding[0]
 
             self.direccion(self.rect)
@@ -118,17 +119,17 @@ class Text(Base):
     def update(self, pos = None,dt=1, **kwargs):
         super().update(pos,dt=dt)
         self.last_rect = self.last_rect.union(self.rect_border)
-        if self.mode == 1:
-            self.rect_text.center = self.rect.center
-        elif self.mode == 2:
-            self.rect.centery = self.rect_text.centery + (self.rect_text.h * (len(self.raw_text)-1))/2
+        # if self.mode == 1:
+        #     self.rect_text.center = self.rect.center
+        if self.mode == 2:
+            # self.rect.centery = self.rect_text.centery + (self.rect_text.h * (len(self.raw_text)-1))/2
             for i, txt in enumerate(self.lista_text):
                 txt.update((self.pos[0],self.pos[1] + self.text_height*i))
-        self.rect_border.center = self.rect.center
+        #     self.rect_border.center = self.rect.center
 
     def draw(self, surface, always_draw = False) -> list[pag.Rect]|None:
-        if always_draw:
-            self.redraw += 1
+        if always_draw or self.always_draw:
+            self.redraw += 2
         if self.redraw < 1:
             return []
         
@@ -141,7 +142,9 @@ class Text(Base):
             pag.draw.rect(surface, self.border_color, self.rect_border, self.border_width,self.border_radius
                 ,self.border_top_left_radius,self.border_top_right_radius,self.border_bottom_left_radius,self.border_bottom_right_radius)
             for txt in self.lista_text:
+                txt.redraw += 1
                 txt.draw(surface)
+            
             if self.redraw < 1:
                 return []
             elif self.redraw < 2:
@@ -163,7 +166,7 @@ class Text(Base):
 
         if self.redraw < 1:
             return []
-        elif self.redraw < 2:
+        if self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]
         else:
@@ -172,6 +175,8 @@ class Text(Base):
             self.last_rect = self.rect_border.copy()
             return [self.rect_border, r]
 
+    def click(self, mouse_pos):
+        return False
 
     @property
     def text(self):
@@ -203,7 +208,7 @@ class Text(Base):
     def color(self,color):
         self.__color = color
         if self.mode == 1:
-            self.text_surf = self.font.render(f'{self.raw_text}', 1, self.color)
+            self.text_surf = self.font.render(str(self.raw_text), 1, self.color)
         elif self.mode == 2:
             for txt in self.lista_text:
                 txt.color = color

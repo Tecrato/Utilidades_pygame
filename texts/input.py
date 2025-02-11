@@ -3,8 +3,6 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 
-def lerp(a, b, t):
-    return a + (b - a) * t
 
 class Input(Base):
     '''
@@ -196,15 +194,16 @@ class Input(Base):
         self.draw_surf()
 
     def add_letter(self, t) -> None:
-        if len(self.raw_text) < self.max_letter:
-            self.raw_text = self.raw_text[:self.typing_pos] + t + self.raw_text[self.typing_pos:]
-            self.text.text = self.raw_text
-            w = Text(self.raw_text[:self.typing_pos]+t,self.text_size, self.font, (0,0), padding=0).rect.w - sum(self.letter_pos[:self.typing_pos])
-            self.letter_pos.insert(self.typing_pos,w)
-            self.typing_pos += 1
-            self.center_text()
         self.typing_line = True
         self.typing_line_time = time.time()
+        if len(self.raw_text) >= self.max_letter:
+            return
+        self.raw_text = self.raw_text[:self.typing_pos] + t + self.raw_text[self.typing_pos:]
+        self.text.text = self.raw_text
+        w = Text(self.raw_text[:self.typing_pos]+t,self.text_size, self.font, (0,0), padding=0).rect.w - sum(self.letter_pos[:self.typing_pos])
+        self.letter_pos.insert(self.typing_pos,w)
+        self.typing_pos += 1
+        self.center_text()
 
     def to_left(self) -> None:
         if not self.left_b:

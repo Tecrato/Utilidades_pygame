@@ -44,9 +44,10 @@ class Base_class:
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(self.config.window_title)
         if self.config.icon:
-            pag.display.set_icon(self.config.icon)
+            pag.display.set_icon(pag.image.load(self.config.icon))
         
         # Variables necesarias
+        self.loader = None
         self.draw_mode: Literal["optimized","always"] = 'optimized'
         self.__framerate: int = 60
         self.__loading: int = 0
@@ -67,6 +68,7 @@ class Base_class:
 
         # Otras variables
         self.Func_pool = uti.Funcs_pool()
+        self.class_intervals = uti.multithread.Interval_funcs()
         self.delta_time: uti.Deltatime = uti.Deltatime()
         self.otras_variables()
         
@@ -80,10 +82,11 @@ class Base_class:
                 }
             }
         self.actual_screen: str = 'main'
+        self.overlay: list = []
 
         # Iniciar el programa
         # self.GUI_manager: GUI.GUI_admin = GUI.GUI_admin()
-        # self.Mini_GUI_manager: mini_GUI.mini_GUI_admin = mini_GUI.mini_GUI_admin(self.ventana_rect)
+        self.Mini_GUI_manager: mini_GUI.mini_GUI_admin = mini_GUI.mini_GUI_admin(self.ventana_rect)
         self.load_resources()
         self.generate_objs()
 
@@ -119,12 +122,12 @@ class Base_class:
         self.click = False
         for x in self.lists_screens[alias]["click"]:
             x.hover = False
-        self.GUI_manager.update_hover(pag.mouse.get_pos())
         self.Mini_GUI_manager.update_hover(pag.mouse.get_pos())
         for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]), reverse=True):
             x.update_hover(pag.mouse.get_pos())
 
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque|Engranaje]):
+        lista = lista.copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
         self.updates.clear()
@@ -134,11 +137,10 @@ class Base_class:
         if redraw:
             for x in lista:
                 x.redraw += 1
-            # self.GUI_manager.redraw += 1
 
         self.draw_before(self.actual_screen)
 
-        new_list = lista#+[self.GUI_manager,self.Mini_GUI_manager]
+        new_list = lista+[self.Mini_GUI_manager]
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
         for i,x in enumerate(new_list):
@@ -151,12 +153,12 @@ class Base_class:
             for y in r:
                 for p in lista[i+1:]:
                     if p.collide(y) and p.redraw < 1:
-                        p.redraw += 2
+                        p.redraw += 1
             if re < 2:
                 continue
             for y in r:
                 for p in lista[:i]:
-                    if p.collide(y) and p.redraw < 2:
+                    if p.collide(y) and p.redraw < 1:
                         p.redraw += 1
         self.draw_after(self.actual_screen)
         if self.hitboxes:
@@ -170,12 +172,13 @@ class Base_class:
             pag.display.update(self.updates)
 
     def draw_always(self, lista):
+        lista = lista.copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
         for x in lista:
             x.redraw += 1
 
-        new_list = lista#+[self.GUI_manager,self.Mini_GUI_manager]
+        new_list = lista+[self.Mini_GUI_manager]
         if self.loading > 0 and self.loader:
             new_list.append(self.loader)
 
@@ -208,13 +211,13 @@ class Base_class:
 
     def select_btns_with_arrows(self, evento: pag.event.Event, screen_alias: str):
         if evento.key == pag.K_RIGHT:
-            self.move_hover('right',self.lists_screens[screen_alias]["click"])
+            self.move_hover('right',self.lists_screens[self.actual_screen]["click"]+self.overlay)
         elif evento.key == pag.K_LEFT:
-            self.move_hover('left',self.lists_screens[screen_alias]["click"])
+            self.move_hover('left',self.lists_screens[self.actual_screen]["click"]+self.overlay)
         elif evento.key == pag.K_UP:
-            self.move_hover('top',self.lists_screens[screen_alias]["click"])
+            self.move_hover('top',self.lists_screens[self.actual_screen]["click"]+self.overlay)
         elif evento.key == pag.K_DOWN:
-            self.move_hover('bottom',self.lists_screens[screen_alias]["click"])
+            self.move_hover('bottom',self.lists_screens[self.actual_screen]["click"]+self.overlay)
         else: return False
         return True
     
@@ -237,13 +240,13 @@ class Base_class:
             return False
     
     def eventos_en_comun(self,evento):
-        mx, my = pag.mouse.get_pos()
         if evento.type == pag.MOUSEBUTTONDOWN:
             self.last_click = time.time()
             if evento.button == 1:
                 self.click = True
         elif evento.type == pag.MOUSEBUTTONUP:
             self.click = False
+
         if evento.type == pag.QUIT:
             self.exit()
         elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12 and self.config.screenshots_dir:
@@ -255,17 +258,24 @@ class Base_class:
             self.hitboxes = not self.hitboxes
         elif evento.type == pag.WINDOWRESTORED:
             self.framerate: int = self.config.max_fps
+            self.redraw = True
+            return True
+        elif evento.type == pag.MOUSEBUTTONDOWN and evento.button in [1,3] and self.Mini_GUI_manager.click(evento.pos):
+            self.redraw = True
             return True
         elif evento.type == pag.WINDOWMINIMIZED:
             self.drawing = False
-            self.framerate: int = 30
+            self.framerate: int = self.config.min_fps
+            self.redraw = True
             return True
         elif evento.type == pag.WINDOWFOCUSLOST:
-            self.framerate: int = 30
+            self.framerate: int = self.config.min_fps
+            self.redraw = True
             return True
         elif evento.type in [pag.WINDOWTAKEFOCUS, pag.WINDOWFOCUSGAINED,pag.WINDOWMAXIMIZED]:
             self.drawing = True
             self.framerate: int = self.config.max_fps
+            self.redraw = True
             return True
         elif self.config.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
@@ -281,54 +291,37 @@ class Base_class:
             return True
         elif self.loading > 0:
             return True
-        # elif self.GUI_manager.active >= 0:
-        #     if evento.type == pag.MOUSEMOTION:
-        #         if self.GUI_manager.scroll:
-        #             self.GUI_manager.rodar_mouse(evento.rel[1])
-        #         else:
-        #             self.GUI_manager.update_hover(evento.pos)
-        #     elif evento.type == pag.MOUSEWHEEL:
-        #         self.GUI_manager.rodar(evento.y)
-        #     elif evento.type == pag.KEYDOWN and evento.key == pag.K_ESCAPE:
-        #         self.GUI_manager.pop()
-        #         self.redraw = True
-        #     elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1:
-        #         self.GUI_manager.click((mx, my))
-        #         self.redraw = True
-        #     elif evento.type == pag.MOUSEBUTTONUP and evento.button == 1:
-        #         self.GUI_manager.scroll = False
-        #     return True
         return False
     
-    def update_general(self,lista,mouse_pos):
-        for i,x in sorted(enumerate(lista), reverse=True):
-            x.update(dt=self.delta_time.dt,mouse_pos=mouse_pos)
-        # self.GUI_manager.update(mouse_pos=mouse_pos)
-        # self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
+    def update_general(self):
+        mouse_pos = pag.mouse.get_pos()
+        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["update"]+self.overlay), reverse=True):
+            x.update(mouse_pos=mouse_pos)
+        self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
         if self.loading > 0 and self.loader:
-            self.loader.update(self.delta_time.dt)
+            self.loader.update()
+        self.update(self.actual_screen)
 
-    def on_wheel_event_general(self,evento,screen_alias: str):
-        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-            if isinstance(x, (Multi_list,List,Bloque)) and not x.scroll and x.rect.collidepoint(pag.mouse.get_pos()):
-                x.rodar(evento.y*self.scroll_speed)
+    def on_wheel_event_general(self,evento):
+        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+            if x.is_hover(pag.mouse.get_pos()) and x.use_mouse_wheel:
+                x.on_wheel(evento.y*self.scroll_speed)
                 return True
         return False
 
-    def on_mouse_motion_event_general(self,evento, screen_alias: str):
+    def on_mouse_motion_event_general(self,evento):
         if self.click:
-            for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
-                if isinstance(x, (Multi_list, List, Bloque)) and x.scroll:
-                    x.rodar_mouse(evento.rel[1])
+            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+                if x.use_mouse_motion:
+                    x.on_mouse_motion(evento)
                     return True
-        # self.GUI_manager.update_hover(evento.pos)
-        # self.Mini_GUI_manager.update_hover(evento.pos)
-        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+        self.Mini_GUI_manager.update_hover(evento.pos)
+        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
             x.update_hover(evento.pos)
         return False
     
-    def on_mouse_click_general(self,evento,screen_alias: str):
-        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+    def on_mouse_click_general(self,evento):
+        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
             if isinstance(x, (Multi_list,List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
                 return True
             elif x.click(evento.pos):
@@ -336,19 +329,19 @@ class Base_class:
                 return True
         return False 
     
-    def on_mouse_click_up_general(self,screen_alias: str):
-        for i,x in sorted(enumerate(self.lists_screens[screen_alias]["click"]), reverse=True):
+    def on_mouse_click_up_general(self):
+        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
             x.use_mouse_motion = False
         return False
 
-    def on_keydown_general(self, screen_alias: str, evento):
+    def on_keydown_general(self, evento):
         if evento.key == pag.K_TAB and self.navegate_with_keys:
             self.select_inputs_with_TAB(evento, self.actual_screen)
             return True
         elif self.select_btns_with_arrows(evento, self.actual_screen) and self.navegate_with_keys:
             return True
         elif evento.key == pag.K_SPACE and self.navegate_with_keys:
-            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]),reverse=True):
+            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay),reverse=True):
                 if x.hover:
                     x.click()
                     return True
@@ -359,18 +352,20 @@ class Base_class:
             self.relog.tick(self.framerate)
             self.delta_time.update()
             eventos = pag.event.get()
+            for x in self.lists_screens[self.actual_screen]['inputs']:
+                x.eventos_teclado(eventos)
             for evento in eventos:
                 if self.eventos_en_comun(evento):
                     ...
-                elif evento.type == pag.KEYDOWN and self.on_keydown_general(self.actual_screen, evento):
+                elif evento.type == pag.KEYDOWN and self.on_keydown_general(evento):
                     ...
-                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and self.on_mouse_click_general(evento, self.actual_screen):
+                elif evento.type == pag.MOUSEBUTTONDOWN and evento.button == 1 and self.on_mouse_click_general(evento):
                     ...
-                elif evento.type == pag.MOUSEWHEEL and self.on_wheel_event_general(evento,self.actual_screen):
+                elif evento.type == pag.MOUSEWHEEL and self.on_wheel_event_general(evento):
                     ...
-                elif evento.type == pag.MOUSEBUTTONUP and evento.button == 1 and self.on_mouse_click_up_general(self.actual_screen):
+                elif evento.type == pag.MOUSEBUTTONUP and evento.button == 1 and self.on_mouse_click_up_general():
                     ...
-                elif evento.type == pag.MOUSEMOTION and self.on_mouse_motion_event_general(evento,self.actual_screen):
+                elif evento.type == pag.MOUSEMOTION and self.on_mouse_motion_event_general(evento):
                     ...
                 else:
                     self.otro_evento(self.actual_screen, evento)
@@ -384,16 +379,16 @@ class Base_class:
                 #                                                   captured=result),
                 #                                   self.func_select_box)
 
-            self.update_general(self.lists_screens[self.actual_screen]["update"], pag.mouse.get_pos())
-            # Y pones el resto de logica que quieras en tu aplicacion
-            self.update(self.actual_screen)
+            # self.update_general(self.lists_screens[self.actual_screen]["update"]+self.overlay, pag.mouse.get_pos())
+            # # Y pones el resto de logica que quieras en tu aplicacion
+            self.update_general()
 
             if not self.drawing:
                 continue
             if self.draw_mode == 'optimized':
-                self.draw_optimized(self.lists_screens[self.actual_screen]["draw"])  # La lista a dibujar de esta pantalla
+                self.draw_optimized(self.lists_screens[self.actual_screen]["draw"]+self.overlay)  # La lista a dibujar de esta pantalla
             elif self.draw_mode == 'always':
-                self.draw_always(self.lists_screens[self.actual_screen]["draw"])
+                self.draw_always(self.lists_screens[self.actual_screen]["draw"]+self.overlay)
 
     @property
     def framerate(self):

@@ -1,7 +1,6 @@
 import pygame as pag
 from typing import Literal, Callable
 from .text import Text
-from ..Animaciones import Vector2
 
 class Button(Text):
     '''
@@ -28,6 +27,7 @@ class Button(Text):
         self.color_rect_inactive = color_rect
         self.color_inactive = color
         self.with_rect2 = with_rect
+        self.scroll = False
 
         self.toggle_rect = kwargs.get('toggle_rect',False)
         self.border_color_inactive = border_color
@@ -94,7 +94,7 @@ class Button(Text):
         if self.sound_to_click:
             self.sound_to_click.play()
         if self.func:
-            self.func()
+            return self.func()
         return True
     def change_color_ad(self,color,color_active = None) -> None:
         self.color_inactive = color

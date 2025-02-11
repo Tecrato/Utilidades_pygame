@@ -4,8 +4,11 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dinamics
+from functools import lru_cache
 
-
+@lru_cache(maxsize=500)
+def create_text(text, font, color):
+    return font.render(str(text), True, color)
 
 class List(Base):
     '''
@@ -20,10 +23,6 @@ class List(Base):
      - header_top_left_radius
      - header_border_color
 
-    ## Ejemplo Codigo:
-
-    elif evento.type == MOUSEMOTION and [lista].scroll:
-        [lista].rodar_mouse(evento.rel[1])
     '''
     def __init__(self, size: tuple, pos: tuple, lista: list = [None], text_size: int = 20, separation: int = 0,
         selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:str = None,
@@ -37,7 +36,7 @@ class List(Base):
         self.__smothscroll = bool(smothscroll)
         self.background_color = background_color
         self.selected_color = selected_color
-        self.padding_top = kwargs.get('padding_top',10)
+        self.padding_top = kwargs.get('padding_top',10)+separation//2
         self.padding_left = kwargs.get('padding_left',20)
         self.border_width = border_width
         self.border_radius = border_radius
@@ -71,7 +70,8 @@ class List(Base):
         self.selected_nums: list[int] = []
 
 
-        self.scroll = False
+        self.use_mouse_motion = False
+        self.use_mouse_wheel = True
 
         self.__generate()
         self.resize(size)
@@ -116,7 +116,7 @@ class List(Base):
 
         self.select_box = pag.rect.Rect(0,-5000,self.lista_surface_rect.w,self.letter_size + self.separacion)
 
-        self.rodar(0)
+        self.on_wheel(0)
 
         self.set_height()
         self.barra.right = self.lista_surface_rect.w
@@ -128,14 +128,12 @@ class List(Base):
         p = self.rect.union(self.text_header.rect) if self.header else self.rect
         self.create_border(p, self.border_width)
         self.last_rect = self.last_rect.union(self.rect_border)
-
-    def create_text(self,text:str):
-        return self.font.render(str(text),1,self.text_color)
+        self.redraw += 2
 
     def __gen_list(self):
         self.lista_objetos.clear()
         for text in self.lista_palabras:
-            self.lista_objetos.append(self.create_text(text))
+            self.lista_objetos.append(create_text(text, self.font, self.text_color))
         self.set_height()
 
     def draw_surf(self):
@@ -153,7 +151,7 @@ class List(Base):
             self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smoth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
-            pag.draw.rect(self.lista_surface, self.barra_color_hover if (self.barra_hover or self.scroll) else self.barra_color, self.barra,border_radius=5)
+            pag.draw.rect(self.lista_surface, self.barra_color_hover if (self.barra_hover or self.use_mouse_motion) else self.barra_color, self.barra,border_radius=5)
         if self.redraw < 1:
             self.redraw = 1
 
@@ -206,7 +204,7 @@ class List(Base):
         # self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height + self.rect.height)))
         self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height+self.lista_surface_rect.h)))
 
-    def rodar(self, y) -> None:
+    def on_wheel(self, y) -> None:
         if self.total_content_height + self.lista_surface_rect.h < self.rect.h:
             if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
                 self.draw_surf()
@@ -228,15 +226,16 @@ class List(Base):
         if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
 
-    def rodar_mouse(self, rel):
+    def on_mouse_motion(self, evento):
+        rel = evento.rel[1]
         self.barra.centery += rel
         if self.barra.top <= 0:
             self.barra.top = 0
             self.desplazamiento = 0
-            self.rodar(0)
+            self.on_wheel(0)
             return
         self.desplazamiento = -(self.total_content_height / ((self.lista_surface_rect.h - self.barra.h) / self.barra.top))
-        self.rodar(0)
+        self.on_wheel(0)
 
     def select(self, index: int = False, diff = True, more = False,button=1) -> str:
         if isinstance(index,int) and index > len(self.lista_palabras)-1 or index < 0:
@@ -255,44 +254,44 @@ class List(Base):
                 self.selected_nums.append(index)
             if diff:
                 self.desplazamiento = (-self.letter_size*(index+1) + self.padding_top) + self.lista_surface_rect.h/2
-            self.rodar(0)
+            self.on_wheel(0)
             return {'text': self.lista_palabras[index], 'index': index}
         else:
             raise ValueError('Invalid index, must be an int or False')
 
     def click(self, mouse_pos, ctrl=False, button=1):
         if not self.rect.collidepoint(mouse_pos):
-            self.select(False)
+            # self.select(False)
             return False
         m = Vector2(mouse_pos) - self.rect.topleft
-        m += (0,5)
+        self.redraw += 1
 
         if self.scroll_bar_active and self.barra.collidepoint(m):
-            self.scroll = True
+            self.use_mouse_motion = True
             return 'scrolling'
-        touch = round((m.y-self.padding_top - self.desplazamiento_smoth)//(self.letter_size+self.separacion))
+        touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
         self.select(touch if touch > -1 else False,False, ctrl, button)
 
         return {'text': self.lista_palabras[touch], 'index': touch} if touch > -1 and touch < len(self.lista_palabras) else False
 
     def append(self, text: str):
         self.lista_palabras.append('{}'.format(text))
-        self.lista_objetos.append(self.create_text(text))
+        self.lista_objetos.append(create_text(text, self.font, self.text_color))
         self.set_height()
-        self.rodar(0)
+        self.on_wheel(0)
 
     def insert(self, index: int, text: str):
         self.lista_palabras.insert(index, text)
-        self.lista_objetos.insert(index, self.create_text(text))
+        self.lista_objetos.insert(index, create_text(text, self.font, self.text_color))
         self.set_height()
-        self.rodar(0)
+        self.on_wheel(0)
 
     def pop(self,index:int = -1):
         self.lista_palabras.pop(index)
         self.lista_objetos.pop(index)
         self.set_height()
         self.select(False, False)
-        self.rodar(0)
+        self.on_wheel(0)
 
     def clear(self):
         self.lista_palabras.clear()
@@ -300,7 +299,7 @@ class List(Base):
         self.selected_nums.clear()
         self.desplazamiento = 0
         self.set_height()
-        self.rodar(0)
+        self.on_wheel(0)
 
     def get_selects(self) -> list[str]:
         return [(x,self.lista_palabras[x]) for x in self.selected_nums]
@@ -361,8 +360,9 @@ class List(Base):
 
     def __setitem__(self, index, value: str):
         self.lista_palabras[index] = str(value)
-        self.lista_objetos[index] = self.create_text(value)
-        self.rodar(0)
+        self.lista_objetos[index] = create_text(str(value), self.font, self.text_color)
+        self.on_wheel(0)
+        self.redraw += 1
     def __repr__(self):
         return '\n'.join(self.lista_palabras)
 

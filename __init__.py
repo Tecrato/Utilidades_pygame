@@ -15,17 +15,13 @@ from .texts import Multi_list
 from .texts import Select_box
 from .texts import App_menu
 
-from .figuras.poligono_regular import Poligono_regular
-from .figuras.poligono_irregular import Poligono_irregular
+from .figuras.poligono_regular import PoligonoRegular
+from .figuras.poligono_irregular import PoligonoIrregular
 from .figuras.engranajes import Engranaje
 
-from Utilidades import memosize
-
-from .graficas import *
+# from .graficas import *
 
 __all__ = [
-    # Optimizacion
-    "memosize",
     
     # Texts
     "App_menu",
@@ -37,8 +33,8 @@ __all__ = [
     "Select_box",
 
     # Figures
-    "Poligono_regular",
-    "Poligono_irregular",
+    "PoligonoRegular",
+    "PoligonoIrregular",
     "Engranaje",
     "Barra_de_progreso",
 
