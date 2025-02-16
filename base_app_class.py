@@ -404,3 +404,6 @@ class Base_class:
     def loading(self, num: int):
         self.__loading = int(num)
         self.redraw = True
+        if self.__loading > 0:
+            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+                x.update_hover((-100000,-100000))
