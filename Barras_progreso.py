@@ -50,8 +50,8 @@ class Barra_de_progreso:
     def draw(self,surface, *, always_draw=False, **kwargs) -> None:
         if always_draw:
             self.redraw = 2
-        pag.draw.rect(surface, self.border_color, self.rect)
-        pag.draw.rect(surface, self.fill_color, self.rect2, width=self.border_width)
+        pag.draw.rect(surface, self.fill_color, self.rect)
+        pag.draw.rect(surface, self.border_color, self.rect2, width=self.border_width)
         return (self.rect2,)
 
     def update(self, dt=1, **kwargs):
