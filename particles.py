@@ -5,7 +5,6 @@ import math
 from pygame.math import Vector2
 
 from .particle import Particle
-from Utilidades import Hipotenuza
 
 class Particles:
     def __init__(

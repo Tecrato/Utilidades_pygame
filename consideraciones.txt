@@ -25,3 +25,10 @@ y se mostraran siempre al frente.
 
 Lo mismo aplica para todo lo demas, el ordene nel que se agregan a la lista de dibujado
 es importante
+
+# Codigo entre pantallas
+si se desea ejecutar una linea de codigo al pasar de una pantalla a otra(self.goto())
+se puede sobre escribir la funcion, colocando el codigo deseado y luego llamando a la clase padre noormalmente.
+
+asi que tambien se pueden poner if elif else dentro de la funcion sobre escrita para colocar codigo
+dependiendo de a que pantalla se va

@@ -9,7 +9,7 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list[str], *, auto_open: bool=False, min_width = 10, min_height = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, **kwargs):
+            self, boton: Button, options: list[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, **kwargs):
         
         self.__options = options
         self.select_opened = False
@@ -52,7 +52,7 @@ class Select_box:
         t_max_l = [self.min_width]
 
         for i, op in enumerate(self.options):
-            t = Text(f'{op}',self.text_size,None,(self.padding_horizontal,self.txt_tama_h*i +5), 'topleft','black', with_rect=False, padding=(0,5))
+            t = Text(f'{op}',self.text_size,self.font,(self.padding_horizontal,self.txt_tama_h*i +5), 'topleft','black', with_rect=False, padding=(0,5))
             t_max_l.append(t.width + self.padding_horizontal*2)
             self.botones.append(t.copy())
 

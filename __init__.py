@@ -19,6 +19,7 @@ from .figuras.poligono_regular import PoligonoRegular
 from .figuras.poligono_irregular import PoligonoIrregular
 from .figuras.engranajes import Engranaje
 
+from .config_default import Config
 # from .graficas import *
 
 __all__ = [
