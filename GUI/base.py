@@ -1,8 +1,4 @@
-import pygame as pag
-
 from..bloque import Bloque
-from ..texts import Button, Text
-from ..scroll import Screen_scroll
 
 """
 Van a ser bloques, y se colocaran en la lista de dibujado principal

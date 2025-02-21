@@ -1,5 +1,4 @@
 import pygame as pag
-import Utilidades as uti
 import Utilidades_pygame as uti_pag
 
 from Utilidades_pygame.figuras.poligono_irregular import PoligonoIrregular

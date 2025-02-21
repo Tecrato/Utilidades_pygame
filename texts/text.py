@@ -2,12 +2,7 @@ import pygame as pag
 from pygame.math import Vector2
 from typing import Literal
 from ..obj_Base import Base
-from functools import lru_cache
 
-
-# @lru_cache(maxsize=10)
-def create_text(text, font, color):
-    return font.render(text, True, color)
 
 class Text(Base):
     """

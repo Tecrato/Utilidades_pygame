@@ -227,7 +227,6 @@ class Multi_list(Base):
     def __getitem__(self,index: int):
         return self.listas[index]
     def __setitem__(self,index,value):
-        print(index)
         if not isinstance(value,Iterable) or len(value) < self.num_list:
             return False
         for x in range(self.num_list):

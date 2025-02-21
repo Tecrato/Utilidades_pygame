@@ -1,13 +1,12 @@
-from typing import Literal
 import platformdirs
-import pygame
+from Utilidades.maths import Vector2
 
 class Config:
     def __init__(
             self, window_resize=None, scaled=None, title=None, window_title=None, my_company=None, 
             author=None, version=None, description=None, copyright=None, resolution=None, 
             min_resolution=None, returncode=None, max_fps=None, min_fps=None, screenshot_dir=None, 
-            save_dir=None, icon: pygame.Surface=None, **kwargs
+            save_dir=None, icon: str=None, **kwargs
             ):
         self.window_resize = window_resize if window_resize is not None else True
         self.scaled = scaled if scaled is not None else False
@@ -19,8 +18,8 @@ class Config:
         self.version: str = version if version is not None else '0.1'
         self.description: str = description if description is not None else 'Ejemplo de programa para empezar con una idea'
         self.copyright: str = copyright if copyright is not None else f'© 2025 {self.my_company} Todos los derechos reservados'
-        self.resolution = resolution if resolution is not None else pygame.Vector2(800, 550)
-        self.min_resolution = min_resolution if min_resolution is not None else pygame.Vector2(550,450)
+        self.resolution = resolution if resolution is not None else Vector2(800, 550)
+        self.min_resolution = min_resolution if min_resolution is not None else Vector2(550,450)
         self.returncode = returncode if returncode is not None else 0
         self.max_fps = max_fps if max_fps is not None else 60
         self.min_fps = min_fps if min_fps is not None else 60
@@ -29,7 +28,7 @@ class Config:
         self.save_dir = save_dir if save_dir is not None else platformdirs.user_config_path(self.title, self.my_company)
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
-        self.icon: pygame.Surface|None = icon
+        self.icon: str|None = icon
 
         for x in kwargs:
             setattr(self, x, kwargs[x])

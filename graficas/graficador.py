@@ -10,7 +10,7 @@ from functools import lru_cache
 from ..obj_Base import Base
 from ..texts import Text
 
-@lru_cache
+@lru_cache(1000)
 def numero(num,size) -> Text:
     return Text(num, size, None, (0, 0))
 

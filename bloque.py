@@ -2,7 +2,6 @@ from typing import Any
 import pygame as pag
 from pygame import Vector2
 
-from .texts import List, Multi_list
 from .obj_Base import Base
 from .scroll import Screen_scroll
 
@@ -210,7 +209,7 @@ class Bloque(Base):
         if not self.list_objs:
             return
         for i,x in enumerate(self.list_objs):
-            if isinstance(x["GUI"], (List, Bloque, Multi_list)) and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
+            if x["GUI"].use_mouse_wheel and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
                 x["GUI"].rodar(delta)
                 return
         if self.scroll_y:

@@ -4,11 +4,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dinamics
-from functools import lru_cache
 
-@lru_cache(maxsize=500)
-def create_text(text, font, color):
-    return font.render(str(text), True, color)
 
 class List(Base):
     '''
@@ -133,7 +129,7 @@ class List(Base):
     def __gen_list(self):
         self.lista_objetos.clear()
         for text in self.lista_palabras:
-            self.lista_objetos.append(create_text(text, self.font, self.text_color))
+            self.lista_objetos.append(self.font.render(str(text), True, self.text_color))
         self.set_height()
 
     def draw_surf(self):
@@ -276,13 +272,13 @@ class List(Base):
 
     def append(self, text: str):
         self.lista_palabras.append('{}'.format(text))
-        self.lista_objetos.append(create_text(text, self.font, self.text_color))
+        self.lista_objetos.append(self.font.render(str(text), True, self.text_color))
         self.set_height()
         self.on_wheel(0)
 
     def insert(self, index: int, text: str):
         self.lista_palabras.insert(index, text)
-        self.lista_objetos.insert(index, create_text(text, self.font, self.text_color))
+        self.lista_objetos.insert(index, self.font.render(str(text), True, self.text_color))
         self.set_height()
         self.on_wheel(0)
 
@@ -360,7 +356,7 @@ class List(Base):
 
     def __setitem__(self, index, value: str):
         self.lista_palabras[index] = str(value)
-        self.lista_objetos[index] = create_text(str(value), self.font, self.text_color)
+        self.lista_objetos[index] = self.font.render(str(value), True, self.text_color)
         self.on_wheel(0)
         self.redraw += 1
     def __repr__(self):
