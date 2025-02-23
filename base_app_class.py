@@ -304,7 +304,7 @@ class Base_class:
 
     def on_wheel_event_general(self,evento):
         for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
-            if x.is_hover(pag.mouse.get_pos()) and x.use_mouse_wheel:
+            if x.is_hover(pag.mouse.get_pos()) and getattr(x,'use_mouse_wheel',False):
                 x.on_wheel(evento.y*self.scroll_speed)
                 return True
         return False
@@ -312,7 +312,7 @@ class Base_class:
     def on_mouse_motion_event_general(self,evento):
         if self.click:
             for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
-                if x.use_mouse_motion:
+                if getattr(x,'use_mouse_motion',False):
                     x.on_mouse_motion(evento)
                     return True
         self.Mini_GUI_manager.update_hover(evento.pos)

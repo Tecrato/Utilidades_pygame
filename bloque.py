@@ -209,7 +209,7 @@ class Bloque(Base):
         if not self.list_objs:
             return
         for i,x in enumerate(self.list_objs):
-            if x["GUI"].use_mouse_wheel and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
+            if getattr(x["GUI"],"use_mouse_wheel",False) and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
                 x["GUI"].rodar(delta)
                 return
         if self.scroll_y:
