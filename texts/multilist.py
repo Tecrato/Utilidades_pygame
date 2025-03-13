@@ -164,7 +164,9 @@ class Multi_list(Base):
     def clear(self) -> None:
         [x.clear() for x in self.listas]
 
-    def click(self,mouse_pos,ctrl=False,button=1):
+    def click(self,mouse_pos=False,ctrl=False,button=1):
+        if not mouse_pos:
+            return
         m = Vector2(mouse_pos)
         if not self.rect.collidepoint(m):
             return

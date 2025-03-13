@@ -1,6 +1,7 @@
 import pygame as pag
 from typing import Literal, Callable
 from .text import Text
+from .input import Input
 
 class Button(Text):
     '''
@@ -41,7 +42,7 @@ class Button(Text):
         self.sound_to_hover = kwargs.get('sound_to_hover',False)
         self.sound_to_click = kwargs.get('sound_to_click',False)
 
-        self.controles_adyacentes: dict = kwargs.get('controles_adyacentes',{})
+        self.controles_adyacentes: dict[Literal['up','right','down','left'], Button|Input|None] = {}
 
         Text.__init__(self,text, size, font, pos, dire, color, with_rect, color_rect, padding=padding, 
                              rect_width=rect_width, border_radius=border_radius,border_top_left_radius=border_top_left_radius, 

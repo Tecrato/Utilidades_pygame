@@ -16,6 +16,9 @@ def numero(num,size) -> Text:
 
 
 class Graficador(Base):
+    """
+    Dirty rect compatibility: False
+    """
     def __init__(
             self, pos, ancho, alto, escala: int = 100,dire: str = 'center', background_color: tuple[int, int, int] = (0, 0, 0),
             scale_color: tuple[int, int, int] = (255, 255, 255), guide_lines_color: tuple[int, int, int] = (20, 20, 20),
@@ -61,6 +64,7 @@ class Graficador(Base):
         self.rect = self.surf.get_rect()
         self.direccion(self.rect)
         self.create_border(self.rect, self.border_width)
+        self.use_mouse_motion = False
     
     def add_ecuacion(self,ec,condition):
         self.ecuaciones.append((str(ec),str(condition)))
@@ -165,6 +169,8 @@ class Graficador(Base):
                       self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, 
                       self.border_bottom_right_radius)
 
+        return [self.rect]
+
     def resize(self, width, height):
         self.ancho = width
         self.alto = height
@@ -173,6 +179,7 @@ class Graficador(Base):
         self.rect = self.surf.get_rect()
         self.direccion(self.rect)
         self.create_border(self.rect, self.border_width)
+    
 
     @property
     def zoom(self):

@@ -5,7 +5,7 @@ import pygame as pag
 class Barra_de_progreso:
     def __init__(
             self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical',
-            border_color: tuple[int,int,int] = (0,255,0), fill_color: tuple[int,int,int] = (0,128,255), border_width: int = 2,
+            border_color: tuple[int,int,int] = (0,128,255), fill_color: tuple[int,int,int] = (0,255,0), border_width: int = 2,
             smoth = False
             ):
         self.__size = pag.Vector2(size)

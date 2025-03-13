@@ -9,18 +9,23 @@ class Input(Base):
     for x in self.lista_inputs:
         x.eventos_teclado(eventos)
     '''
-    def __init__(self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
-        width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: str = 'topleft', **kwargs) -> None:
+    def __init__(
+        self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
+        width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: str = 'topleft',
+        border_color='black',hover_border_color='cyan', border_width = 1, border_radius = 0, pointer_color = 'white',
+        **kwargs
+        ) -> None:
         
         super().__init__(pos,dire)
-        self.border_radius = kwargs.get('border_radius',0)
+        self.border_radius = border_radius
         self.border_top_left_radius = kwargs.get('border_top_left_radius',-1)
         self.border_bottom_left_radius = kwargs.get('border_bottom_left_radius',-1)
         self.border_top_right_radius = kwargs.get('border_top_right_radius',-1)
         self.border_bottom_right_radius = kwargs.get('border_bottom_right_radius',-1)
-        self.border_width = kwargs.get('border_width', -1)
-        self.border_color = kwargs.get('border_color', 'black')
-        self.pointer_color = kwargs.get('pointer_color', 'white')
+        self.border_width = border_width
+        self.border_color = border_color
+        self.hover_border_color = hover_border_color
+        self.pointer_color = pointer_color
 
         self.text_size = text_size
         self.text_color = text_color
@@ -49,6 +54,10 @@ class Input(Base):
         self.right_time = 0
         self.typing_line = False
         self.typing_line_time = time.time()
+        
+        # Para navegación con teclas
+        self.hover = False
+        self.controles_adyacentes = {'up': None, 'right': None, 'down': None, 'left': None}
         self.letter_pos = [0]
         self.button_pressed_time = 0
         self.draw_surf()
@@ -57,7 +66,7 @@ class Input(Base):
         t = Text('', self.text_size, self.font, self.pos, 'left', padding=self.padding,width=self.width,height=self.height)
         self.rect = t.rect.copy()
 
-        self.text = Text('abdc123--||', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,width=self.width-self.padding.x*2, padding=5)
+        self.text = Text('|', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,width=self.width-self.padding.x*2, padding=5)
         self.rect2 = self.text.rect.copy()
         self.input_surface = pag.Surface(self.rect2.size)
         self.input_surface.fill(self.background_color)
@@ -90,11 +99,11 @@ class Input(Base):
 
         pag.draw.rect(surface, self.background_color, self.rect, 0, self.border_radius, self.border_top_left_radius, 
                       self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
-        pag.draw.rect(surface, self.border_color, self.rect_border, self.border_width,self.border_radius, 
+        pag.draw.rect(surface, self.border_color if not self.hover else self.hover_border_color, self.rect_border, self.border_width,self.border_radius, 
                       self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, 
                       self.border_bottom_right_radius)
     
-        if self.typing and time.time()-self.typing_line_time > .7:
+        if self.typing and time.time()-self.typing_line_time > .6:
             self.typing_line = not self.typing_line
             self.typing_line_time = time.time()
             self.draw_surf()
@@ -112,7 +121,6 @@ class Input(Base):
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
             return [self.rect_border, r]
-
 
     def update_pressed_keys(self):
         if time.time() - self.button_pressed_time > .5:
@@ -297,3 +305,11 @@ class Input(Base):
     
     def __str__(self) -> str:
         return self.raw_text
+
+    def update_hover(self, pos):
+        aux = self.hover
+        rect = self.rect.copy()
+        self.hover = rect.collidepoint(pos)
+        if aux != self.hover:
+            self.redraw += 1
+        return self.hover

@@ -1,6 +1,7 @@
-from typing import Literal
+from typing import Literal, Union
 import pygame as pag
 import time
+import math
 import datetime
 import Utilidades as uti
 import Utilidades.win32_tools as win32_tools
@@ -71,6 +72,7 @@ class Base_class:
         self.class_intervals = uti.multithread.Interval_funcs()
         self.delta_time: uti.Deltatime = uti.Deltatime()
         self.otras_variables()
+        self.accept_to_move_with_arrows = Union[Input, Button]
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {
@@ -89,6 +91,8 @@ class Base_class:
         self.Mini_GUI_manager: mini_GUI.mini_GUI_admin = mini_GUI.mini_GUI_admin(self.ventana_rect)
         self.load_resources()
         self.generate_objs()
+        self.move_objs()
+        self.calculate_adjacent_controls()
 
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
         self.post_init()
@@ -125,6 +129,7 @@ class Base_class:
         self.Mini_GUI_manager.update_hover(pag.mouse.get_pos())
         for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]), reverse=True):
             x.update_hover(pag.mouse.get_pos())
+        self.calculate_adjacent_controls()
 
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque|Engranaje]):
         lista = lista.copy()
@@ -194,51 +199,156 @@ class Base_class:
     
     def move_hover(self, direccion: str, lista):
         for i,x in sorted(enumerate(lista), reverse=True):
-            if isinstance(x, Button) and x.controles_adyacentes.get('right',False) and x.hover:
-                if not x.controles_adyacentes.get(direccion,False):
-                    break
-                x.hover = False
-                x.controles_adyacentes.get(direccion,False).hover = True
+            if (isinstance(x, Button) or isinstance(x, Input)) and x.hover:
+                # Si el botón o input con hover actual tiene un control adyacente en la dirección especificada
+                if x.controles_adyacentes.get(direccion, None):
+                    x.hover = False
+                    x.controles_adyacentes[direccion].hover = True
+                    
+                    # Si estamos moviendo desde un Input que está siendo editado
+                    if isinstance(x, Input) and x.typing:
+                        x.typing = False
+                    
+                    return
                 break
         else:
+            # Si ningún botón o input tiene hover, seleccionar el primer botón o input
             for x in lista:
-                if isinstance(x, Button):
+                if isinstance(x, Button) or isinstance(x, Input):
                     x.hover = False
             for x in lista:
-                if isinstance(x, Button):
+                if isinstance(x, Button) or isinstance(x, Input):
                     x.hover = True
                     break
 
     def select_btns_with_arrows(self, evento: pag.event.Event, screen_alias: str):
-        if evento.key == pag.K_RIGHT:
-            self.move_hover('right',self.lists_screens[self.actual_screen]["click"]+self.overlay)
-        elif evento.key == pag.K_LEFT:
-            self.move_hover('left',self.lists_screens[self.actual_screen]["click"]+self.overlay)
-        elif evento.key == pag.K_UP:
-            self.move_hover('top',self.lists_screens[self.actual_screen]["click"]+self.overlay)
-        elif evento.key == pag.K_DOWN:
-            self.move_hover('bottom',self.lists_screens[self.actual_screen]["click"]+self.overlay)
-        else: return False
-        return True
-    
-    def select_inputs_with_TAB(self, evento: pag.event.Event, screen_alias: str):
-        if len(self.lists_screens[screen_alias]["inputs"]) == 0:
-            return False
+        # Si el evento es TAB, salimos del Input activo y pasamos al siguiente control
         if evento.key == pag.K_TAB:
-            next_typ = False
-            for x in self.lists_screens[screen_alias]["inputs"]:
-                if x.typing:
+            # Buscar el control actual
+            for x in self.lists_screens[self.actual_screen]["click"] + self.overlay:
+                if isinstance(x, Input) and x.typing:
                     x.typing = False
-                    next_typ = True
-                elif next_typ:
-                    x.typing = True
-                    break
-            else:
-                return False
-            return True
-        else: 
+                    x.typing_line = False
+                    x.draw_surf()
+                    return True
             return False
+
+        direccion = {
+            pag.K_RIGHT: 'right',
+            pag.K_LEFT: 'left',
+            pag.K_UP: 'up',
+            pag.K_DOWN: 'down'
+        }
+        # Manejo normal de las flechas
+        if evento.key in direccion:
+            self.move_hover(direccion[evento.key], self.lists_screens[self.actual_screen]["click"]+self.overlay)
+            return True
+        return False
+
+    def on_keydown_general(self, evento: pag.event.Event):
+        # Manejar inputs
+        for x in self.lists_screens[self.actual_screen]["inputs"] + [y for y in self.overlay if isinstance(y, Input)]:
+            # Si el Input tiene hover y se presiona Enter o se hace clic, activar
+            if isinstance(x, Input) and x.hover and x.typing and evento.key == pag.K_RETURN:
+                x.typing = False
+                x.typing_line = False
+                x.draw_surf()
+                return True
+            elif isinstance(x, Input) and x.hover and x.typing and evento.key == pag.K_ESCAPE:
+                x.typing = False
+                x.typing_line = False
+                x.draw_surf()
+                return True
+                
+        # Si algún Input está siendo editado, darle prioridad para los eventos de flechas
+        for x in self.lists_screens[self.actual_screen]["inputs"] + [y for y in self.overlay if isinstance(y, Input)]:
+            if isinstance(x, Input) and x.typing and evento.key in [pag.K_LEFT, pag.K_RIGHT, pag.K_BACKSPACE, pag.K_DELETE, pag.K_RETURN]:
+                # Las flechas izquierda/derecha manejan la posición de edición en el Input
+                return True
+        
+        # Navegar con teclas de flecha si no hay inputs activos o se presionó Tab
+        if self.navegate_with_keys and evento.key in [pag.K_UP, pag.K_DOWN, pag.K_LEFT, pag.K_RIGHT, pag.K_TAB]:
+            return self.select_btns_with_arrows(evento, self.actual_screen)
+        elif evento.key == pag.K_SPACE:
+            # Activar el botón o input que tiene hover actualmente con la tecla espaciadora
+            for i, x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+                if isinstance(x, Button) and getattr(x, 'hover', False):
+                    x.click()
+                    return True
+                elif isinstance(x, Input) and getattr(x, 'hover', False):
+                    x.typing = True
+                    x.redraw += 1
+                    return True
     
+        return False
+
+    def calculate_adjacent_controls(self, buttons = None):
+        """
+        Calcula automáticamente los controles adyacentes para cada botón basado en su posición en la pantalla.
+        
+        Los controles adyacentes son los botones más cercanos en cada dirección (arriba, abajo, izquierda, derecha).
+        La dirección se determina por sectores angulares, dividiendo el espacio en 4 cuadrantes.
+        
+        Args:
+            buttons (list): Lista de botones para calcular los controles adyacentes. Si es None, se usan todos los botones.
+        """
+        # Si no se especifican botones, usar todos los botones
+        if buttons is None:
+            # Obtener todos los botones e inputs de la pantalla actual
+            buttons = [x for x in self.lists_screens[self.actual_screen]["click"] if isinstance(x, self.accept_to_move_with_arrows)] + [x for x in self.overlay if isinstance(x, self.accept_to_move_with_arrows)]
+        
+        # Asegurarse de que todos los botones tengan inicializado el diccionario controles_adyacentes
+        for button in buttons:
+            if not hasattr(button, 'controles_adyacentes'):
+                button.controles_adyacentes = {'up': None, 'right': None, 'down': None, 'left': None}
+        
+        # Para cada botón, determinar sus controles adyacentes
+        for i, button in enumerate(buttons):
+            # Obtener todos los otros botones excepto el actual
+            other_buttons = buttons[:i] + buttons[i+1:]
+            
+            # Para cada dirección, encontrar el botón más cercano que esté en ese sector angular
+            up_buttons = []
+            right_buttons = []
+            down_buttons = []
+            left_buttons = []
+            
+            # Procesar cada botón y asignarlo a la dirección correspondiente
+            for other in other_buttons:
+                distance = uti.Hipotenuza(button.rect.center, other.rect.center)
+                angle = uti.Angulo(button.rect.center, other.rect.center)
+                
+                # Clasificar por sector angular (dividir en 4 cuadrantes)
+                # DERECHA: -45° a 45° (o 315° a 45°)
+                if (angle >= 315 or angle < 45):
+                    right_buttons.append((other, distance))
+                # ABAJO: 45° a 135°
+                elif (45 <= angle < 135):
+                    down_buttons.append((other, distance))
+                # IZQUIERDA: 135° a 225°
+                elif (135 <= angle < 225):
+                    left_buttons.append((other, distance))
+                # ARRIBA: 225° a 315°
+                else:
+                    up_buttons.append((other, distance))
+            
+            # Asignar el botón más cercano en cada dirección
+            if up_buttons:
+                up_buttons.sort(key=lambda x: x[1])
+                button.controles_adyacentes['up'] = up_buttons[0][0]
+            
+            if right_buttons:
+                right_buttons.sort(key=lambda x: x[1])
+                button.controles_adyacentes['right'] = right_buttons[0][0]
+            
+            if down_buttons:
+                down_buttons.sort(key=lambda x: x[1])
+                button.controles_adyacentes['down'] = down_buttons[0][0]
+            
+            if left_buttons:
+                left_buttons.sort(key=lambda x: x[1])
+                button.controles_adyacentes['left'] = left_buttons[0][0]
+
     def eventos_en_comun(self,evento):
         if evento.type == pag.MOUSEBUTTONDOWN:
             self.last_click = time.time()
@@ -287,6 +397,7 @@ class Base_class:
             self.ventana_rect = self.ventana.get_rect()
 
             self.move_objs()
+            self.calculate_adjacent_controls()
             self.redraw = True
             return True
         elif self.loading > 0:
@@ -334,19 +445,6 @@ class Base_class:
             x.use_mouse_motion = False
         return False
 
-    def on_keydown_general(self, evento):
-        if evento.key == pag.K_TAB and self.navegate_with_keys:
-            self.select_inputs_with_TAB(evento, self.actual_screen)
-            return True
-        elif self.select_btns_with_arrows(evento, self.actual_screen) and self.navegate_with_keys:
-            return True
-        elif evento.key == pag.K_SPACE and self.navegate_with_keys:
-            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay),reverse=True):
-                if x.hover:
-                    x.click()
-                    return True
-        return False
-
     def screen_main(self):
         while self.running:
             self.relog.tick(self.framerate)
@@ -369,18 +467,7 @@ class Base_class:
                     ...
                 else:
                     self.otro_evento(self.actual_screen, evento)
-                # Ejemplo para añadir multiseleccion en las listas
-                # elif evento.type == MOUSEBUTTONDOWN and evento.button == 3:
-                #     if self.lista_descargas.click((mx, my),pag.key.get_pressed()[pag.K_LCTRL],button=3) and (result := self.lista_descargas.get_selects()):
-                #         self.Mini_GUI_manager.add(mini_GUI.select((mx, my),
-                #                                                   [self.txts['descargar'], self.txts['eliminar'],
-                #                                                    self.txts['actualizar_url'], 'get url', self.txts['añadir a la cola'], self.txts['remover de la cola'], self.txts['limpiar cola'],
-                #                                                    self.txts['reiniciar'], self.txts['cambiar nombre']],
-                #                                                   captured=result),
-                #                                   self.func_select_box)
 
-            # self.update_general(self.lists_screens[self.actual_screen]["update"]+self.overlay, pag.mouse.get_pos())
-            # # Y pones el resto de logica que quieras en tu aplicacion
             self.update_general()
 
             if not self.drawing:
