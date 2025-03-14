@@ -4,6 +4,7 @@ from ..obj_Base import Base
 from .text import Text
 
 
+
 class Input(Base):
     '''
     for x in self.lista_inputs:
@@ -37,6 +38,7 @@ class Input(Base):
         self.max_letter = max_letter
         self.background_color = background_color
         self.font = font
+        self.font_loaded = pag.font.Font(self.font, self.text_size)
         
         self.width = width
         self.height = height
@@ -210,7 +212,7 @@ class Input(Base):
             return
         self.raw_text = self.raw_text[:self.typing_pos] + str(t) + self.raw_text[self.typing_pos:]
         self.text.text = self.raw_text
-        w = Text(self.raw_text[:self.typing_pos]+t,self.text_size, self.font, (0,0), padding=0).rect.w - sum(self.letter_pos[:self.typing_pos])
+        w = self.font_loaded.render(self.raw_text[:self.typing_pos]+t, True, self.text_color).get_width() - sum(self.letter_pos[:self.typing_pos])
         self.letter_pos.insert(self.typing_pos,w)
         self.typing_pos += 1
         self.center_text()
@@ -225,24 +227,30 @@ class Input(Base):
         self.center_text()
 
     def center_text(self) -> None:
-        suma = sum(self.letter_pos[:self.typing_pos+1])
-        text_width = self.text.width
+        text_width = sum(self.letter_pos)
         surf_width = self.surf_rect.w
-
+        cursor_x = sum(self.letter_pos[:self.typing_pos])
+        
         if text_width <= surf_width:
-            self.text.left = 0
+            self.text.left = 0  # Texto corto: alineado a la izquierda
         else:
-            if suma - self.text.left > surf_width:
-                self.text.left = -suma + surf_width - 1
-            elif suma - self.text.left < 0:
-                self.text.left = -suma-1
+            min_left = -(text_width - surf_width+self.padding.x)  # Límite izquierdo máximo
+            max_left = 0  # Límite derecho máximo
+
+            # Posición actual del cursor relativa a la superficie visible
+            cursor_rel_x = cursor_x + self.text.left
+            
+            # Calcular nuevos desplazamientos basados en umbrales
+            if cursor_rel_x < 0.1 * surf_width:  # Cursor cerca del borde izquierdo
+                new_left = (0.1 * surf_width) - cursor_x
+            elif cursor_rel_x > 0.9 * surf_width:  # Cursor cerca del borde derecho
+                new_left = (0.9 * surf_width) - cursor_x
             else:
-                # Ensure the cursor is visible within the surface 
-                cursor_x = sum(self.letter_pos[:self.typing_pos])
-                if cursor_x - self.text.left < 0:
-                    self.text.left = -cursor_x-1
-                elif cursor_x - self.text.left > surf_width:
-                    self.text.left = -cursor_x + surf_width-1
+                new_left = self.text.left  # Sin cambios si está en zona segura
+            
+            # Aplicar límites al desplazamiento
+            new_left = max(min(new_left, max_left), min_left)
+            self.text.left = new_left
 
         self.draw_surf()
 
