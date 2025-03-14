@@ -1,5 +1,6 @@
 import pygame as pag
 import math
+from typing import Iterable
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
@@ -304,9 +305,12 @@ class List(Base):
     def lista_palabras(self):
         return self.__lista_palabras
     @lista_palabras.setter
-    def lista_palabras(self, lista_palabras):
+    def lista_palabras(self, lista_palabras: list[str]):
+        if not isinstance(lista_palabras, (list, tuple, Iterable)):
+            raise ValueError('lista_palabras must be a list or tuple or Iterable in general')
         self.__lista_palabras = list(lista_palabras)
-        self.__generate()
+        # self.__generate()
+        self.__gen_list()
 
     @property
     def selected_color(self):

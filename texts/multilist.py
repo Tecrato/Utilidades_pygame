@@ -25,7 +25,7 @@ class Multi_list(Base):
         super().__init__(pos,dire)
         self.size = Vector2(size)
         self.default = [[None] for _ in range(num_lists)] if not default else default
-        self.lista_palabras = self.default if not lista else lista
+        self.__lista_palabras = self.default if not lista else lista
         self.text_size = text_size
         self.separation = separation
         self.__smothscroll = smothscroll
@@ -65,7 +65,7 @@ class Multi_list(Base):
 
             l_size = ((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y)
             l_pos = Vector2(self.size.x*self.colums_witdh[x],0) + self.pos
-            l_list = self.lista_palabras[x]
+            l_list = self.__lista_palabras[x]
             l_separacion = self.separation+(separar if x != num_lists-1 else 0)
             l_padding_top = self.padding_top-(separar//2 if x == num_lists-1 else 0)
             l_with_index = self.with_index if x == 0 and self.with_index else False
@@ -213,6 +213,17 @@ class Multi_list(Base):
         self.__smothscroll = smothscroll
         for x in self.listas:
             x.smothscroll = self.smothscroll
+
+    @property
+    def lista_palabras(self):
+        return self.__lista_palabras
+    @lista_palabras.setter
+    def lista_palabras(self, lista_palabras: Iterable):
+        if not isinstance(lista_palabras, Iterable) or len(lista_palabras) != self.num_list:
+            raise ValueError('lista_palabras debe ser una lista o tupla o Iterable en general y tener el mismo número de listas que num_list')
+        for i,x in enumerate(self.listas):
+            x.lista_palabras = lista_palabras[i]
+        self.redraw += 1
 
     @property
     def use_mouse_motion(self):
