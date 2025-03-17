@@ -24,7 +24,7 @@ class Base_win(Bloque):
         r = super().click(mouse_pos)
         if not r and self.rect.collidepoint(mouse_pos):
             return True
-        return super().click(mouse_pos)
+        return r
 
     def draw_before(self):
         ...
