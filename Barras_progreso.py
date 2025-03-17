@@ -20,32 +20,33 @@ class Barra_de_progreso:
         self.redraw = 2
         self.smoth = smoth
         self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
-        if orientacion == 'vertical':
+        if self.orientacion == 'vertical':
             self.rect.bottomleft = self.__pos
             self.rect2.bottomleft = self.__pos
-        elif orientacion == 'horizontal':
+        elif self.orientacion == 'horizontal':
             self.rect.topleft = self.__pos
             self.rect2.topleft = self.__pos
 
     def pulsando(self) -> None:
-        g,k = pag.mouse.get_pos()
+        m_x, m_y = pag.mouse.get_pos()
         if self.orientacion == 'vertical':
-            if self.rect2.bottom - k > self.__size.y:
+            if self.rect2.bottom - m_y > self.__size.y:
                 self.rect.height = self.__size.y
-            elif self.rect2.bottom - k < 0:
+            elif self.rect2.bottom - m_y < 0:
                 self.rect.height = 0
             else:
-                self.rect.height = self.rect2.bottom - k
+                self.rect.height = self.rect2.bottom - m_y
             self.rect.bottom = self.pos[1]
             self.volumen = float(self.rect.height / self.__size.y)
         elif self.orientacion == 'horizontal':
-            if self.rect2.left + g > self.__size.x:
+            if self.rect2.left + m_x > self.__size.x:
                 self.rect.w = self.__size.x
-            elif self.rect2.left + g < 0:
+            elif self.rect2.left + m_x < 0:
                 self.rect.w = 0
             else:
-                self.rect.w = self.rect2.bottom - g
+                self.rect.w = self.rect2.left + m_x
             self.volumen = float(self.rect.w / self.__size.x)
+        
 
     def draw(self,surface, *, always_draw=False, **kwargs) -> None:
         if always_draw:
