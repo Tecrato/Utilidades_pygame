@@ -34,13 +34,13 @@ class Base(primary_base):
         if not self.inside_limits:
             return
         if rect.right > self.limits.right:
-            rect.right = self.limits.right
+            rect.right = self.limits.right-3
         elif rect.left < self.limits.left:
-            rect.left = self.limits.left
+            rect.left = self.limits.left+3
         if rect.bottom > self.limits.bottom:
-            rect.bottom = self.limits.bottom
+            rect.bottom = self.limits.bottom-3
         elif rect.top < self.limits.top:
-            rect.top = self.limits.top
+            rect.top = self.limits.top+3
         self.create_border(self.rect, self.border_width)
 
     def click(self,pos):
