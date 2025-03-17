@@ -178,6 +178,8 @@ class Text(Base):
         return self.raw_text
     @text.setter
     def text(self,texto):
+        if self.raw_text == str(texto):
+            return
         self.raw_text = str(texto)
         self.__generate()
     @property
