@@ -1,7 +1,7 @@
+import itertools
 from typing import Literal, Union
 import pygame as pag
 import time
-import math
 import datetime
 import Utilidades as uti
 import Utilidades.win32_tools as win32_tools
@@ -132,7 +132,7 @@ class Base_class:
         self.calculate_adjacent_controls()
 
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque|Engranaje]):
-        lista = lista.copy()
+        lista = list(lista).copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
         self.updates.clear()
@@ -177,7 +177,7 @@ class Base_class:
             pag.display.update(self.updates)
 
     def draw_always(self, lista):
-        lista = lista.copy()
+        lista = list(lista).copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
         for x in lista:
@@ -194,11 +194,12 @@ class Base_class:
 
         pag.display.update()
 
-    def exit(self):
+    def exit(self, returncode: int|None = None):
         self.running = False
+        self.returncode = returncode if returncode else 0
     
-    def move_hover(self, direccion: str, lista):
-        for i,x in sorted(enumerate(lista), reverse=True):
+    def move_hover(self, direccion: str, screen_alias: str):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay)), reverse=True):
             if (isinstance(x, Button) or isinstance(x, Input)) and x.hover:
                 # Si el botón o input con hover actual tiene un control adyacente en la dirección especificada
                 if x.controles_adyacentes.get(direccion, None):
@@ -208,31 +209,22 @@ class Base_class:
                     # Si estamos moviendo desde un Input que está siendo editado
                     if isinstance(x, Input) and x.typing:
                         x.typing = False
-                    
+                    uti.debug_print(f'Hover movido a {direccion} de {x}')
                     return
+                uti.debug_print(f'No hay control adyacente en {direccion} de {x}')
                 break
         else:
+            uti.debug_print('No hay control con hover')
             # Si ningún botón o input tiene hover, seleccionar el primer botón o input
-            for x in lista:
-                if isinstance(x, Button) or isinstance(x, Input):
+            for x in itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay):
+                if isinstance(x, (Button,Input)):
                     x.hover = False
-            for x in lista:
-                if isinstance(x, Button) or isinstance(x, Input):
+            for x in itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay):
+                if isinstance(x, (Button,Input)):
                     x.hover = True
                     break
 
     def select_btns_with_arrows(self, evento: pag.event.Event, screen_alias: str):
-        # Si el evento es TAB, salimos del Input activo y pasamos al siguiente control
-        if evento.key == pag.K_TAB:
-            # Buscar el control actual
-            for x in self.lists_screens[self.actual_screen]["click"] + self.overlay:
-                if isinstance(x, Input) and x.typing:
-                    x.typing = False
-                    x.typing_line = False
-                    x.draw_surf()
-                    return True
-            return False
-
         direccion = {
             pag.K_RIGHT: 'right',
             pag.K_LEFT: 'left',
@@ -241,37 +233,34 @@ class Base_class:
         }
         # Manejo normal de las flechas
         if evento.key in direccion:
-            self.move_hover(direccion[evento.key], self.lists_screens[self.actual_screen]["click"]+self.overlay)
+            self.move_hover(direccion[evento.key], screen_alias)
             return True
         return False
 
     def on_keydown_general(self, evento: pag.event.Event):
         # Manejar inputs
-        for x in self.lists_screens[self.actual_screen]["inputs"] + [y for y in self.overlay if isinstance(y, Input)]:
-            # Si el Input tiene hover y se presiona Enter o se hace clic, activar
-            if isinstance(x, Input) and x.hover and x.typing and evento.key == pag.K_RETURN:
-                x.typing = False
-                x.typing_line = False
-                x.draw_surf()
-                return True
-            elif isinstance(x, Input) and x.hover and x.typing and evento.key == pag.K_ESCAPE:
-                x.typing = False
-                x.typing_line = False
-                x.draw_surf()
-                return True
-                
+        if evento.key == pag.K_ESCAPE or evento.key == pag.K_RETURN or evento.key == pag.K_TAB:
+            for x in itertools.chain(self.lists_screens[self.actual_screen]["inputs"], self.overlay):
+                # Si el Input tiene hover y se presiona Enter o se hace clic, activar
+                if isinstance(x, Input) and x.hover and x.typing:
+                    x.typing = False
+                    x.typing_line = False
+                    x.draw_surf()
+                    return True
+        
         # Si algún Input está siendo editado, darle prioridad para los eventos de flechas
-        for x in self.lists_screens[self.actual_screen]["inputs"] + [y for y in self.overlay if isinstance(y, Input)]:
-            if isinstance(x, Input) and x.typing and evento.key in [pag.K_LEFT, pag.K_RIGHT, pag.K_BACKSPACE, pag.K_DELETE, pag.K_RETURN]:
-                # Las flechas izquierda/derecha manejan la posición de edición en el Input
-                return True
+        elif evento.key in [pag.K_LEFT, pag.K_RIGHT, pag.K_BACKSPACE, pag.K_DELETE, pag.K_RETURN]:
+            for x in itertools.chain(self.lists_screens[self.actual_screen]["inputs"], self.overlay):
+                if isinstance(x, Input) and x.typing:
+                    # Las flechas izquierda/derecha manejan la posición de edición en el Input
+                    return True
         
         # Navegar con teclas de flecha si no hay inputs activos o se presionó Tab
         if self.navegate_with_keys and evento.key in [pag.K_UP, pag.K_DOWN, pag.K_LEFT, pag.K_RIGHT, pag.K_TAB]:
             return self.select_btns_with_arrows(evento, self.actual_screen)
         elif evento.key == pag.K_SPACE:
             # Activar el botón o input que tiene hover actualmente con la tecla espaciadora
-            for i, x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+            for i, x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
                 if isinstance(x, Button) and getattr(x, 'hover', False):
                     x.click()
                     return True
@@ -295,7 +284,7 @@ class Base_class:
         # Si no se especifican botones, usar todos los botones
         if buttons is None:
             # Obtener todos los botones e inputs de la pantalla actual
-            buttons = [x for x in self.lists_screens[self.actual_screen]["click"] if isinstance(x, self.accept_to_move_with_arrows)] + [x for x in self.overlay if isinstance(x, self.accept_to_move_with_arrows)]
+            buttons = [x for x in itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay) if isinstance(x, self.accept_to_move_with_arrows)]
         
         # Asegurarse de que todos los botones tengan inicializado el diccionario controles_adyacentes
         for button in buttons:
@@ -406,7 +395,7 @@ class Base_class:
     
     def update_general(self):
         mouse_pos = pag.mouse.get_pos()
-        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["update"]+self.overlay), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["update"], self.overlay)), reverse=True):
             x.update(mouse_pos=mouse_pos)
         self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
         if self.loading > 0 and self.loader:
@@ -414,7 +403,7 @@ class Base_class:
         self.update(self.actual_screen)
 
     def on_wheel_event_general(self,evento):
-        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             if x.is_hover(pag.mouse.get_pos()) and getattr(x,'use_mouse_wheel',False):
                 x.on_wheel(evento.y*self.scroll_speed)
                 return True
@@ -422,17 +411,17 @@ class Base_class:
 
     def on_mouse_motion_event_general(self,evento):
         if self.click:
-            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+            for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
                 if getattr(x,'use_mouse_motion',False):
                     x.on_mouse_motion(evento)
                     return True
         self.Mini_GUI_manager.update_hover(evento.pos)
-        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             x.update_hover(evento.pos)
         return False
     
     def on_mouse_click_general(self,evento):
-        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             if isinstance(x, (Multi_list,List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
                 return True
             elif x.click(evento.pos):
@@ -441,7 +430,7 @@ class Base_class:
         return False 
     
     def on_mouse_click_up_general(self):
-        for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             x.use_mouse_motion = False
         return False
 
@@ -473,9 +462,9 @@ class Base_class:
             if not self.drawing:
                 continue
             if self.draw_mode == 'optimized':
-                self.draw_optimized(self.lists_screens[self.actual_screen]["draw"]+self.overlay)  # La lista a dibujar de esta pantalla
+                self.draw_optimized(itertools.chain(self.lists_screens[self.actual_screen]["draw"], self.overlay))  # La lista a dibujar de esta pantalla
             elif self.draw_mode == 'always':
-                self.draw_always(self.lists_screens[self.actual_screen]["draw"]+self.overlay)
+                self.draw_always(itertools.chain(self.lists_screens[self.actual_screen]["draw"], self.overlay))
 
     @property
     def framerate(self):
@@ -492,5 +481,5 @@ class Base_class:
         self.__loading = int(num)
         self.redraw = True
         if self.__loading > 0:
-            for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]+self.overlay), reverse=True):
+            for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
                 x.update_hover((-100000,-100000))

@@ -218,7 +218,19 @@ class Multi_list(Base):
     def lista_palabras(self):
         return self.__lista_palabras
     @lista_palabras.setter
-    def lista_palabras(self, lista_palabras: Iterable):
+    def lista_palabras(self, lista_palabras: Iterable[Iterable[str]]) -> None:
+        """
+        Cambia las listas de palabras de los objetos List en la lista self.listas
+        con las listas de palabras dadas en la variable lista_palabras.
+
+        Args:
+            lista_palabras (Iterable[Iterable[str]]): Una lista o tupla o
+                Iterable en general que contiene las listas de palabras a
+                cambiar.
+        Raises:
+            ValueError: Si la longitud de lista_palabras es diferente a
+                self.num_list.
+        """
         if not isinstance(lista_palabras, Iterable) or len(lista_palabras) != self.num_list:
             raise ValueError('lista_palabras debe ser una lista o tupla o Iterable en general y tener el mismo número de listas que num_list')
         for i,x in enumerate(self.listas):
