@@ -71,8 +71,8 @@ class Base_class:
         self.Func_pool = uti.Funcs_pool()
         self.class_intervals = uti.multithread.Interval_funcs()
         self.delta_time: uti.Deltatime = uti.Deltatime()
-        self.otras_variables()
         self.accept_to_move_with_arrows = Union[Input, Button]
+        self.otras_variables()
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {

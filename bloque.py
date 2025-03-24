@@ -151,17 +151,17 @@ class Bloque(Base):
 
         surface.blit(self.surf, self.rect)
         pag.draw.rect(surface, self.border_color, self.rect_border, self.border_width,self.border_radius)
-        if self.redraw < 2:
-            self.redraw = 2
-            return self.updates
-        else:
-            self.redraw = 2
-            # print(self.redraw)
-            # self.redraw = 2
+        # if self.redraw < 2:
+        #     self.redraw = 2
             # return self.updates
-            r = self.last_rect.union(self.rect_border.copy()).copy()
-            self.last_rect = self.rect_border.copy()
-            return [self.rect_border, r]
+        # else:
+        #     self.redraw = 2
+        #     # print(self.redraw)
+        #     # self.redraw = 2
+        #     # return self.updates
+        r = self.last_rect.union(self.rect_border.copy()).copy()
+        self.last_rect = self.rect_border.copy()
+        return [self.rect_border, r]
 
 
     def update(self, pos=None, **kwargs):

@@ -219,7 +219,6 @@ class List(Base):
         else:
             self.barra.top = 0
 
-
         if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
 
