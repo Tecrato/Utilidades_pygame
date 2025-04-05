@@ -196,7 +196,8 @@ class Base_class:
 
     def exit(self, returncode: int|None = None):
         self.running = False
-        self.returncode = returncode if returncode else 0
+        if returncode:
+            self.returncode = returncode
     
     def move_hover(self, direccion: str, screen_alias: str):
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay)), reverse=True):
@@ -209,12 +210,9 @@ class Base_class:
                     # Si estamos moviendo desde un Input que está siendo editado
                     if isinstance(x, Input) and x.typing:
                         x.typing = False
-                    uti.debug_print(f'Hover movido a {direccion} de {x}')
                     return
-                uti.debug_print(f'No hay control adyacente en {direccion} de {x}')
                 break
         else:
-            uti.debug_print('No hay control con hover')
             # Si ningún botón o input tiene hover, seleccionar el primer botón o input
             for x in itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay):
                 if isinstance(x, (Button,Input)):
