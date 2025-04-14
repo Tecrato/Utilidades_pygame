@@ -66,6 +66,7 @@ class Base_class:
         self.relog: pag.time.Clock = pag.time.Clock()
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
+        self.last_size: tuple[int,int] = self.config.resolution
 
         # Otras variables
         self.Func_pool = uti.Funcs_pool()
@@ -376,12 +377,17 @@ class Base_class:
             return True
         elif self.config.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
+            if size == self.last_size:
+                uti.debug_print("Tamaño de la ventana no ha cambiado")
+                self.redraw = True
+                return True
             if size.x < self.config.min_resolution[0]:
                 size.x = self.config.min_resolution[0]
             if size.y < self.config.min_resolution[1]:
                 size.y = self.config.min_resolution[1]
             self.ventana = pag.display.set_mode(size,  self.flags)
             self.ventana_rect = self.ventana.get_rect()
+            self.last_size = size
 
             self.move_objs()
             self.calculate_adjacent_controls()
