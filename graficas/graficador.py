@@ -115,7 +115,7 @@ class Graficador(Base):
                 num = numero(x*-1,20 if self.zoom > .1 else 15)
                 
                 num.centery = pos_y
-                num.left = self.edge[0]
+                num.left = self.edge[0] + 10
                 num.redraw = 2
                 num.draw(self.surf)
 
