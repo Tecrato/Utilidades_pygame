@@ -41,6 +41,8 @@ class Base_class:
             self.flags |= pag.RESIZABLE
         if self.config.scaled:
             self.flags |= pag.SCALED
+        if self.config.noframe:
+            self.flags |= pag.NOFRAME
         self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags)
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(self.config.window_title)
@@ -340,6 +342,8 @@ class Base_class:
     def eventos_en_comun(self,evento):
         if evento.type == pag.MOUSEBUTTONDOWN:
             self.last_click = time.time()
+            self.last_click_pos = pag.mouse.get_pos()
+            self.last_click_pos_system = uti.win32_tools.get_cursor_pos()
             if evento.button == 1:
                 self.click = True
         elif evento.type == pag.MOUSEBUTTONUP:
@@ -378,7 +382,6 @@ class Base_class:
         elif self.config.window_resize and evento.type in [pag.WINDOWRESIZED,pag.WINDOWMAXIMIZED,pag.WINDOWSIZECHANGED,pag.WINDOWMINIMIZED,pag.WINDOWSHOWN,pag.WINDOWMOVED]:
             size = pag.Vector2(pag.display.get_window_size())
             if size == self.last_size:
-                uti.debug_print("Tamaño de la ventana no ha cambiado")
                 self.redraw = True
                 return True
             if size.x < self.config.min_resolution[0]:
