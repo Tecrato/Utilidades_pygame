@@ -1,7 +1,7 @@
 from typing import Literal, Self
 import pygame as pag
 
-from Utilidades.Animaciones import Curva_de_Bezier, Second_Order_Dinamics, DynamicMovement
+from Utilidades.Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
 from Utilidades import Hipotenuza
 
 from pygame import Vector2
@@ -56,12 +56,12 @@ class Base:
         self.smothmove_bool = True
         self.smothmove_type = 'Cubic Bezier'
         self.movimiento = Curva_de_Bezier(puntos,multiplicador)
-    def DynamicMovement_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> None:
+    def simple_acceleration_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> None:
         self.smothmove_pos = self.pos
-        self.movimiento = DynamicMovement(vel, dir, self.pos)
+        self.movimiento = Simple_acceleration(vel, dir, self.pos)
         self.smothmove_bool = True
         self.smothmove_type = 'Simple Acceleration'
-        self.DynamicMovement_type = tipo
+        self.simplemove_type = tipo
 
         self.vel = float(vel)
 
@@ -80,7 +80,7 @@ class Base:
                 self.__pos = self.smothmove_pos
             self.__pos = Vector2(self.movimiento.update(self.smothmove_pos,dt=dt))
         elif self.smothmove_type == 'Simple Acceleration':
-            if self.DynamicMovement_type == 'follow':
+            if self.simplemove_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
                 self.redraw += 2
                 if Hipotenuza(self.__pos,self.smothmove_pos) < self.vel+1:
