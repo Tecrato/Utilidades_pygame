@@ -1,4 +1,5 @@
 from typing import Any
+from flask.config import T
 import pygame as pag
 from pygame import Vector2
 
@@ -8,9 +9,11 @@ from .scroll import Screen_scroll
 class Bloque(Base):
     def __init__(self,pos,size,dire:str='center', background_color=(0,0,0,0), border_radius=0, border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True) -> None:
         self.scroll_y = False
+        self.scroll_x = False
         self.list_objs: list[dict[str,Any]] = []
         super().__init__(pos,dire)
-        self.scroll_y = scroll_y
+        self.scroll_y: bool = scroll_y
+        self.scroll_x: bool = scroll_x
 
         self.surf = pag.Surface(size, pag.SRCALPHA)
         self.surf.fill((255, 0, 128))
@@ -36,7 +39,11 @@ class Bloque(Base):
 
         self.scroll_class = Screen_scroll(self.rect.h)
         self.scroll_class.pos = (self.rect.w,0)
+        self.scroll_class_x = Screen_scroll(self.rect.w, bar_orientation='horizontal')
+        self.scroll_class_x.pos = (0,self.rect.h)
+
         self.actual_smoth_pos = 0
+        self.actual_smoth_pos_x = 0
         self.pos = pos
         
 
@@ -67,6 +74,7 @@ class Bloque(Base):
     def clear(self):
         self.list_objs.clear()
         self.scroll_class.inside_height = 1
+        self.scroll_class_x.inside_height = 1
 
 
     def click(self,pos):
@@ -75,8 +83,15 @@ class Bloque(Base):
         if not self.rect.collidepoint(pos):
             return False
         if self.scroll_class.click(pos-self.topleft) and self.scroll_y:
+            print("scroll vertical")
             if self.scroll_class.use_mouse_motion:
                 self.use_mouse_motion = True
+                self.scroll_class.use_mouse_motion = True
+            return True
+        if self.scroll_class_x.click(pos-self.topleft) and self.scroll_x:
+            if self.scroll_class_x.use_mouse_motion:
+                self.use_mouse_motion = True
+                self.scroll_class_x.use_mouse_motion = True
             return True
         for i,x in enumerate(self.list_objs):
             if not x["clicking"]:
@@ -101,6 +116,8 @@ class Bloque(Base):
             x['GUI'].redraw += 2
         if self.scroll_y:
             self.scroll_class.redraw += 1
+        if self.scroll_x:
+            self.scroll_class_x.redraw += 1
         
         self.updates.clear()
         self.draw_before()
@@ -145,6 +162,11 @@ class Bloque(Base):
                 k = l.copy()
                 k.center += self.topleft
                 self.updates.append(k)
+        if self.scroll_x and (p := self.scroll_class_x.draw(self.surf)):
+            for l in p:
+                k: pag.Rect = l.copy()
+                k.center += self.topleft
+                self.updates.append(k)
 
         self.draw_after()
 
@@ -166,12 +188,17 @@ class Bloque(Base):
 
     def update(self, pos=None, **kwargs):
         self.scroll_class.update()
+        self.scroll_class_x.update()
         if self.scroll_y and self.scroll_class.redraw > 3 and self.scroll_class.visible and self.scroll_class.bar_active:
+            self.redraw += 1
+        if self.scroll_x and self.scroll_class_x.redraw > 3 and self.scroll_class_x.visible and self.scroll_class_x.bar_active:
             self.redraw += 1
 
         if self.scroll_y and self.actual_smoth_pos != int(self.scroll_class.diff):
             self.actual_smoth_pos = int(self.scroll_class.diff)
-            print(self.actual_smoth_pos)
+            self.move_objs()
+        if self.scroll_x and self.actual_smoth_pos_x != int(self.scroll_class_x.diff):
+            self.actual_smoth_pos_x = int(self.scroll_class_x.diff)
             self.move_objs()
 
         for x in self.list_objs:
@@ -184,25 +211,41 @@ class Bloque(Base):
         if self.use_mouse_motion:
             return True
         self.scroll_class.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
+        self.scroll_class_x.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
         for i,x in enumerate(self.list_objs):
             x["GUI"].update_hover(mouse_pos=Vector2(mouse_pos)-self.topleft)
 
     
     def move_objs(self):
         for x in self.list_objs:
-            x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+((0,self.scroll_class.diff) if self.scroll_y else (0,0))
+            diff = (
+                self.scroll_class_x.diff if self.scroll_x else 0,
+                self.scroll_class.diff if self.scroll_y else 0,
+            )
+            x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+diff
         if not self.scroll_y:
             return
-        self.scroll_class.inside_height = max([eval(f"{x['pos']}")[1]+x["GUI"].height for x in self.list_objs])
+        if not self.scroll_x:
+            return
+        self.scroll_class.inside_height = max([eval(f"{x['pos']}")[1]+x["GUI"].height for x in self.list_objs]) + 10 
         self.scroll_class.rodar(0)
+        self.scroll_class_x.inside_height = max([eval(f"{x['pos']}")[0]+x["GUI"].width for x in self.list_objs]) + 10
+        self.scroll_class_x.rodar(0)
 
     def on_mouse_motion(self, evento):
         if not self.list_objs:
             return
+        if isinstance(evento, tuple):
+            diff: tuple[int,int] = evento
+        else:
+            diff: tuple[int,int] = evento.rel
         if self.scroll_item >= 0:
-            self.list_objs[self.scroll_item]["GUI"].on_mouse_motion(evento.rel[1])
-        elif self.scroll_y:
-            self.scroll_class.on_mouse_motion(evento.rel[1])
+            self.list_objs[self.scroll_item]["GUI"].on_mouse_motion(diff)
+        elif self.scroll_y and self.scroll_class.use_mouse_motion:
+            self.scroll_class.on_mouse_motion(diff[1])
+            self.move_objs()
+        elif self.scroll_x and self.scroll_class_x.use_mouse_motion:
+            self.scroll_class_x.on_mouse_motion(diff[0])
             self.move_objs()
         
     def on_wheel(self, delta):
@@ -210,10 +253,13 @@ class Bloque(Base):
             return
         for i,x in enumerate(self.list_objs):
             if getattr(x["GUI"],"use_mouse_wheel",False) and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
-                x["GUI"].rodar(delta)
+                x["GUI"].on_wheel(delta)
                 return
-        if self.scroll_y:
+        if self.scroll_y or self.scroll_x:
+            dez_y = int(self.scroll_class.desplazamiento)
             self.scroll_class.rodar(delta)
+            if self.scroll_class.desplazamiento == dez_y and self.scroll_x:
+                self.scroll_class_x.rodar(delta)
             self.move_objs()
 
     @property
@@ -224,6 +270,8 @@ class Bloque(Base):
         self.__use_mouse_motion = use_mouse_motion
         if self.scroll_y:
             self.scroll_class.use_mouse_motion = False
+        if self.scroll_x:
+            self.scroll_class_x.use_mouse_motion = False
         for x in self.list_objs:
             x["GUI"].use_mouse_motion = False
 

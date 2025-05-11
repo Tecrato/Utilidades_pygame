@@ -46,6 +46,11 @@ class Screen_scroll:
             self.bar_length = self.rect.h
             self.rect.w = self.bar_thickness
             self.rect.x = self.pos[0] - self.bar_thickness
+        elif self.bar_orientation == 'horizontal':
+            self.rect.w = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
+            self.bar_length = self.rect.w
+            self.rect.h = self.bar_thickness
+            self.rect.y = self.pos[1] - self.bar_thickness
 
     def rodar(self, y) -> None:
         if not self.bar_active:
@@ -72,17 +77,25 @@ class Screen_scroll:
         if self.bar_orientation == 'vertical' and self.rect.collidepoint(pos):
             self.use_mouse_motion = True
             return True
+        if self.bar_orientation == 'horizontal' and self.rect.collidepoint(pos):
+            self.use_mouse_motion = True
+            return True
         self.use_mouse_motion = False
         return False
 
     def update(self, dt=1, pos=None, **kwargs) -> None:
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
-            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit)) + self.pos[1]
+            self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit)) + (self.pos[1] if self.bar_orientation == 'vertical' else self.pos[0])
 
         if self.bar_orientation == 'vertical' and int(self.top) != int(self.rect.top):
             # self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
             self.rect.top = int(self.top)
+            if self.redraw < 1:
+                self.redraw += 1
+        if self.bar_orientation == 'horizontal' and int(self.top) != int(self.rect.left):
+            # self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit))
+            self.rect.left = int(self.top)
             if self.redraw < 1:
                 self.redraw += 1
 
