@@ -3,6 +3,7 @@ from .Barras_progreso import Barra_de_progreso
 from .particles import Particles
 from .sparks import Spark
 from .bloque import Bloque
+from .image import Image
 
 from . import GUI
 from . import mini_GUI
@@ -50,6 +51,8 @@ __all__ = [
     "Particles",
     "Spark",
     "Bloque",
+    "Image",
+    "Config",
 ]
 
 print(
