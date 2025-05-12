@@ -6,8 +6,10 @@ from Utilidades import Hipotenuza
 
 from pygame import Vector2
 
+from .constants import ALING_DIRECTION
+
 class Base:
-    def __init__(self,pos,dire: Literal["left","right","top","bottom","center","topleft","topright","bottomleft","bottomright"]) -> None:
+    def __init__(self,pos,dire: ALING_DIRECTION = 'center'):
         self.rect = pag.Rect(0,0,50,50)
         self.smothmove_bool = False
 

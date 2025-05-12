@@ -5,7 +5,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dinamics
-
+from ..constants import ALING_DIRECTION
 
 class List(Base):
     '''
@@ -23,7 +23,7 @@ class List(Base):
     '''
     def __init__(self, size: tuple, pos: tuple, lista: list = [None], text_size: int = 20, separation: int = 0,
         selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:str = None,
-        background_color = 'black', font=None, smothscroll=False, dire='topleft',border_width=2,border_radius=20, **kwargs) -> None:
+        background_color = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20, **kwargs) -> None:
 
         super().__init__(pos,dire)
         self.__size = Vector2(size)

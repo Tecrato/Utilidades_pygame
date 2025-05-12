@@ -1,14 +1,15 @@
 import pygame as pag
 from .obj_Base import Base
 from functools import lru_cache
-# from io import BytesIO
+
+from .constants import ALING_DIRECTION
 
 @lru_cache(100)
 def import_img(path):
     return pag.image.load(path)
 
 class Image(Base):
-    def __init__(self,image,pos,direccion: str = 'center', size = None,color_key=(254,1,1), dir=[1,0],vel=0, always_draw = False):
+    def __init__(self,image,pos,direccion: ALING_DIRECTION = 'center', size = None,color_key=(254,1,1), dir=[1,0],vel=0, always_draw = False):
         super().__init__(pos,direccion)
         self.path: str = image
         self.__size = (int(size[0]),int(size[1])) if size else None

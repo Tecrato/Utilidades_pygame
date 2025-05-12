@@ -4,6 +4,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from .list import List
+from ..constants import ALING_DIRECTION
 
 class Multi_list(Base):
     '''
@@ -17,7 +18,7 @@ class Multi_list(Base):
     '''
     def __init__(self, size:tuple,pos:tuple,num_lists:int=2,lista: list[list] = None, text_size: int = 20, separation: int = 0,
         background_color = 'black', selected_color = (100,100,100,100), text_color= 'white', colums_witdh= -1, header: bool =True,
-        header_text: list = None, dire: str = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
+        header_text: list = None, dire: ALING_DIRECTION = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
         smothscroll=False, **kwargs) -> None:
         
         self.listas = []

@@ -2,7 +2,7 @@ import pygame as pag, time
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
-
+from ..constants import ALING_DIRECTION
 
 
 class Input(Base):
@@ -12,7 +12,7 @@ class Input(Base):
     '''
     def __init__(
         self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
-        width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: str = 'topleft',
+        width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: ALING_DIRECTION = 'topleft',
         border_color='black',hover_border_color='cyan', border_width = 1, border_radius = 0, pointer_color = 'white',
         **kwargs
         ) -> None:

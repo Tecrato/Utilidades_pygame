@@ -5,9 +5,10 @@ from pygame import Vector2
 
 from .obj_Base import Base
 from .scroll import Screen_scroll
+from .constants import ALING_DIRECTION
 
 class Bloque(Base):
-    def __init__(self,pos,size,dire:str='center', background_color=(0,0,0,0), border_radius=0, border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True) -> None:
+    def __init__(self,pos,size,dire: ALING_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True) -> None:
         self.scroll_y = False
         self.scroll_x = False
         self.list_objs: list[dict[str,Any]] = []

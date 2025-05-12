@@ -2,7 +2,7 @@ import pygame as pag
 from typing import Literal, Callable
 from .text import Text
 from .input import Input
-
+from ..constants import ALING_DIRECTION
 class Button(Text):
     '''
     ### More options
@@ -17,7 +17,7 @@ class Button(Text):
 
     '''
     def __init__(self, text, size: int, font: str|None, pos: tuple|pag.Vector2 = (0,0), padding: int|list|tuple = 20,
-        dire: Literal["center","left","right","top","bottom","topleft","topright","bottomleft","bottomright"] = 'center', color = 'black', color_rect = 'darkgrey',
+        dire: ALING_DIRECTION = 'center', color = 'black', color_rect = 'darkgrey',
         color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
