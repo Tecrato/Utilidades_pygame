@@ -3,6 +3,8 @@ from typing import Literal, Callable
 from .text import Text
 from .input import Input
 from ..constants import ALING_DIRECTION
+
+
 class Button(Text):
     '''
     ### More options
@@ -21,7 +23,7 @@ class Button(Text):
         color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
-        func:None|Callable = None, width = 0, height = 0, **kwargs) -> None:
+        func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True, **kwargs) -> None:
 
         self.__hover = False
         self.color_rect_active = color_rect_active if color_rect_active != None else color_rect
@@ -48,7 +50,7 @@ class Button(Text):
                              rect_width=rect_width, border_radius=border_radius,border_top_left_radius=border_top_left_radius, 
                              border_top_right_radius=border_top_right_radius, border_bottom_left_radius=border_bottom_left_radius, 
                              border_bottom_right_radius=border_bottom_right_radius, border_width=border_width,border_color=border_color,
-                             width = width, height = height)
+                             max_width = max_width, min_width = min_width, min_height = min_height, wrap=wrap, **kwargs)
         if self.toggle_rect:
             self.with_rect = False
 

@@ -68,7 +68,7 @@ class Text(Base):
 
     
     def __generate(self):
-        self.last_rect = self.last_rect.union(self.rect.copy())
+        self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
         self.lista_text.clear()
         if not self.wrap:
             self.lista_text.append(self.__font.render(str(self.raw_text), True, self.__color))
@@ -91,7 +91,7 @@ class Text(Base):
                 actual_txt = actual_txt.replace('/n','|',1)
                 self.lista_text.append(self.__font.render(actual_txt.split('|')[0], True, self.__color))
                 actual_txt = actual_txt.split('|')[1]
-            elif actual_rendered_txt.get_width() > self.__max_width:
+            elif self.max_width > 0 and actual_rendered_txt.get_width() > self.max_width:
                 self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                 actual_txt = ''
             elif index == len(splited_text)-1:
@@ -99,13 +99,13 @@ class Text(Base):
             index += 1
         
         self.create_rect()
-            
     
     def create_rect(self):
+        self.move(self.pos)
         self.rect = pag.Rect(
             self.pos[0],
             self.pos[1],
-            max([x.get_width() for x in self.lista_text]+[self.min_width])+self.padding[0]*2,
+            max([x.get_width()+self.padding[0]*2 for x in self.lista_text]+[self.min_width]),
             max(self.min_height,self.text_height*len(self.lista_text) + self.padding[1]*2),
         )
         self.direccion(self.rect)
@@ -115,7 +115,7 @@ class Text(Base):
 
     def update(self, pos = None,dt=1, **kwargs):
         super().update(pos,dt=dt)
-        self.last_rect: pag.Rect = self.last_rect.union(self.rect_border)
+        self.last_rect: pag.Rect = self.last_rect.copy().union(self.rect_border.copy())
     
     def draw(self, surface, always_draw = False) -> list[pag.Rect]|None:
         if always_draw or self.always_draw:
@@ -124,8 +124,8 @@ class Text(Base):
             return []
         
         if self.with_rect:
-            pag.draw.rect(surface, self.border_color,self.rect_border, self.border_width, self.border_radius, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
-        pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
+            pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
+        pag.draw.rect(surface, self.border_color,self.rect_border, self.border_width, self.border_radius, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
         # surface.blit(self.lista_text[0], self.rect)
         for i,txt in enumerate(self.lista_text):
             r = txt.get_rect()
@@ -147,8 +147,8 @@ class Text(Base):
             return [self.rect_border]
         else:
             self.redraw = 0
-            r = self.last_rect.union(self.rect.copy()).copy()
-            self.last_rect = self.rect.copy()
+            r = self.last_rect.union(self.rect_border.copy()).copy()
+            self.last_rect = self.rect_border.copy()
             return [self.rect, r]
 
     def click(self, mouse_pos) -> Literal[False]:
@@ -213,7 +213,6 @@ class Text(Base):
             return
         self.__max_width = int(width)
         self.__generate()
-        return self.__min_width
     
 
     @property
@@ -230,3 +229,11 @@ class Text(Base):
         return 'text: {} - pos: {} - mode: {}'.format(self.raw_text,self.pos,self.mode)
     def __repr__(self) -> str:
         return self.__str__()
+    
+
+    @property
+    def height(self):
+        return self.rect.height
+    @property
+    def width(self):
+        return self.rect.width
