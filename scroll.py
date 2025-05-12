@@ -36,7 +36,7 @@ class Screen_scroll:
         self.smoth_pos = 0
 
     def set_bar_length(self) -> None:
-        if self.inside_height < self.limit:
+        if self.inside_height <= self.limit:
             self.bar_active = False
             return
         
@@ -86,6 +86,9 @@ class Screen_scroll:
     def update(self, dt=1, pos=None, **kwargs) -> None:
         if self.smoth:
             self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
+            if self.inside_height <= self.limit:
+                self.bar_active = False
+                return
             self.top = -(self.limit - self.bar_length) * (self.desplazamiento / (self.inside_height-self.limit)) + (self.pos[1] if self.bar_orientation == 'vertical' else self.pos[0])
 
         if self.bar_orientation == 'vertical' and int(self.top) != int(self.rect.top):
@@ -114,7 +117,7 @@ class Screen_scroll:
         self.__inside_height = inside_height
         if self.__inside_height <= 0:
             self.__inside_height = 1
-        if self.inside_height < self.limit:
+        if self.inside_height <= self.limit:
             self.desplazamiento = 0
         else:
             self.desplazamiento += 0
