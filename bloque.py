@@ -84,7 +84,6 @@ class Bloque(Base):
         if not self.rect.collidepoint(pos):
             return False
         if self.scroll_class.click(pos-self.topleft) and self.scroll_y:
-            print("scroll vertical")
             if self.scroll_class.use_mouse_motion:
                 self.use_mouse_motion = True
                 self.scroll_class.use_mouse_motion = True
@@ -228,9 +227,28 @@ class Bloque(Base):
             return
         if not self.scroll_x:
             return
-        self.scroll_class.inside_height = max([eval(f"{x['pos']}")[1]+x["GUI"].height for x in self.list_objs]) + 10 
+
+        pos = []
+        for i,x in enumerate(self.list_objs):
+            sup_pos = list(eval(f"{x['pos']}"))
+            pos.append(sup_pos)
+            if 'left' in x["GUI"].dire:
+                pos[-1][0] += x["GUI"].width
+            elif 'right'in x["GUI"].dire:
+                pass
+            else:
+                pos[-1][0] += x["GUI"].width//2
+            
+            if 'top' in x["GUI"].dire:
+                pos[-1][1] += x["GUI"].height
+            elif 'bottom' in x["GUI"].dire:
+                pass
+            else:
+                pos[-1][1] += x["GUI"].height//2
+
+        self.scroll_class.inside_height = max([x[1] for x in pos])
         self.scroll_class.rodar(0)
-        self.scroll_class_x.inside_height = max([eval(f"{x['pos']}")[0]+x["GUI"].width for x in self.list_objs]) + 10
+        self.scroll_class_x.inside_height = max([x[0] for x in pos])
         self.scroll_class_x.rodar(0)
 
     def on_mouse_motion(self, evento):
@@ -279,6 +297,9 @@ class Bloque(Base):
     @property
     def height(self):
         return self.rect.h
+    @property
+    def width(self):
+        return self.rect.w
     
     def collide(self, rect):
         for x in self.list_objs:
