@@ -100,7 +100,7 @@ class List(Base):
         self.__size = Vector2(self.__width,self.__height)
         if self.header:
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+ self.text_header.height, self.size[0], self.size[1]-self.text_header.height)
-            self.text_header.width = self.size[0]
+            self.text_header.min_width = self.size[0]
             self.text_header.pos = self.rect.topleft
         else:
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])

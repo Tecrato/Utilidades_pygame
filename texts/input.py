@@ -66,10 +66,10 @@ class Input(Base):
         self.draw_surf()
 
     def generate(self):
-        t = Text('', self.text_size, self.font, self.pos, 'left', padding=self.padding,width=self.width,height=self.height)
+        t = Text('', self.text_size, self.font, self.pos, 'left', padding=self.padding,min_width=self.width,height=self.height)
         self.rect = t.rect.copy()
 
-        self.text = Text('|', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,width=self.width-self.padding.x*2, padding=5)
+        self.text = Text('|', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,min_width=self.width-self.padding.x*2, padding=5)
         self.rect2 = self.text.rect.copy()
         self.input_surface = pag.Surface(self.rect2.size)
         self.input_surface.fill(self.background_color)
