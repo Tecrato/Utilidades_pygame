@@ -36,8 +36,8 @@ class Classic_window(Base_win):
             self.redraw = 1
 
 class Info(Classic_window):
-    def __init__(self,pos: tuple[int,int],encabezado: str,text: str|list[str],size=(500,300), func = None):
-        super().__init__(pos,encabezado,text,size,func)
+    def __init__(self,pos: tuple[int,int],encabezado: str,text: str|list[str],size=(500,300), func = None,font=None):
+        super().__init__(pos,encabezado,text,size,func,font=font)
 
         self.btn_aceptar = Button('Aceptar',24,self.font,(0,0), 15, 'bottomright','black','white', border_width=-1, func=self.func_aceptar)
 
@@ -51,7 +51,7 @@ class Info(Classic_window):
         
 class Desicion(Classic_window):
     def __init__(self,pos: tuple[int,int],encabezado: str,text: str|list[str], size=(500,300), font=None, func=None):
-        super().__init__(pos,encabezado,text,size,func)
+        super().__init__(pos,encabezado,text,size,func, font=font)
 
         self.add(Button('Cancelar',24,self.font,pag.Vector2(size)-(20,20), 15, 'bottomright','black','white', border_width=-1 ,func=self.func_cancelar),(pag.Vector2(size)-(20,20)), clicking=True)
         self.add(Button('Aceptar',24,self.font,(pag.Vector2(size)-(20,20))-(100+20,0), 15, 'bottomright','black','white', border_width=-1, func=self.func_aceptar),(pag.Vector2(size)-(20,20))-(100+20,0), clicking=True)

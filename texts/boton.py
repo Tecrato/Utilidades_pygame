@@ -110,7 +110,7 @@ class Button(Text):
         else:
             self.color = self.color_inactive
         if self.redraw < 1:
-            self.redraw = 1
+            self.redraw += 1
     def change_color_rect_ad(self,color_inactive,color_active = None) -> None:
         self.color_rect_inactive = color_inactive if color_inactive != None else self.color_rect_inactive
         self.color_rect_active = color_active if color_active != None else self.color_rect_active
@@ -119,4 +119,4 @@ class Button(Text):
         else:
             self.color_rect = self.color_rect_inactive
         if self.redraw < 1:
-            self.redraw = 1
+            self.redraw += 1

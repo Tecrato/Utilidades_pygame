@@ -52,7 +52,8 @@ class Text(Base):
         self.always_draw: bool = always_draw
         self.wrap: bool = wrap
         self.text_align = text_align
-        self.max_lines = max_lines
+        self.__max_lines = max_lines
+
 
         self.border_color = kwargs.get('border_color', 'black')
         self.border_width = border_width
@@ -95,17 +96,26 @@ class Text(Base):
                     continue
                 actual_txt = actual_txt.split('\n',maxsplit=1)
                 self.lista_text.append(self.__font.render(actual_txt[0], True, self.__color))
+                lines_count += 1
                 actual_txt = actual_txt[1]
                 index -= 1
             elif index == len(splited_text)-1:
                 self.lista_text.append(actual_rendered_txt)
+                lines_count += 1
             elif actual_rendered_txt.get_width() > self.max_width and self.wrap:
+                if self.max_lines > 0 and lines_count+1 >= self.max_lines:
+                    actual_txt = actual_txt[:-3]
+                    actual_txt += '...'
+                    lines_count += math.inf
+                    index += math.inf
                 self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                 actual_txt = txt
+                lines_count += 1
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
                 self.lista_text.append(self.__font.render(str(actual_txt)+'...', True, self.__color))
                 index += math.inf
                 math.inf
+                lines_count += 1
             else:
                 actual_txt += ' ' + txt
             index += 1
@@ -257,15 +267,24 @@ class Text(Base):
         self.__min_height = int(height)
         self.__generate()
         
-    def __str__(self) -> str:
-        return 'Text: {} - pos: {}'.format(self.raw_text,self.pos)
-    def __repr__(self) -> str:
-        return self.__str__()
-    
-
     @property
     def height(self):
         return self.rect.height
     @property
     def width(self):
         return self.rect.width
+    
+    @property
+    def max_lines(self):
+        return self.__max_lines
+    @max_lines.setter
+    def max_lines(self,max_lines):
+        if self.__max_lines == int(max_lines):
+            return
+        self.__max_lines = int(max_lines)
+        self.__generate()
+    def __str__(self) -> str:
+        return 'Text: {} - pos: {}'.format(self.raw_text,self.pos)
+    def __repr__(self) -> str:
+        return self.__str__()
+    
