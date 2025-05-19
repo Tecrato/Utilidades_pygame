@@ -7,7 +7,7 @@ class Config:
             self, window_resize: bool=None, scaled: bool=None, title: str=None, window_title: str=None, my_company: str=None, 
             author: str=None, version: str=None, description: str=None, copyright: str=None, resolution: Vector2=None, 
             min_resolution: Vector2=None, returncode: int=None, max_fps: int=None, min_fps: int=None, screenshot_dir=None, 
-            save_dir=None, icon: str=None, fonts: dict[str, str] | None = None, noframe: bool=None, **kwargs
+            save_dir: Path|None=None, icon: str=None, fonts: dict[str, str] | None = None, noframe: bool=None, **kwargs
             ):
         self.window_resize = window_resize if window_resize is not None else True
         self.scaled = scaled if scaled is not None else False
@@ -26,7 +26,7 @@ class Config:
         self.min_fps: int = min_fps if min_fps is not None else 60
         self.screenshots_dir: Path = screenshot_dir if screenshot_dir is not None else platformdirs.user_pictures_path().joinpath(f'./{self.my_company}/{self.title}')
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
-        self.save_dir = save_dir if save_dir is not None else platformdirs.user_config_path(self.title, self.my_company)
+        self.save_dir: Path = Path(save_dir) if save_dir is not None else platformdirs.user_config_path(self.title, self.my_company)
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.fonts: dict[str, str] = fonts if fonts is not None else {}
         self.noframe: bool = noframe if noframe is not None else False
