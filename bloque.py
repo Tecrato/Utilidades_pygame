@@ -34,6 +34,7 @@ class Bloque(Base):
         self.use_mouse_wheel = True
         self.scroll_item = -1
         self.last_mouse_pos = pag.Vector2(0)
+        self.cursor = None
 
         self.updates = []
 
@@ -93,7 +94,7 @@ class Bloque(Base):
                 self.use_mouse_motion = True
                 self.scroll_class_x.use_mouse_motion = True
             return True
-        for i,x in enumerate(self.list_objs):
+        for i,x in sorted(enumerate(self.list_objs), reverse=True):
             if not x["clicking"]:
                 continue
             if (r :=x["GUI"].click(pos-self.topleft)):
@@ -212,8 +213,18 @@ class Bloque(Base):
             return True
         self.scroll_class.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
         self.scroll_class_x.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
-        for i,x in enumerate(self.list_objs):
+        cursor_setted = False
+        for i,x in sorted(enumerate(self.list_objs), reverse=True):
             x["GUI"].update_hover(mouse_pos=Vector2(mouse_pos)-self.topleft)
+            if x['GUI'].hover and not cursor_setted and x['GUI'].cursor:
+                cursor_setted = True
+                self.cursor = x['GUI'].cursor
+                self.hover = True
+        if not cursor_setted:
+            self.hover = False
+            self.cursor = None
+            return False
+        return True
 
     
     def move_objs(self):

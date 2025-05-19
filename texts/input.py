@@ -13,7 +13,7 @@ class Input(Base):
     def __init__(
         self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
         width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: ALING_DIRECTION = 'topleft',
-        border_color='black',hover_border_color='cyan', border_width = 1, border_radius = 0, pointer_color = 'white',
+        border_color='black',hover_border_color='cyan', border_width = 1, border_radius = 0, pointer_color = 'white', cursor = pag.SYSTEM_CURSOR_IBEAM,
         **kwargs
         ) -> None:
         
@@ -27,6 +27,7 @@ class Input(Base):
         self.border_color = border_color
         self.hover_border_color = hover_border_color
         self.pointer_color = pointer_color
+        self.cursor = cursor
 
         self.text_size = text_size
         self.text_color = text_color
@@ -176,7 +177,7 @@ class Input(Base):
     def check_pos_letter_click(self,x):
         acumulacion = 0
         for pos, i in enumerate(self.letter_pos):
-            if x < acumulacion+self.text.rect_text.left:
+            if x < acumulacion+self.text.left:
                 return pos
             acumulacion += i
         else:

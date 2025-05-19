@@ -23,7 +23,8 @@ class Button(Text):
         color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
-        func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True, **kwargs) -> None:
+        func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True,
+        cursor: int|None = None, **kwargs) -> None:
 
         self.__hover = False
         self.color_rect_active = color_rect_active if color_rect_active != None else color_rect
@@ -53,12 +54,14 @@ class Button(Text):
                              max_width = max_width, min_width = min_width, min_height = min_height, wrap=wrap, **kwargs)
         if self.toggle_rect:
             self.with_rect = False
+        self.cursor = cursor if cursor != None else pag.SYSTEM_CURSOR_HAND
 
     def update_hover(self,mouse_pos):
         if self.rect.collidepoint(mouse_pos):
             self.hover = True
         else:
             self.hover = False
+        return self.hover
 
     @property
     def hover(self):

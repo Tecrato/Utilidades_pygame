@@ -24,6 +24,7 @@ class Base:
         self.use_mouse_motion = False
         self.smothmove_type = None
         self.use_mouse_wheel = False
+        self.cursor: int|None = None
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -101,11 +102,12 @@ class Base:
         self.direccion(self.rect)
         return True
 
-    def update_hover(self, mouse_pos):
+    def update_hover(self, mouse_pos) -> bool:
         if self.rect.collidepoint(mouse_pos) and not self.hover:
             self.hover = True
         elif not self.rect.collidepoint(mouse_pos) and self.hover:
             self.hover = False
+        return self.hover
 
     def move(self, pos):
         self.pos = pos

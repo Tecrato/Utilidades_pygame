@@ -55,6 +55,7 @@ class Base_class:
         self.__framerate: int = 60
         self.__loading: int = 0
         self.scroll_speed: int = 15
+        self.actual_cursor: int = pag.SYSTEM_CURSOR_ARROW
         self.hwnd: int = pag.display.get_wm_info()['window']
         self.drawing: bool = True
         self.draw_background: bool = True
@@ -64,6 +65,7 @@ class Base_class:
         self.click: bool = False
         self.navegate_with_keys: bool = True
         self.running: bool = True
+        self.cursor_setted: bool = False
         self.last_click: float = time.time()
         self.relog: pag.time.Clock = pag.time.Clock()
         self.updates: list[pag.Rect] = []
@@ -223,6 +225,8 @@ class Base_class:
             for x in itertools.chain(self.lists_screens[screen_alias]["click"], self.overlay):
                 if isinstance(x, (Button,Input)):
                     x.hover = True
+                    if x.cursor and x.hover:
+                        pag.mouse.set_cursor(x.cursor)
                     break
 
     def select_btns_with_arrows(self, evento: pag.event.Event, screen_alias: str):
@@ -403,7 +407,7 @@ class Base_class:
     def update_general(self):
         mouse_pos = pag.mouse.get_pos()
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["update"], self.overlay)), reverse=True):
-            x.update(mouse_pos=mouse_pos)
+            x.update(mouse_pos=mouse_pos, dt=self.delta_time.dt)
         self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
         if self.loading > 0 and self.loader:
             self.loader.update()
@@ -423,8 +427,17 @@ class Base_class:
                     x.on_mouse_motion(evento)
                     return True
         self.Mini_GUI_manager.update_hover(evento.pos)
+        self.cursor_setted = False
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             x.update_hover(evento.pos)
+            if x.hover and not self.cursor_setted:
+                if x.cursor and x.cursor != self.actual_cursor:
+                    self.actual_cursor = x.cursor
+                    pag.mouse.set_cursor(pag.Cursor(x.cursor))
+                self.cursor_setted = True
+        if not self.cursor_setted:
+            pag.mouse.set_cursor(pag.Cursor(pag.SYSTEM_CURSOR_ARROW))
+            self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
         return False
     
     def on_mouse_click_general(self,evento):
