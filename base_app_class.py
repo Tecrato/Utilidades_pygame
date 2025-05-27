@@ -430,14 +430,14 @@ class Base_class:
         self.cursor_setted = False
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             x.update_hover(evento.pos)
-            if x.hover and not self.cursor_setted:
-                if x.cursor and x.cursor != self.actual_cursor:
+            if x.is_hover(evento.pos) and not self.cursor_setted:
+                if isinstance(x.cursor,int) and x.cursor != self.actual_cursor:
                     self.actual_cursor = x.cursor
                     pag.mouse.set_cursor(pag.Cursor(x.cursor))
                 self.cursor_setted = True
         if not self.cursor_setted:
-            pag.mouse.set_cursor(pag.Cursor(pag.SYSTEM_CURSOR_ARROW))
             self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
+            pag.mouse.set_cursor(pag.Cursor(pag.SYSTEM_CURSOR_ARROW))
         return False
     
     def on_mouse_click_general(self,evento):

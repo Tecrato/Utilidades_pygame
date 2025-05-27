@@ -1,3 +1,4 @@
+import pygame as pag
 from..bloque import Bloque
 
 """
@@ -42,6 +43,16 @@ class Base_win(Bloque):
         if not self.active:
             return False
         super().update(pos=pos, dt=dt, **kwargs)
+    def update_hover(self, mouse_pos=...):
+        if not self.active:
+            self.hover = False
+            return False
+        r = super().update_hover(mouse_pos)
+        if not r and self.rect.collidepoint(mouse_pos):
+            self.hover = True
+            self.cursor = pag.SYSTEM_CURSOR_ARROW
+            return True
+        return False
     def on_wheel(self, delta=None, **kwargs):
         if not self.active:
             return False
