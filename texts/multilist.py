@@ -62,7 +62,9 @@ class Multi_list(Base):
         self.lista_surface.set_colorkey((0,0,0))
         self.lista_surface_rect.topleft = self.pos
         for x in range(num_lists):
-            separar = Text('Hola|', self.text_size, self.fonts[-1], (0,0)).rect.h - Text('Hola|', self.text_size, self.fonts[0], (0,0)).rect.h
+            # separar = Text('Hola|', self.text_size, self.fonts[-1], (0,0)).rect.h - Text('Hola|', self.text_size, self.fonts[0], (0,0)).rect.h
+            hs = [Text("|",self.text_size, x, (0,0)).rect.h for x in self.fonts]
+            separar = max(hs) - min(hs)
 
             l_size = ((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y)
             l_pos = Vector2(self.size.x*self.colums_witdh[x],0) + self.pos
@@ -81,7 +83,7 @@ class Multi_list(Base):
                 header=self.header, text_header=txt_header, header_top_left_radius=l_header_top_left_radius, 
                 header_top_right_radius=l_header_top_right_radius, font=self.fonts[x], header_border_color=self.border_color,
                 border_width=-1))
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),(self.listas[0].text_header.rect.h+1)if self.header else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),(self.listas[0].text_header.height)if self.header else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         
         self.create_border(self.rect, 2)
 
@@ -98,9 +100,9 @@ class Multi_list(Base):
         self.lineas.clear()
         for x in range(self.num_list):
             self.listas[x].resize(((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y))
-            self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
+            self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],self.listas[0].text_header.height if self.header else 0) + self.pos
             
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),((self.listas[0].text_header.rect.h+1)if self.header else 1)), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),((self.listas[0].text_header.height+1)if self.header else 1)), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         self.create_border(self.rect, 2)
 
     def update(self,pos=None,dt=1, mouse_pos=(-10000,-10000)):
@@ -136,7 +138,7 @@ class Multi_list(Base):
             pag.draw.rect(surface, self.border_color, x.rect, 1)
 
         for line in self.lineas[1:]:
-            pag.draw.line(surface, self.border_color, Vector2(line[0])+self.raw_pos-(0,0)-(0,30), Vector2(line[1])+self.raw_pos-(0,1), 2)
+            pag.draw.line(surface, self.border_color, Vector2(line[0])+self.raw_pos, Vector2(line[1])+self.raw_pos-(0,1), 2)
 
         self.redraw = 0
         return (self.rect,)

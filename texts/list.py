@@ -66,7 +66,7 @@ class List(Base):
         self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
 
-
+        self.cursor = pag.SYSTEM_CURSOR_ARROW
         self.use_mouse_motion = False
         self.use_mouse_wheel = True
 
@@ -77,10 +77,11 @@ class List(Base):
     def __generate(self):
 
         if self.header:
-            self.text_header: Text = Text(self.text_header, 23, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
-            padding=(5,15),border_width=1, border_top_left_radius=self.header_top_left_radius,
-            border_top_right_radius=self.header_top_right_radius, border_color=self.header_border_color, width=self.size[0])
-            self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+self.text_header.rect.h, self.size[0], self.size[1]-self.text_header.rect.h)
+            self.text_header: Text = Text(self.text_header, 22, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
+            padding=(5,10),border_width=1, border_top_left_radius=self.header_top_left_radius,
+            border_top_right_radius=self.header_top_right_radius, border_color=self.header_border_color, min_width=self.size[0],
+            wrap=False, text_align='left', min_height=30)
+            self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+self.text_header.rect.h, self.size[0], self.size[1]-self.text_header.height)
             self.text_header.bottomleft = self.rect.topleft
         else:
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
@@ -297,7 +298,7 @@ class List(Base):
         self.set_height()
         self.on_wheel(0)
 
-    def get_selects(self) -> list[str]:
+    def get_selects(self) -> list[tuple[int,str]]:
         return [(x,self.lista_palabras[x]) for x in self.selected_nums]
 
     @property
@@ -310,6 +311,7 @@ class List(Base):
         self.__lista_palabras = list(lista_palabras)
         # self.__generate()
         self.__gen_list()
+        self.redraw += 1
 
     @property
     def selected_color(self):
