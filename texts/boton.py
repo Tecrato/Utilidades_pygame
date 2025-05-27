@@ -24,7 +24,8 @@ class Button(Text):
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
         func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True,
-        cursor: int|None = None, **kwargs) -> None:
+        cursor: int|None = None, text_align: ALING_DIRECTION = 'center', func_to_hover= None, func_out_hover= None,
+        **kwargs) -> None:
 
         self.__hover = False
         self.color_rect_active = color_rect_active if color_rect_active != None else color_rect
@@ -39,8 +40,8 @@ class Button(Text):
 
         self.color_active = kwargs.get('color_active',None)
         self.func = func
-        self.func_to_hover = kwargs.get('func_to_hover',None)
-        self.func_out_hover = kwargs.get('func_out_hover',None)
+        self.func_to_hover = func_to_hover
+        self.func_out_hover = func_out_hover
     
         self.sound_to_hover = kwargs.get('sound_to_hover',False)
         self.sound_to_click = kwargs.get('sound_to_click',False)
@@ -120,3 +121,9 @@ class Button(Text):
             self.color_rect = self.color_rect_inactive
         if self.redraw < 1:
             self.redraw += 1
+
+
+    def __str__(self) -> str:
+        return 'Button: {} - pos: {}'.format(self.raw_text,self.pos)
+    def __repr__(self) -> str:
+        return self.__str__()
