@@ -1,8 +1,8 @@
-from typing import Any
-from flask.config import T
 import pygame as pag
-from pygame import Vector2
+import Utilidades as uti
 
+from pygame import Vector2
+from typing import Any
 from .obj_Base import Base
 from .scroll import Screen_scroll
 from .constants import ALING_DIRECTION
@@ -54,7 +54,7 @@ class Bloque(Base):
 
     def add(self,clase, relative_pos, *, drawing: bool=True, clicking=False) -> int:
         """
-        ## relative_pos examples:
+        ## relative_pos ejemplos:
          - (200,200)
          - (200,200*2)
          - (200*.01,200)
@@ -64,7 +64,7 @@ class Bloque(Base):
         """
         self.list_objs.append({"GUI":clase,"pos":relative_pos,"drawing":drawing,"clicking":clicking, "index":self.index})
         setattr(self.list_objs[-1]["GUI"],"bloque_index",int("{i}".format(i=self.index)))
-        setattr(self.list_objs[-1]["GUI"],"move",lambda *args, **kwargs: self.move(*args, index=self.list_objs[-1]["GUI"].bloque_index, **kwargs))
+        setattr(self.list_objs[-1]["GUI"],"move",lambda pos,index=self.list_objs[-1]["GUI"].bloque_index: self.move(pos=pos, index=index))
         self.index += 1
         self.move_objs()
         return len(self.list_objs)-1
