@@ -63,12 +63,13 @@ class Text(Base):
         self.border_top_right_radius = kwargs.get('border_top_right_radius',-1)
         self.border_bottom_right_radius = kwargs.get('border_bottom_right_radius',-1)
 
-        self.lista_text: pag.Surface = []
+        self.lista_text: list[pag.Surface] = []
         self.__font = pag.font.Font(self.raw_font, size)
-        self.text_height = self.__font.render('hola|-×|█', True, self.__color).get_height()
+        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
 
         self.smothmove_bool = False
         self.movimiento = None
+        self.cursor = pag.SYSTEM_CURSOR_ARROW
 
         self.__generate()
 
@@ -84,35 +85,51 @@ class Text(Base):
         splited_text = self.raw_text.split(' ')
         actual_txt = splited_text[0]
         lines_count = 0
-        if len(splited_text) == 1 or self.max_width <= 0:
-            self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
+        if '\n' in actual_txt:
+            pass
+        elif len(splited_text) == 1 and self.max_width <= 0:
+            self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
+        elif self.max_width > 0 and len(splited_text) == 1:
+            self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
+
         while index < len(splited_text):
             txt = splited_text[index]
             actual_rendered_txt: pag.Surface = self.__font.render(str(actual_txt+ ' ' +txt), True, self.__color)
+            
             if '\n' in actual_txt:
                 if actual_txt == '\n':
                     actual_txt = ''
-                    index += 1
+                    lines_count += 1
                     continue
                 actual_txt = actual_txt.split('\n',maxsplit=1)
+                if lines_count >= self.max_lines:
+                    index += math.inf
+                    break
                 self.lista_text.append(self.__font.render(actual_txt[0], True, self.__color))
                 lines_count += 1
                 actual_txt = actual_txt[1]
                 index -= 1
-            elif index == len(splited_text)-1:
-                self.lista_text.append(actual_rendered_txt)
+            elif index >= len(splited_text):
+                self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
                 lines_count += 1
+            elif lines_count >= self.max_lines-1:
+                self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
+                lines_count += 1
+                index += math.inf
             elif actual_rendered_txt.get_width() > self.max_width and self.wrap:
-                if self.max_lines > 0 and lines_count+1 >= self.max_lines:
-                    actual_txt = actual_txt[:-3]
-                    actual_txt += '...'
+                lines_count += 1
+                if self.max_lines > 0 and lines_count >= self.max_lines:
+                    self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
                     lines_count += math.inf
                     index += math.inf
-                self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
+                else:
+                    self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
+                    index -= 1
+
                 actual_txt = txt
-                lines_count += 1
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
-                self.lista_text.append(self.__font.render(str(actual_txt)+'...', True, self.__color))
+                self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
+                uti.debug_print('actual_txt: {}'.format(actual_txt))
                 index += math.inf
                 math.inf
                 lines_count += 1
@@ -143,7 +160,6 @@ class Text(Base):
         )
         self.direccion(self.rect)
         self.create_border(self.rect, self.border_width)
-        self.move(self.pos)
 
         self.redraw += 3
 
@@ -196,6 +212,20 @@ class Text(Base):
     def click(self, mouse_pos) -> Literal[False]:
         return False
 
+    def get_txt_ajustado(self, text, always_elipsis=False):
+        txt = self.__font.render(text+('...' if always_elipsis else ''), True, self.__color)
+        total_width = txt.get_width()
+        if total_width <= self.max_width:
+            return txt
+        
+        i = 0
+        for i in range(1,len(text)):
+            txt = self.__font.render(text[:-i]+'...', True, self.__color)
+            if txt.get_width() <= self.max_width:
+                break
+            
+        return txt
+
     @property
     def text(self):
         return self.raw_text
@@ -214,7 +244,7 @@ class Text(Base):
             return
         self.raw_font = font
         self.__font = pag.font.Font(self.raw_font, self.size)
-        self.text_height = self.__font.render('hola|-×|█', True, self.__color).get_height()
+        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
         self.__generate()
     @property
     def size(self):
@@ -225,7 +255,7 @@ class Text(Base):
             return
         self.__size = int(size)
         self.__font = pag.font.Font(self.raw_font, self.__size)
-        self.text_height = self.__font.render('hola|-×|█', True, self.__color).get_height()
+        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
         self.__generate()
     @property
     def color(self):
