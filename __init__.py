@@ -23,6 +23,8 @@ from .figuras.engranajes import Engranaje
 from .config_default import Config
 from .graficas import *
 
+from Utilidades.logger import debug_print
+
 __all__ = [
     
     # Texts
@@ -55,7 +57,7 @@ __all__ = [
     "Config",
 ]
 
-print(
+debug_print(
     "Bienvenido a las utilidades para pygame, Hecho por Edouard Sandoval\n"
     "Para empezar leer la guia y crear una clase que herede de 'Utilidades_pygame.base_app_class.Base_class'"
 )
