@@ -426,14 +426,18 @@ class Base_class:
                 if getattr(x,'use_mouse_motion',False):
                     x.on_mouse_motion(evento)
                     return True
-        self.Mini_GUI_manager.update_hover(evento.pos)
         self.cursor_setted = False
-        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
+        for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay, [self.Mini_GUI_manager])), reverse=True):
             x.update_hover(evento.pos)
-            if x.is_hover(evento.pos) and not self.cursor_setted:
-                if isinstance(x.cursor,int) and x.cursor != self.actual_cursor:
+            if x.is_hover(evento.pos) and not self.cursor_setted and isinstance(getattr(x,'cursor',None),int):
+                if x.cursor == self.actual_cursor:
+                    ...
+                elif x.cursor != self.actual_cursor:
                     self.actual_cursor = x.cursor
                     pag.mouse.set_cursor(pag.Cursor(x.cursor))
+                else:
+                    self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
+                    pag.mouse.set_cursor(pag.Cursor(pag.SYSTEM_CURSOR_ARROW))
                 self.cursor_setted = True
         if not self.cursor_setted:
             self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
@@ -487,7 +491,7 @@ class Base_class:
                 self.draw_always(itertools.chain(self.lists_screens[self.actual_screen]["draw"], self.overlay))
 
     @property
-    def framerate(self):
+    def framerate(self) -> int:
         return self.__framerate
     @framerate.setter
     def framerate(self, num: int):
