@@ -216,7 +216,8 @@ class Bloque(Base):
         cursor_setted = False
         for i,x in sorted(enumerate(self.list_objs), reverse=True):
             x["GUI"].update_hover(mouse_pos=Vector2(mouse_pos)-self.topleft)
-            if x['GUI'].hover and not cursor_setted and x['GUI'].cursor:
+            # if x['GUI'].hover and not cursor_setted and x['GUI'].cursor:
+            if x['GUI'].is_hover(Vector2(mouse_pos)-self.topleft) and not cursor_setted and getattr(x['GUI'],'cursor',None):
                 cursor_setted = True
                 self.cursor = x['GUI'].cursor
                 self.hover = True
