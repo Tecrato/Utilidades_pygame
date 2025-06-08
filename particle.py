@@ -51,8 +51,8 @@ class Particle:
             self.rect = self.image.get_rect(center=self.pos)
 
     def update(self,dt=1):
-        d = pag.Vector2(math.cos(math.radians(self.angle)),math.sin(math.radians(self.angle)))
-        self.pos += d*self.vel*dt
+        ra = math.radians(self.angle)
+        self.pos += pag.Vector2(math.cos(ra)*self.vel*2*dt,math.sin(ra)*self.vel*2*dt)
         self.rect.center = self.pos
 
     @property

@@ -37,21 +37,18 @@ class Particles:
         self.last_pos = 0
         self.last_time = time.time()
 
-    def update(self, **kwargs) -> None:
+    def update(self, dt=1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
-            part.update()
+            part.update(dt=dt)
             part.radio -= self.radio_down
-            if part.radio-self.radio_down < 1:
-                self.particles.pop(i)
-                continue
-            if math.hypot(*(part.pos-part.start_pos)) > self.max_distance:
+            if (part.radio-self.radio_down < 1) or (part.pos-part.start_pos).length() > self.max_distance:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
                 angle = part.angle
-                v = Vector2(math.cos(math.radians(angle))*part.vel,math.sin(math.radians(angle))*part.vel)
-                v.y += self.gravity
-                part.vel = math.hypot(*(pag.Vector2(0,0)-v))
+                ra = math.radians(angle)
+                v = Vector2(math.cos(ra)*part.vel,math.sin(ra)*part.vel+self.gravity)
+                part.vel = v.length()
                 part.angle = pag.Vector2(0).angle_to(v)
 
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
