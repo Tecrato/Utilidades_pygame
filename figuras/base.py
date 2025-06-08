@@ -181,3 +181,6 @@ class BasePolygon:
 		
 	def collide(self, rect):
 		return self.rect.colliderect(rect)
+
+	def is_hover(self, mouse_pos):
+		return self.rect.collidepoint(mouse_pos)
