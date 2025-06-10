@@ -9,7 +9,12 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, **kwargs):
+            self, boton: Button, options: list[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
+            func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', 
+            animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, 
+            padding_vertical = 5,separacion = 5,
+            **kwargs
+        ):
         
         self.__options = options
         self.select_opened = False
@@ -21,6 +26,7 @@ class Select_box:
         self.selected_animation = animation_dir
         self.position = position
         self.redraw = 2
+        self.padding_vertical = padding_vertical
         self.padding_horizontal = padding_horizontal
         self.last_rect = pag.Rect(0,0,0,0)
         self.font = font
@@ -31,6 +37,8 @@ class Select_box:
         self.hover_rect = pag.Rect(0,0,0,0)
         self.mouse_pos = pag.Vector2(0,0)
         self.use_mouse_motion = False
+        self.separacion = separacion
+        self.cursor = pag.SYSTEM_CURSOR_HAND
 
         self.animation_open = Curva_de_Bezier        
 
@@ -46,17 +54,17 @@ class Select_box:
     
     def __generate(self):
         self.botones.clear()
-        self.txt_tama_h = Button(f'{max([f'{x}' for x in self.options])}',self.text_size,self.font,(0,280), 6, 'topleft','white', (20,20,20), 'darkgrey', 0, 0, border_width=1, border_color='white').rect.h
+        self.txt_tama_h = Text(f'|asd',self.text_size,self.font,(self.padding_horizontal,0), 'topleft','black', with_rect=False, padding=(0,5)).rect.h
         self.hover_rect.h = self.txt_tama_h
 
         t_max_l = [self.min_width]
 
         for i, op in enumerate(self.options):
-            t = Text(f'{op}',self.text_size,self.font,(self.padding_horizontal,self.txt_tama_h*i +5), 'topleft','black', with_rect=False, padding=(0,5))
+            t = Text(f'{op}',self.text_size,self.font,(self.padding_horizontal,self.txt_tama_h*i +self.padding_vertical), 'topleft','black', with_rect=False, padding=(0,self.separacion))
             t_max_l.append(t.width + self.padding_horizontal*2)
             self.botones.append(t.copy())
 
-        self.size = (max(t_max_l),max(self.min_height,(self.txt_tama_h*len(self.options))+10))
+        self.size = (max(t_max_l),max(self.min_height,(self.txt_tama_h*len(self.options))+self.padding_vertical*2))
         self.hover_rect.w = self.size[0]
 
         self.surf = pag.Surface(self.size,pag.SRCALPHA)
@@ -92,7 +100,12 @@ class Select_box:
             self.close_it()
             return False
         new_pos = Vector2(mouse_pos)-self.rect.topleft
-        final_index = math.floor((new_pos.y/self.size[1])*len(self.botones))
+        # final_index = math.floor((new_pos.y/self.size[1])*len(self.botones))
+        if self.size[1] - self.padding_vertical > new_pos.y > self.padding_vertical:
+            final_index = math.floor(((new_pos.y-self.padding_vertical)/(self.size[1]-self.padding_vertical*2))*(len(self.botones)))
+        else:
+            final_index = -1
+            return False
 
         self.func({'index': final_index, 'text': self.botones[final_index].text})
         self.close_it()
@@ -136,7 +149,12 @@ class Select_box:
         if self.mouse_pos != Vector2(mouse_pos)-self.rect.topleft:
             if self.rect.collidepoint(mouse_pos):
                 self.mouse_pos = Vector2(mouse_pos)-self.rect.topleft
-                self.hover_rect.top = self.txt_tama_h*math.floor((self.mouse_pos.y/self.size[1])*len(self.botones)) + 5
+                if self.size[1] - self.padding_vertical > self.mouse_pos.y > self.padding_vertical:
+                    self.hover_rect.top = self.txt_tama_h*math.floor(((self.mouse_pos.y-self.padding_vertical)/(self.size[1]-self.padding_vertical*2))*(len(self.botones))) + self.padding_vertical
+                    self.cursor = pag.SYSTEM_CURSOR_HAND
+                else:
+                    self.hover_rect.top = -100
+                    self.cursor = pag.SYSTEM_CURSOR_ARROW
                 self.redraw += 1
             else:
                 if self.hover_rect != -1:
