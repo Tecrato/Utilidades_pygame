@@ -18,7 +18,7 @@ class Button(Text):
      - func_out_hover: Callable
 
     '''
-    def __init__(self, text, size: int, font: str|None, pos: tuple|pag.Vector2 = (0,0), padding: int|list|tuple = 20,
+    def __init__(self, text, size: int, font: str|None, pos: tuple|pag.Vector2 = (0,0), padding: int|list|tuple = (10,5),
         dire: ALING_DIRECTION = 'center', color = 'black', color_rect = 'darkgrey',
         color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
@@ -53,16 +53,9 @@ class Button(Text):
                              border_top_right_radius=border_top_right_radius, border_bottom_left_radius=border_bottom_left_radius, 
                              border_bottom_right_radius=border_bottom_right_radius, border_width=border_width,border_color=border_color,
                              max_width = max_width, min_width = min_width, min_height = min_height, wrap=wrap, **kwargs)
-        if self.toggle_rect:
-            self.with_rect = False
+        
+        self.with_rect = not self.toggle_rect
         self.cursor = cursor if cursor != None else pag.SYSTEM_CURSOR_HAND
-
-    def update_hover(self,mouse_pos):
-        if self.rect.collidepoint(mouse_pos):
-            self.hover = True
-        else:
-            self.hover = False
-        return self.hover
 
     @property
     def hover(self):
@@ -101,7 +94,7 @@ class Button(Text):
         if self.sound_to_click:
             self.sound_to_click.play()
         if self.func:
-            return self.func()
+            self.func()
         return True
     def change_color_ad(self,color,color_active = None) -> None:
         self.color_inactive = color
