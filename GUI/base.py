@@ -46,6 +46,7 @@ class Base_win(Bloque):
     def update_hover(self, mouse_pos=...):
         if not self.active:
             self.hover = False
+            self.cursor = pag.SYSTEM_CURSOR_ARROW
             return False
         r = super().update_hover(mouse_pos)
         if not r and self.rect.collidepoint(mouse_pos):
