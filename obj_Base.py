@@ -24,7 +24,7 @@ class Base:
         self.use_mouse_motion = False
         self.smothmove_type = None
         self.use_mouse_wheel = False
-        self.cursor: int|None = None
+        self.cursor: int|None = pag.SYSTEM_CURSOR_ARROW
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -49,17 +49,19 @@ class Base:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
             
-    def smothmove(self,f, z, r) -> None:
+    def smothmove(self,f, z, r) -> Self:
         self.smothmove_pos = self.pos
         self.movimiento = Second_Order_Dinamics(f, z, r, self.pos)
         self.smothmove_bool = True
         self.smothmove_type = 'Second order dinamics'
-    def Cubic_bezier_move(self, puntos, multiplicador:float = 1):
+        return self
+    def Cubic_bezier_move(self, puntos, multiplicador:float = 1) -> Self:
         self.smothmove_pos = self.pos
         self.smothmove_bool = True
         self.smothmove_type = 'Cubic Bezier'
         self.movimiento = Curva_de_Bezier(puntos,multiplicador)
-    def simple_acceleration_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> None:
+        return self
+    def simple_acceleration_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> Self:
         self.smothmove_pos = self.pos
         self.movimiento = Simple_acceleration(vel, dir, self.pos)
         self.smothmove_bool = True
@@ -69,6 +71,7 @@ class Base:
         self.vel = float(vel)
 
         self.direccion(self.rect)
+        return self
 
     def update(self,pos=None,dt=1/60, **kwargs) -> bool:
         if not self.smothmove_bool and not pos:
