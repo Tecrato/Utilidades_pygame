@@ -4,6 +4,7 @@ import time
 import math
 from pygame.math import Vector2
 
+
 from .particle import Particle
 
 class Particles:
@@ -37,6 +38,8 @@ class Particles:
         self.last_pos = 0
         self.last_time = time.time()
 
+
+
     def update(self, dt=1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
             part.update(dt=dt)
@@ -50,12 +53,12 @@ class Particles:
                 v = Vector2(math.cos(ra)*part.vel,math.sin(ra)*part.vel+self.gravity)
                 part.vel = v.length()
                 part.angle = pag.Vector2(0).angle_to(v)
-
+    
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
             self.spawn()
             return True
 
-            
+
     def draw(self,surface):
         self.updates_rects.clear()
         for part in self.particles:
@@ -64,7 +67,7 @@ class Particles:
         return self.updates_rects
 
     def spawn(self):
-        for _ in range(self.spawn_count):
+        for _ in range(min(self.spawn_count,self.max_particles-len(self.particles))):
             self.__add_particle()
         self.last_time = time.time()
         return True
