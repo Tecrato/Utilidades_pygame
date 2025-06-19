@@ -29,17 +29,23 @@ def radial(radius, startcolor, endcolor):
     return bigSurf
 
 class Particle:
-    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle=0):
+    __slots__ = ["__pos", "__radio", "__color", "vel", "__angle", "angle_rad", "angle_sin", "angle_cos", "last_rect", "rect", "image", "start_pos"]
+    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle: float=0):
         self.__pos = Vector2(pos)
         self.__radio = radio
         self.__color = color
         self.vel = velocidad
-        self.angle = float(angle)
+        self.__angle = float(angle)
+        self.angle_rad = math.radians(angle)
+        self.angle_sin = math.sin(self.angle_rad)
+        self.angle_cos = math.cos(self.angle_rad)
         self.last_rect = pag.Rect(0,0,0,0)
         self.rect = pag.Rect(0,0,0,0)
         self.generate()
 
     def draw(self,surface: pag.Surface):
+        if not self.rect.colliderect(surface.get_rect()):
+            return []
         surface.blit(self.image,self.rect)
         r = self.last_rect.copy()
         self.last_rect = self.rect.copy()
@@ -51,15 +57,17 @@ class Particle:
             self.rect = self.image.get_rect(center=self.pos)
 
     def update(self,dt=1):
-        ra = math.radians(self.angle)
-        self.pos += pag.Vector2(math.cos(ra)*self.vel*2*dt,math.sin(ra)*self.vel*2*dt)
-        self.rect.center = self.pos
+        self.__pos += (self.angle_cos*self.vel*2*dt,self.angle_sin*self.vel*2*dt)
+        self.rect.center = self.__pos
 
     @property
     def pos(self) -> Vector2:
-        return self.__pos
+        return Vector2(self.__pos)
     @pos.setter
     def pos(self,pos):
+        if isinstance(pos, Vector2):
+            self.__pos = pos
+            return
         self.__pos = Vector2(pos)
     @property
     def radio(self) -> int:
@@ -85,3 +93,6 @@ class Particle:
     @angle.setter
     def angle(self,angle):
         self.__angle = float(angle)
+        self.angle_rad = math.radians(angle)
+        self.angle_sin = math.sin(self.angle_rad)
+        self.angle_cos = math.cos(self.angle_rad)
