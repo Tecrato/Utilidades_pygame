@@ -2,7 +2,7 @@ import pygame as pag, math
 from pygame import Vector2
 from functools import lru_cache
 
-@lru_cache(maxsize=1000)
+@lru_cache(maxsize=100_000)
 def radial(radius, startcolor, endcolor):
     # print(str(radius),str(startcolor),str(endcolor))
     """
@@ -45,14 +45,14 @@ class Particle:
 
     def draw(self,surface: pag.Surface):
         if not self.rect.colliderect(surface.get_rect()):
-            return []
+            return ()
         surface.blit(self.image,self.rect)
         r = self.last_rect.copy()
         self.last_rect = self.rect.copy()
         return (self.rect,r)
 
     def generate(self):
-        if self.radio > 1 and int(self.rect.width) != int(self.radio*2):
+        if self.radio > 1:
             self.image = radial(int(self.radio), self.color+(255,), self.color+(0,))
             self.rect = self.image.get_rect(center=self.pos)
 
@@ -62,7 +62,7 @@ class Particle:
 
     @property
     def pos(self) -> Vector2:
-        return Vector2(self.__pos)
+        return self.__pos
     @pos.setter
     def pos(self,pos):
         if isinstance(pos, Vector2):
@@ -74,6 +74,8 @@ class Particle:
         return self.__radio
     @radio.setter
     def radio(self,radio):
+        if self.radio == radio:
+            return
         self.__radio = float(radio)
         self.generate()
 

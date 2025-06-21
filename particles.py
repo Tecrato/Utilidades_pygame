@@ -1,11 +1,11 @@
-import pygame as pag
 import random
 import time
-import math
 from pygame.math import Vector2
 
 
 from .particle import Particle
+
+v_0 = Vector2(0,0)
 
 class Particles:
     def __init__(
@@ -18,7 +18,7 @@ class Particles:
         self.radio = radio
         self.color = color
         self.velocity = velocity
-        self.gravity = gravity
+        self.__gravity = gravity
         self.radio_down = radio_down
         self.vel_dispersion = vel_dispersion
         self.angle_dispersion = angle_dispersion
@@ -43,16 +43,18 @@ class Particles:
     def update(self, dt=1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
             part.update(dt=dt)
-            part.radio -= self.radio_down
-            if (part.radio-self.radio_down < 1) or (part.pos-part.start_pos).length() > self.max_distance:
+            if self.radio_down > 0:
+                part.radio -= self.radio_down
+                if (part.radio-self.radio_down < 1):
+                    self.particles.pop(i)
+                    continue
+            if  (part.pos-part.start_pos).length() > self.max_distance:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
-                angle = part.angle
-                ra = math.radians(angle)
-                v = Vector2(math.cos(ra)*part.vel,math.sin(ra)*part.vel+self.gravity)
+                v = Vector2(part.angle_cos*part.vel,part.angle_sin*part.vel+self.gravity)
                 part.vel = v.length()
-                part.angle = pag.Vector2(0).angle_to(v)
+                part.angle = v_0.angle_to(v)
     
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:
             self.spawn()
@@ -83,6 +85,15 @@ class Particles:
 
     def clear(self):
         self.particles.clear()
+
+    @property
+    def gravity(self):
+        return self.__gravity
+    @gravity.setter
+    def gravity(self,gravity):
+        self.__gravity = float(gravity)
+        if self.__gravity < 0:
+            self.__gravity = 0
 
     def __len__(self):
         return len(self.particles)
