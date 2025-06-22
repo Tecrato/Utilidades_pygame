@@ -32,8 +32,8 @@ class Text(Base):
     def __init__(
             self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
             dire: ALING_DIRECTION ='center', color='white',with_rect = False, color_rect ='black', 
-            border_width = -1, padding: int|list|tuple = 5, min_width = 0,max_width=-1, min_height = 0, rect_width= 0, 
-            always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=-1, **kwargs
+            border_width = -1, padding: int|list|tuple = 0, min_width = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
+            always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf, **kwargs
         ) -> None:
         super().__init__(pos,dire)
         if not pag.font.get_init():
@@ -82,6 +82,7 @@ class Text(Base):
             self.create_rect()
             return
         index = 1
+
         splited_text = self.raw_text.split(' ')
         actual_txt = splited_text[0]
         lines_count = 0
@@ -89,8 +90,10 @@ class Text(Base):
             pass
         elif len(splited_text) == 1 and self.max_width <= 0:
             self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
+            actual_txt = ''
         elif self.max_width > 0 and len(splited_text) == 1:
             self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
+            actual_txt = ''
 
         while index < len(splited_text):
             txt = splited_text[index]
@@ -112,16 +115,20 @@ class Text(Base):
             elif index >= len(splited_text):
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
                 lines_count += 1
-            elif lines_count >= self.max_lines-1:
+                actual_txt = ''
+                break
+            elif lines_count > self.max_lines:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
                 lines_count += 1
                 index += math.inf
+                actual_txt = ''
             elif actual_rendered_txt.get_width() > self.max_width and self.wrap:
                 lines_count += 1
                 if self.max_lines > 0 and lines_count >= self.max_lines:
                     self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
                     lines_count += math.inf
                     index += math.inf
+                    actual_txt = ''
                 else:
                     self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                     index -= 1
@@ -129,18 +136,21 @@ class Text(Base):
                 actual_txt = txt
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
-                uti.debug_print('actual_txt: {}'.format(actual_txt))
                 index += math.inf
                 math.inf
                 lines_count += 1
+                actual_txt = ''
             else:
                 actual_txt += ' ' + txt
             index += 1
         
+        if actual_txt:
+            self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
         
         self.create_rect()
     
     def create_rect(self):
+        self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
         if self.border_radius == -1:
             s = max(
                 max([x.get_width()+self.padding[0]*2 for x in self.lista_text]+[self.min_width]),
@@ -160,6 +170,7 @@ class Text(Base):
         )
         self.direccion(self.rect)
         self.create_border(self.rect, self.border_width)
+        self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
 
         self.redraw += 3
 
@@ -176,7 +187,7 @@ class Text(Base):
         if self.with_rect:
             pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
         pag.draw.rect(surface, self.border_color,self.rect_border, self.border_width, self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
-        # surface.blit(self.lista_text[0], self.rect)
+
         for i,txt in enumerate(self.lista_text):
             r = txt.get_rect()
             if self.text_align == 'center':
@@ -198,8 +209,6 @@ class Text(Base):
             # r.centery = self.rect.centery + ((i-(len(self.lista_text)-1)/2)*self.text_height)
             surface.blit(txt, r)
 
-        if self.redraw < 1:
-            return []
         if self.redraw < 2:
             self.redraw = 0
             return [self.rect_border]
