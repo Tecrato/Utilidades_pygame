@@ -11,7 +11,7 @@ class Input(Base):
         x.eventos_teclado(eventos)
     '''
     def __init__(
-        self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 20,
+        self, pos: tuple, text_size: int, font: str, text_value: str = 'Type here',max_letter = 20, padding = 10,
         width=100, height=20, text_color='white',text_value_color='grey', background_color = 'black', dire: ALING_DIRECTION = 'topleft',
         border_color='black',hover_border_color='cyan', border_width = 1, border_radius = 0, pointer_color = 'white', cursor = pag.SYSTEM_CURSOR_IBEAM,
         **kwargs
@@ -66,10 +66,10 @@ class Input(Base):
         self.draw_surf()
 
     def generate(self):
-        t = Text('', self.text_size, self.font, self.pos, 'left', padding=self.padding,min_width=self.width,height=self.height)
+        t = Text('', self.text_size, self.font, self.pos, 'left', padding=self.padding,min_width=self.width,min_height=self.height)
         self.rect = t.rect.copy()
 
-        self.text = Text('|', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,min_width=self.width-self.padding.x*2, padding=5)
+        self.text = Text('|', self.text_size, self.font, self.pos, 'left',self.text_color,True, self.background_color,min_width=self.width-self.padding.x*2, padding=0)
         self.rect2 = self.text.rect.copy()
         self.input_surface = pag.Surface(self.rect2.size)
         self.input_surface.fill(self.background_color)
