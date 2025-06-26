@@ -1,5 +1,4 @@
 import itertools
-from typing import Literal, Union
 import pygame as pag
 import time
 import datetime
@@ -7,6 +6,8 @@ import Utilidades as uti
 import Utilidades.win32_tools as win32_tools
 from . import *
 from .config_default import Config
+from typing import Literal, Union
+from threading import Lock
 
 __all__ = [
     "Base_class",
@@ -71,6 +72,7 @@ class Base_class:
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
         self.last_size: tuple[int,int] = self.config.resolution
+        self.app_lock = Lock()
 
         # Otras variables
         self.Func_pool = uti.Funcs_pool()
@@ -137,6 +139,7 @@ class Base_class:
         self.calculate_adjacent_controls()
 
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque|Engranaje]):
+        self.app_lock.acquire()
         lista = list(lista).copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
@@ -180,8 +183,10 @@ class Base_class:
             pag.display.update()
         else:
             pag.display.update(self.updates)
+        self.app_lock.release()
 
     def draw_always(self, lista):
+        self.app_lock.acquire()
         lista = list(lista).copy()
         if self.draw_background:
             self.ventana.fill(self.background_color)
@@ -198,6 +203,7 @@ class Base_class:
         self.draw_after(self.actual_screen)
 
         pag.display.update()
+        self.app_lock.release()
 
     def exit(self, returncode: int|None = None):
         self.running = False
