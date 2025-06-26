@@ -307,6 +307,10 @@ class Input(Base):
         self.clear()
         for x in f'{text}':
             self.add_letter(x)
+        self.typing = False
+        self.typing_pos = 0
+        self.typing_line = False
+        self.typing_line_time = time.time()
         self.draw_surf()
 
     def get_text(self) -> str:
