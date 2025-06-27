@@ -11,11 +11,11 @@ class simple_popup(Base):
 
         super().__init__(pos,dir, size, border_radius, inside_limits)
 
-        Text(title, 16, None, (0,0), 'topleft', 'black', padding=20).draw(self.surf)
+        Text(title, 16, None, (0,0), 'topleft', 'black', padding=10).draw(self.surf)
         Text(text, 16, None, (10,30), 'topleft', 'black', padding=1).draw(self.surf)
 
         self.botones.append({
-            'btn':Button('Aceptar',16,None,self.rect.bottomright, (20,15), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
+            'btn':Button('Aceptar',16,None,self.rect.bottomright, (10,5), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
             'result': 'exit'
             })
         
@@ -24,20 +24,30 @@ class desicion_popup(Base):
 
         super().__init__(pos,dir, size, border_radius, inside_limits)
 
-        Text(title, 16, None, (0,0), 'topleft', 'black', padding=20).draw(self.surf)
+        Text(title, 16, None, (0,0), 'topleft', 'black', padding=10).draw(self.surf)
         Text(text, 16, None, (10,30), 'topleft', 'black', padding=1).draw(self.surf)
 
         
         self.botones.append({
-            'btn':Button('Cancelar',16,None,self.rect.bottomright, (20,15), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
+            'btn':Button('Cancelar',16,None,self.rect.bottomright, (10,5), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
             'result': 'exit'
             })
         self.botones.append({
-            'btn':Button(accept_boton_text,16,None,(self.botones[1]['btn'].rect.left - 10,self.rect.bottom), (20,15), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
+            'btn':Button(accept_boton_text,16,None,(self.botones[1]['btn'].rect.left - 10,self.rect.bottom), (10,5), 'bottomright','black',(240,240,240), border_radius=10, border_bottom_right_radius=0, border_width=-1),
             'result': 'aceptar'
             })
 
 class select(Base):
+    """
+    La clase select que sirve esencialmente para cuando se quiere tener opciones al hacer click derecho,
+    las funcion asignada constara de los siguientes parametros:
+     - En caso de obtener un resultado de click:
+        - index: int
+        - text: str
+        - obj: objeto
+     - En caso de que el usuario no haga click o no haya seleccionado ninguna opcion:
+        - exit
+    """
     def __init__(self, pos, options:list, dir = 'topleft', captured = None,min_width =0, border_radius=10, inside_limits=True, volatile=True) -> None:
         super().__init__(pos,dir, border_radius=border_radius, inside_limits=inside_limits)
         self.texts = options
