@@ -53,6 +53,7 @@ class Text(Base):
         self.wrap: bool = wrap
         self.text_align = text_align
         self.__max_lines = max_lines
+        self.lista_text_rects: list[pag.Rect] = []
 
 
         self.border_color = kwargs.get('border_color', 'black')
@@ -132,8 +133,8 @@ class Text(Base):
                 else:
                     self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                     index -= 1
-
-                actual_txt = txt
+                    actual_txt = ''
+                    uti.debug_print(f'Actual_txt: {actual_txt}')
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
                 index += math.inf
@@ -141,7 +142,7 @@ class Text(Base):
                 lines_count += 1
                 actual_txt = ''
             else:
-                actual_txt += ' ' + txt
+                actual_txt += (' ' if actual_txt else '') + txt
             index += 1
         
         if actual_txt:
@@ -154,13 +155,13 @@ class Text(Base):
         if self.border_radius == -1:
             s = max(
                 max([x.get_width()+self.padding[0]*2 for x in self.lista_text]+[self.min_width]),
-                max(self.min_height,self.text_height*len(self.lista_text) + self.padding[1])
+                max(self.min_height,(self.text_height*len(self.lista_text)) + self.padding[1])
             )
             size = (s,s)
         else:
             size = (
                 max([x.get_width()+self.padding[0]*2 for x in self.lista_text]+[self.min_width]),
-                max(self.min_height,self.text_height*len(self.lista_text) + self.padding[1]*2),
+                max(self.min_height,(self.text_height*len(self.lista_text)) + self.padding[1]*2),
             )
         self.rect = pag.Rect(
             self.pos[0],
@@ -171,23 +172,18 @@ class Text(Base):
         self.direccion(self.rect)
         self.create_border(self.rect, self.border_width)
         self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
+        self.create_texts_rects()
 
         self.redraw += 3
 
     def update(self, pos = None,dt=1, **kwargs):
         super().update(pos,dt=dt)
         self.last_rect: pag.Rect = self.last_rect.copy().union(self.rect_border.copy())
+        if self.redraw > 0:
+            self.create_texts_rects()
     
-    def draw(self, surface, always_draw = False) -> list[pag.Rect]|None:
-        if always_draw or self.always_draw:
-            self.redraw += 2
-        if self.redraw < 1:
-            return []
-        
-        if self.with_rect:
-            pag.draw.rect(surface, self.color_rect, self.rect, self.rect_width,self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
-        pag.draw.rect(surface, self.border_color,self.rect_border, self.border_width, self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
-
+    def create_texts_rects(self):
+        self.lista_text_rects.clear()
         for i,txt in enumerate(self.lista_text):
             r = txt.get_rect()
             if self.text_align == 'center':
@@ -205,18 +201,29 @@ class Text(Base):
                 r.bottom = self.rect.bottom - self.padding[1] - (i*self.text_height)
             else:
                 r.centery = self.rect.centery + ((i-(len(self.lista_text)-1)/2)*self.text_height)
-            # r.centery = self.rect.top + self.padding[1] + (i*self.text_height) + self.text_height//2
-            # r.centery = self.rect.centery + ((i-(len(self.lista_text)-1)/2)*self.text_height)
-            surface.blit(txt, r)
+            self.lista_text_rects.append(r.copy())
+
+    def draw(self, surface, always_draw = False, diff_pos = (0,0)) -> list[pag.Rect]|None:
+        if always_draw or self.always_draw:
+            self.redraw += 2
+        if self.redraw < 1 or not self.visible:
+            return []
+        
+        if self.with_rect:
+            pag.draw.rect(surface, self.color_rect, self.rect.move(diff_pos), self.rect_width,self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
+        pag.draw.rect(surface, self.border_color,self.rect_border.move(diff_pos), self.border_width, self.border_radius if self.border_radius != -1 else self.rect.width, self.border_top_left_radius, self.border_top_right_radius, self.border_bottom_left_radius, self.border_bottom_right_radius)
+
+        for i,txt in enumerate(self.lista_text):
+            surface.blit(txt, self.lista_text_rects[i].move(diff_pos))
 
         if self.redraw < 2:
             self.redraw = 0
-            return [self.rect_border]
+            return [self.rect_border.move(diff_pos)]
         else:
             self.redraw = 0
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
-            return [self.rect, r]
+            return [self.rect.move(diff_pos), r.move(diff_pos)]
 
     def click(self, mouse_pos) -> Literal[False]:
         return False
