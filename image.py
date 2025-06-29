@@ -68,7 +68,7 @@ class Image(Base):
 
 
 
-    def draw(self,surface: pag.Surface, always_draw = False) -> list[pag.Rect]|None:
+    def draw(self,surface: pag.Surface, always_draw = False, diff_pos= (0,0)) -> list[pag.Rect]|None:
         if not self.path:
             return []
         if always_draw or self.always_draw:
@@ -77,8 +77,8 @@ class Image(Base):
             return []
 
         if self.border_width > -1:
-            pag.draw.rect(surface, self.border_color, self.rect_border, self.border_width,self.border_radius)
-        surface.blit(self.image,self.rect)
+            pag.draw.rect(surface, self.border_color, self.rect_border.move(diff_pos), self.border_width,self.border_radius)
+        surface.blit(self.image,self.rect.move(diff_pos))
 
         if self.redraw < 1:
             return []
@@ -89,7 +89,7 @@ class Image(Base):
             self.redraw = 0
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
-            return [self.rect_border, r]
+            return [self.rect_border.move(diff_pos), r.move(diff_pos)]
 
     @property
     def size(self):

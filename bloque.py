@@ -8,7 +8,10 @@ from .scroll import Screen_scroll
 from .constants import ALING_DIRECTION
 
 class Bloque(Base):
-    def __init__(self,pos,size,dire: ALING_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True) -> None:
+    def __init__(
+            self,pos,size,dire: ALING_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, 
+            border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True, func_to_hover=None, func_out_hover=None
+            ) -> None:
         self.scroll_y = False
         self.scroll_x = False
         self.list_objs: list[dict[str,Any]] = []
@@ -35,6 +38,9 @@ class Bloque(Base):
         self.scroll_item = -1
         self.last_mouse_pos = pag.Vector2(0)
         self.cursor = None
+        self.hover_to_func = True
+        self.func_to_hover = func_to_hover
+        self.func_out_hover = func_out_hover
 
         self.updates = []
 
@@ -52,26 +58,11 @@ class Bloque(Base):
     def draw_before(self): ...
     def draw_after(self): ...
 
-    def add(self,clase, relative_pos, *, drawing: bool=True, clicking=False) -> int:
-        """
-        ## relative_pos ejemplos:
-         - (200,200)
-         - (200,200*2)
-         - (200*.01,200)
-         - pag.Vector2(200,200)
-         - pag.Vector2(self.rect.size)*.4
-         - (self.rect.w*.1,self.rect.h*.4)
-        """
-        self.list_objs.append({"GUI":clase,"pos":relative_pos,"drawing":drawing,"clicking":clicking, "index":self.index})
-        setattr(self.list_objs[-1]["GUI"],"bloque_index",int("{i}".format(i=self.index)))
-        setattr(self.list_objs[-1]["GUI"],"move",lambda pos,index=self.list_objs[-1]["GUI"].bloque_index: self.move(pos=pos, index=index))
+    def add(self,clase, *, drawing: bool=True, clicking=False) -> int:
+        self.list_objs.append({"GUI":clase,"drawing":drawing,"clicking":clicking, "index":self.index})
         self.index += 1
         self.move_objs()
         return len(self.list_objs)-1
-    
-    def move(self, pos, index):
-        self.list_objs[index]["pos"] = str(pos)
-        self.move_objs()
 
     def clear(self):
         self.list_objs.clear()
@@ -105,7 +96,7 @@ class Bloque(Base):
                 return r if r is not None else True
         return False
     
-    def draw(self, surface) -> list[pag.Rect]:
+    def draw(self, surface,diff_pos = (0,0)) -> list[pag.Rect]:
         if self.redraw < 2:
             return []
         
@@ -123,13 +114,13 @@ class Bloque(Base):
         self.updates.clear()
         self.draw_before()
 
+        h = self.rect.copy()
+        h.topleft = (-self.scroll_class_x.diff,-self.scroll_class.diff)
         for i,x in sorted(enumerate(self.list_objs),reverse=False):
-            h = self.rect.copy()
-            h.topleft = (0,0)
             if not x['drawing'] or not x["GUI"].collide(h):
                 continue
             re = x["GUI"].redraw
-            r = x['GUI'].draw(self.surf)
+            r = x['GUI'].draw(self.surf,diff_pos=(self.scroll_class_x.diff,self.scroll_class.diff))
             for s in r:
                 # pag.draw.rect(self.surf, self.background_color, s)
                 k = s.copy()
@@ -172,8 +163,8 @@ class Bloque(Base):
         self.draw_after()
 
 
-        surface.blit(self.surf, self.rect)
-        pag.draw.rect(surface, self.border_color, self.rect_border, self.border_width,self.border_radius)
+        surface.blit(self.surf, self.rect.move(diff_pos))
+        pag.draw.rect(surface, self.border_color, self.rect_border.move(diff_pos), self.border_width,self.border_radius)
         # if self.redraw < 2:
         #     self.redraw = 2
             # return self.updates
@@ -184,7 +175,7 @@ class Bloque(Base):
         #     # return self.updates
         r = self.last_rect.union(self.rect_border.copy()).copy()
         self.last_rect = self.rect_border.copy()
-        return [self.rect_border, r]
+        return [self.rect_border.move(diff_pos), r.move(diff_pos)]
 
 
     def update(self, pos=None, **kwargs):
@@ -209,15 +200,21 @@ class Bloque(Base):
 
     def update_hover(self, mouse_pos=(-100000,-100000)):
         self.last_mouse_pos = pag.Vector2(mouse_pos)
+        if self.rect.collidepoint(self.last_mouse_pos) and not self.hover_to_func and self.func_to_hover:
+            self.hover_to_func = True
+            self.func_to_hover()
+        elif not self.rect.collidepoint(self.last_mouse_pos) and self.hover_to_func and self.func_out_hover:
+            self.hover_to_func = False
+            self.func_out_hover()
         if self.use_mouse_motion:
             return True
-        self.scroll_class.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
-        self.scroll_class_x.update_hover(mouse_pos=pag.Vector2(mouse_pos)-self.topleft)
+        self.scroll_class.update_hover(mouse_pos=pag.Vector2(self.last_mouse_pos)-self.topleft)
+        self.scroll_class_x.update_hover(mouse_pos=pag.Vector2(self.last_mouse_pos)-self.topleft)
         cursor_setted = False
         for i,x in sorted(enumerate(self.list_objs), reverse=True):
-            x["GUI"].update_hover(mouse_pos=Vector2(mouse_pos)-self.topleft)
+            x["GUI"].update_hover(mouse_pos=self.last_mouse_pos-self.topleft-(self.scroll_class_x.diff, self.scroll_class.diff))
             # if x['GUI'].hover and not cursor_setted and x['GUI'].cursor:
-            if x['GUI'].is_hover(Vector2(mouse_pos)-self.topleft) and not cursor_setted and getattr(x['GUI'],'cursor',None):
+            if x['GUI'].is_hover(self.last_mouse_pos-self.topleft-(self.scroll_class_x.diff, self.scroll_class.diff)) and not cursor_setted and getattr(x['GUI'],'cursor',None):
                 cursor_setted = True
                 self.cursor = x['GUI'].cursor
                 self.hover = True
@@ -229,12 +226,12 @@ class Bloque(Base):
 
     
     def move_objs(self):
-        for x in self.list_objs:
-            diff = (
-                self.scroll_class_x.diff if self.scroll_x else 0,
-                self.scroll_class.diff if self.scroll_y else 0,
-            )
-            x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))+diff
+        diff = (
+            self.scroll_class_x.diff if self.scroll_x else 0,
+            self.scroll_class.diff if self.scroll_y else 0,
+        )
+        # for x in self.list_objs:
+        #     x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))
         if not self.scroll_y:
             return
         if not self.scroll_x:
@@ -242,8 +239,7 @@ class Bloque(Base):
 
         pos = []
         for i,x in enumerate(self.list_objs):
-            sup_pos = list(eval(f"{x['pos']}"))
-            pos.append(sup_pos)
+            pos.append(x['GUI'].pos.copy())
             if 'left' in x["GUI"].dire:
                 pos[-1][0] += x["GUI"].width
             elif 'right'in x["GUI"].dire:
@@ -281,17 +277,20 @@ class Bloque(Base):
         
     def on_wheel(self, delta):
         if not self.list_objs:
-            return
+            return False
         for i,x in enumerate(self.list_objs):
-            if getattr(x["GUI"],"use_mouse_wheel",False) and x["GUI"].is_hover(self.last_mouse_pos-self.topleft):
-                x["GUI"].on_wheel(delta)
-                return
+            if x["GUI"].on_wheel(delta):
+                return True
+        if not self.scroll_class.bar_active and not self.scroll_class_x.bar_active:
+            return False
         if self.scroll_y or self.scroll_x:
             dez_y = int(self.scroll_class.desplazamiento)
             self.scroll_class.rodar(delta)
             if self.scroll_class.desplazamiento == dez_y and self.scroll_x:
                 self.scroll_class_x.rodar(delta)
             self.move_objs()
+            return True
+        return False
 
     @property
     def use_mouse_motion(self):
@@ -312,7 +311,8 @@ class Bloque(Base):
     @property
     def width(self):
         return self.rect.w
-    
+
+
     def collide(self, rect):
         for x in self.list_objs:
             r = rect.copy()
