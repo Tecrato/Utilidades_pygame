@@ -13,7 +13,7 @@ class Config:
         self.scaled = scaled if scaled is not None else False
         
         self.title: str = title if title is not None else 'Programa_ejemplo'
-        self.window_title: str = window_title if window_title is not None else 'Programa ejemplo'
+        self.window_title: str = window_title if window_title is not None else self.title
         self.my_company: str = my_company if my_company is not None else 'Mi compañia'
         self.author: str = author if author is not None else 'Alguien nose'
         self.version: str = version if version is not None else '0.1'
