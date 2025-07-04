@@ -25,6 +25,7 @@ class Base:
         self.smothmove_type = None
         self.use_mouse_wheel = False
         self.cursor: int|None = pag.SYSTEM_CURSOR_ARROW
+        self.visible = True
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -123,6 +124,7 @@ class Base:
         return self.__pos
     @pos.setter
     def pos(self,pos:tuple[int,int]|Vector2):
+        self.redraw += 1
         if self.smothmove_bool:
             self.smothmove_pos = Vector2(pos)
         else:
@@ -225,6 +227,9 @@ class Base:
     
     def is_hover(self,pos) -> bool:
         return self.rect_border.collidepoint(pos)
+
+    def on_wheel(self, delta):
+        return False
 
     def copy(self):
         return self
