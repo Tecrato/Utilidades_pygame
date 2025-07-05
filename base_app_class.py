@@ -421,8 +421,7 @@ class Base_class:
 
     def on_wheel_event_general(self,evento):
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
-            if x.is_hover(pag.mouse.get_pos()) and getattr(x,'use_mouse_wheel',False):
-                x.on_wheel(evento.y*self.scroll_speed)
+            if getattr(x,'use_mouse_wheel',False) and x.on_wheel(evento.y*self.scroll_speed):
                 return True
         return False
 

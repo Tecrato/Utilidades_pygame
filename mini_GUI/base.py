@@ -1,8 +1,11 @@
 import pygame as pag
 from pygame import Vector2
+from typing import override
 
 from ..obj_Base import Base as primary_base
 from ..texts import Button
+
+import Utilidades as uti
 
 
 class Base(primary_base):
@@ -16,7 +19,7 @@ class Base(primary_base):
         self.border_radius = border_radius
 
         self.botones = [{
-            'btn':Button('X',24,None,(size[0],0),10,'topright', 'black', color_rect='lightgrey', color_rect_active='darkgrey', border_radius=0, border_top_right_radius=border_radius, border_width=-1),
+            'btn':Button('X',24,None,(size[0],0),5,'topright', 'black', color_rect='lightgrey', color_rect_active='darkgrey', border_radius=0, border_top_right_radius=border_radius, border_width=-1),
             'result': 'exit',
             }]
 
@@ -59,5 +62,19 @@ class Base(primary_base):
             btn['btn'].update()
         return super().update(pos=pos, dt=dt, **kwargs)
     def update_hover(self, mouse_pos=(-1000,-10000)):
+        new_pos = Vector2(mouse_pos)-self.rect.topleft
         for btn in self.botones:
-            btn['btn'].update_hover(mouse_pos=Vector2(mouse_pos)-self.rect.topleft)
+            btn['btn'].update_hover(mouse_pos=new_pos)
+    
+    @override
+    def is_hover(self, mouse_pos=(-1000,-10000)):
+        if not self.rect.collidepoint(mouse_pos):
+            return False
+        new_pos = Vector2(mouse_pos)-self.rect.topleft
+        for btn in self.botones:
+            if btn['btn'].rect.collidepoint(new_pos):
+                self.cursor = pag.SYSTEM_CURSOR_HAND
+                break
+        else:
+            self.cursor = pag.SYSTEM_CURSOR_ARROW
+        return True

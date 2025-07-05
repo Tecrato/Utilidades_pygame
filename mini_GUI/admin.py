@@ -1,5 +1,8 @@
+from typing import Literal
 import pygame as pag
 from .objs import desicion_popup, simple_popup, select
+
+import Utilidades as uti
 
 class mini_GUI_admin:
     def __init__(self, limit: pag.Rect) -> None:
@@ -7,6 +10,7 @@ class mini_GUI_admin:
         self.__limit = limit
         self.gui_count = 0
         self.redraw = 1
+        self.cursor = pag.SYSTEM_CURSOR_ARROW
     
     def add(self,mini_GUI,func=None,raw_pos=None,group:str=''):
         self.__list.append({'GUI':mini_GUI,'func':func,'raw_pos':raw_pos,'group':group, 'id':self.gui_count})
@@ -83,5 +87,16 @@ class mini_GUI_admin:
                 lista.append(x['GUI'].rect)
         return lista
     
-    def collide(self, rect):
-        return True
+    def collide(self, rect) -> Literal[True]:
+        for x in self.__list:
+            if x['GUI'].collide(rect):
+                return True
+        return False
+    def is_hover(self, mouse_pos=(-1000,-10000)) -> bool:
+        for x in self.__list:
+            if x['GUI'].is_hover(mouse_pos):
+                self.cursor = x['GUI'].cursor
+                return True
+        else:
+            self.cursor = pag.SYSTEM_CURSOR_ARROW
+        return False
