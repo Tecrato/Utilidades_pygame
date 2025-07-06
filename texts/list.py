@@ -82,8 +82,10 @@ class List(Base):
             padding=(5 + self.header_top_left_radius/2,10),border_width=1, border_top_left_radius=self.header_top_left_radius,
             border_top_right_radius=self.header_top_right_radius, border_color=self.header_border_color, min_width=self.size[0],
             wrap=False, text_align='left', min_height=30)
-            self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+self.text_header.rect.h, self.size[0], self.size[1]-self.text_header.height)
-            self.text_header.bottomleft = self.rect.topleft
+            self.rect = pag.rect.Rect(0,0, self.size[0], self.size[1]-self.text_header.height)
+            self.direccion(self.rect)
+            self.rect.top += self.text_header.height
+            self.text_header.pos = self.rect.topleft
         else:
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
 
@@ -101,7 +103,9 @@ class List(Base):
         self.__height = max(size[1],100)
         self.__size = Vector2(self.__width,self.__height)
         if self.header:
-            self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+ self.text_header.height, self.size[0], self.size[1]-self.text_header.height)
+            self.rect = pag.rect.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1]-self.text_header.height)
+            self.direccion(self.rect)
+            self.rect.top += self.text_header.height
             self.text_header.min_width = self.size[0]
             self.text_header.pos = self.rect.topleft
         else:
@@ -163,8 +167,6 @@ class List(Base):
             self.text_header.redraw += 1
             self.redraw += 1
 
-        if self.header:
-            self.text_header.draw(surface)
 
         if self.redraw < 1:
             return []
