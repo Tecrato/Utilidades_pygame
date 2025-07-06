@@ -39,7 +39,8 @@ class List(Base):
         self.border_radius = border_radius
         self.text_color = text_color
         self.header = header
-        self.text_header = text_header
+        self.raw_text_header = text_header
+        self.text_header:Text = Text
         self.raw_font = font
         self.font = pag.font.Font(self.raw_font, text_size)
         self.separacion = separation
@@ -77,8 +78,8 @@ class List(Base):
     def __generate(self):
 
         if self.header:
-            self.text_header: Text = Text(self.text_header, 22, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
-            padding=(5,10),border_width=1, border_top_left_radius=self.header_top_left_radius,
+            self.text_header: Text = Text(self.raw_text_header, 22, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
+            padding=(5 + self.header_top_left_radius/2,10),border_width=1, border_top_left_radius=self.header_top_left_radius,
             border_top_right_radius=self.header_top_right_radius, border_color=self.header_border_color, min_width=self.size[0],
             wrap=False, text_align='left', min_height=30)
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1]+self.text_header.rect.h, self.size[0], self.size[1]-self.text_header.height)
@@ -169,6 +170,8 @@ class List(Base):
             return []
         
         surface.blit(self.lista_surface,self.rect)
+        if self.header:
+            self.text_header.draw(surface)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
         r = self.rect_border.union(self.text_header.rect) if self.header else self.rect_border
         if self.redraw < 2:
@@ -188,6 +191,7 @@ class List(Base):
         if self.header:
             self.text_header.bottomleft = self.rect.topleft
             self.rect_border.bottom = self.rect.bottom
+            self.text_header.update()
 
     def update_hover(self, mouse_pos):
         if (self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and not self.barra_hover) or \
