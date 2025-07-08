@@ -434,15 +434,15 @@ class Base_class:
         self.cursor_setted = False
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay, [self.Mini_GUI_manager])), reverse=True):
             x.update_hover(evento.pos)
+            if self.cursor_setted:
+                x.hover = False
+                continue
             if x.is_hover(evento.pos) and not self.cursor_setted and isinstance(getattr(x,'cursor',None),int):
                 if x.cursor == self.actual_cursor:
                     ...
                 elif x.cursor != self.actual_cursor:
                     self.actual_cursor = x.cursor
                     pag.mouse.set_cursor(pag.Cursor(x.cursor))
-                else:
-                    self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
-                    pag.mouse.set_cursor(pag.Cursor(pag.SYSTEM_CURSOR_ARROW))
                 self.cursor_setted = True
         if not self.cursor_setted:
             self.actual_cursor = pag.SYSTEM_CURSOR_ARROW
