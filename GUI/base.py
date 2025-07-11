@@ -66,3 +66,8 @@ class Base_win(Bloque):
     @use_mouse_wheel.setter
     def use_mouse_wheel(self,use_mouse_wheel):
         self.__use_mouse_wheel = use_mouse_wheel
+    
+    def is_hover(self, pos):
+        if not self.active:
+            return False
+        return super().is_hover(pos)
