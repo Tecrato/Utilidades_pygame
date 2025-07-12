@@ -30,7 +30,7 @@ class Text(Base):
     - smothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
     """
     def __init__(
-            self,text: str,size: int,font: str|None=None, pos: tuple = (0,0),
+            self,text: str,size: int,font: str|None|pag.font.Font=None, pos: tuple = (0,0),
             dire: ALING_DIRECTION ='center', color='white',with_rect = False, color_rect ='black', 
             border_width = -1, padding: int|list|tuple = 0, min_width = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf, **kwargs
@@ -39,8 +39,9 @@ class Text(Base):
         if not pag.font.get_init():
             pag.font.init()
         self.raw_text = str(text)
+        self.__underline = underline
         self.__size: int = size
-        self.raw_font: str = font
+        self.raw_font = 'asasdas' if font is None else None
         self.__color: str = color
         self.with_rect: bool = with_rect
         self.color_rect: str = color_rect
@@ -65,8 +66,7 @@ class Text(Base):
         self.border_bottom_right_radius = kwargs.get('border_bottom_right_radius',-1)
 
         self.lista_text: list[pag.Surface] = []
-        self.__font = pag.font.Font(self.raw_font, size)
-        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
+        self.font = font
 
         self.smothmove_bool = False
         self.movimiento = None
@@ -255,11 +255,18 @@ class Text(Base):
     def font(self):
         return self.__font
     @font.setter
-    def font(self,font):
-        if self.raw_font == str(font):
+    def font(self,font: str|pag.font.Font):
+        if self.raw_font == font:
             return
-        self.raw_font = font
-        self.__font = pag.font.Font(self.raw_font, self.size)
+        if isinstance(font, pag.font.Font):
+            self.raw_font = font
+            self.__font = font
+        elif isinstance(font, str) or font is None:
+            self.raw_font = font
+            self.__font = pag.font.Font(self.raw_font, self.size)
+        else:
+            raise TypeError('El tipo de font debe ser "str" o "pag.font.Font"')
+        self.__font.set_underline(self.underline)
         self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
         self.__generate()
     @property
@@ -281,6 +288,16 @@ class Text(Base):
         if self.__color == color:
             return
         self.__color = color
+        self.__generate()
+    @property 
+    def underline(self):
+        return self.__underline
+    @underline.setter
+    def underline(self,underline):
+        if self.__underline == underline:
+            return
+        self.__underline = underline
+        self.__font.set_underline(self.__underline)
         self.__generate()
     @property
     def min_width(self):
