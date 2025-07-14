@@ -33,7 +33,8 @@ class Text(Base):
             self,text: str,size: int,font: str|None|pag.font.Font=None, pos: tuple = (0,0),
             dire: ALING_DIRECTION ='center', color='white',with_rect = False, color_rect ='black', 
             border_width = -1, padding: int|list|tuple = 0, min_width = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
-            always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf, **kwargs
+            always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
+            underline = False, **kwargs
         ) -> None:
         super().__init__(pos,dire)
         if not pag.font.get_init():
@@ -130,11 +131,16 @@ class Text(Base):
                     lines_count += math.inf
                     index += math.inf
                     actual_txt = ''
+                elif index+1 >= len(splited_text):
+                    self.lista_text.append(self.get_txt_ajustado(str(actual_txt) + ' ' + txt, always_elipsis=True))
+                    lines_count += 1
+                    index += math.inf
+                    actual_txt = ''
                 else:
                     self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                     index -= 1
-                    actual_txt = ''
                     uti.debug_print(f'Actual_txt: {actual_txt}')
+                    actual_txt = ''
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
                 index += math.inf
@@ -177,7 +183,8 @@ class Text(Base):
         self.redraw += 3
 
     def update(self, pos = None,dt=1, **kwargs):
-        super().update(pos,dt=dt)
+        if super().update(pos,dt=dt):
+            self.create_texts_rects()
         self.last_rect: pag.Rect = self.last_rect.copy().union(self.rect_border.copy())
         if self.redraw > 0:
             self.create_texts_rects()
