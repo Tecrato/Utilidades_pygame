@@ -154,7 +154,7 @@ class BasePolygon:
 			return (a1[0] + u * (a2[0] - a1[0]), a1[1] + u * (a2[1] - a1[1]))
 		return None
 
-	def draw(self, surface) -> list[Rect]:
+	def draw(self, surface, diff_pos = None) -> list[Rect]:
 		"""Renderizado optimizado"""
 		if len(self._figure) < 3 or self.redraw < 1:
 			return []

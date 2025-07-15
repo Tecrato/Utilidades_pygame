@@ -34,3 +34,5 @@ class PoligonoIrregular(BasePolygon):
             self._puntos[index].update(kwargs)
             self._generate()
         self._update_bounding_box()
+
+    
