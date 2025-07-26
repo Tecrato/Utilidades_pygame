@@ -107,7 +107,7 @@ class Text(Base):
                     lines_count += 1
                     continue
                 actual_txt = actual_txt.split('\n',maxsplit=1)
-                if lines_count >= self.max_lines:
+                if lines_count >= self.__max_lines:
                     index += math.inf
                     break
                 self.lista_text.append(self.__font.render(actual_txt[0], True, self.__color))
@@ -119,7 +119,7 @@ class Text(Base):
                 lines_count += 1
                 actual_txt = ''
                 break
-            elif lines_count > self.max_lines:
+            elif lines_count > self.__max_lines:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
                 lines_count += 1
                 index += math.inf
@@ -131,15 +131,14 @@ class Text(Base):
                     lines_count += math.inf
                     index += math.inf
                     actual_txt = ''
-                elif index+1 >= len(splited_text):
-                    self.lista_text.append(self.get_txt_ajustado(str(actual_txt) + ' ' + txt, always_elipsis=True))
-                    lines_count += 1
-                    index += math.inf
-                    actual_txt = ''
+                # elif index+1 >= len(splited_text):
+                #     self.lista_text.append(self.get_txt_ajustado(str(actual_txt) + ' ' + txt, always_elipsis=True))
+                #     lines_count += 1
+                #     index += math.inf
+                #     actual_txt = ''
                 else:
                     self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
                     index -= 1
-                    uti.debug_print(f'Actual_txt: {actual_txt}')
                     actual_txt = ''
             elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
                 self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
@@ -349,9 +348,9 @@ class Text(Base):
         return self.__max_lines
     @max_lines.setter
     def max_lines(self,max_lines):
-        if self.__max_lines == int(max_lines):
+        if self.__max_lines == max_lines:
             return
-        self.__max_lines = int(max_lines)
+        self.__max_lines = max_lines
         self.__generate()
     def __str__(self) -> str:
         return 'Text: {} - pos: {}'.format(self.raw_text,self.pos)
