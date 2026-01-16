@@ -5,6 +5,8 @@ from ..obj_Base import Base
 from .text import Text
 from .list import List
 from ..constants import ALING_DIRECTION
+from itertools import chain
+
 
 class Multi_list(Base):
     '''
@@ -185,8 +187,15 @@ class Multi_list(Base):
                 self.use_mouse_motion = True
                 return
             elif isinstance(a,dict):
-                self.redraw += 1
-                return {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in self.listas]}
+                if a.get('deselected',False):
+                    self.redraw += 1
+                    for l in self.listas:
+                        l.deselect(a['index'])
+                    return
+                else:
+                    self.redraw += 1
+                    return {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in chain(self.listas[:i],self.listas[i+1:])]}
+        debug_print('No se ha hecho click en ninguna lista de la multilista')
         for x in self.listas:
             x.select(False)
 

@@ -7,6 +7,7 @@ from .text import Text
 from ..Animaciones import Second_Order_Dinamics
 from ..constants import ALING_DIRECTION
 
+
 class List(Base):
     '''
     ### More options
@@ -240,7 +241,8 @@ class List(Base):
         self.desplazamiento = -(self.total_content_height / ((self.lista_surface_rect.h - self.barra.h) / self.barra.top))
         self.on_wheel(0)
 
-    def select(self, index: int = False, diff = True, more = False,button=1) -> str:
+    def select(self, index: int = False, diff = True, more = False,button=1) -> dict | bool:
+        deselected = False
         if isinstance(index,int) and index > len(self.lista_palabras)-1 or index < 0:
             index = False
 
@@ -251,14 +253,18 @@ class List(Base):
                 self.draw_surf()
             return False
         elif isinstance(index,int):
-            if (not more and index not in self.selected_nums) or (button == 1 and not more):
+            if (not more and index not in self.selected_nums and len(self.selected_nums) < 1) or (button == 1 and not more) or (button == 3 and not more and index not in self.selected_nums):
                 self.selected_nums.clear()
-            if index not in self.selected_nums:
+                
+            if index in self.selected_nums and more and button == 1:
+                self.selected_nums.remove(index)
+                deselected = True
+            elif index not in self.selected_nums:
                 self.selected_nums.append(index)
             if diff:
                 self.desplazamiento = (-self.letter_size*(index+1) + self.padding_top) + self.lista_surface_rect.h/2
             self.on_wheel(0)
-            return {'text': self.lista_palabras[index], 'index': index}
+            return {'text': self.lista_palabras[index], 'index': index, 'deselected': deselected}
         else:
             raise ValueError('Invalid index, must be an int or False')
 
@@ -273,9 +279,17 @@ class List(Base):
             self.use_mouse_motion = True
             return 'scrolling'
         touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
-        self.select(touch if touch > -1 else False,False, ctrl, button)
+        deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)['deselected']
 
-        return {'text': self.lista_palabras[touch], 'index': touch} if touch > -1 and touch < len(self.lista_palabras) else False
+        return {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected} if touch > -1 and touch < len(self.lista_palabras) else False
+
+    def deselect(self, index):
+        if not index in self.selected_nums:
+            return
+        self.selected_nums.remove(index)
+        self.redraw += 1
+        if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
+            self.draw_surf()
 
     def append(self, text: str):
         self.lista_palabras.append('{}'.format(text))
