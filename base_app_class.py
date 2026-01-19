@@ -17,7 +17,7 @@ class Base_class:
     '''
     ## Definiras las siguientes funciones:
     1) otras_variables()
-    2) load_resources()
+    2) load_resources() : Para cargar las configuraciones y referencias iniciales que necesite el programa, justo antes de generar los objetos
     3) generate_objs()
     4) move_objs()
     5) post_init()
@@ -26,6 +26,7 @@ class Base_class:
     8) draw_before(actual_screen: str)
     9) draw_after(actual_screen: str)
     10) on_exit()
+    11) changing_loading()
 
     ## Para agregar pantallas
     1) self.registrar_pantalla(alias: str)
@@ -53,6 +54,7 @@ class Base_class:
         # Variables necesarias
         self.loader = None
         self.draw_mode: Literal["optimized","always"] = 'optimized'
+        self.inicial_screen: str = "main"
         self.__framerate: int = 60
         self.__loading: int = 0
         self.scroll_speed: int = 15
@@ -68,17 +70,18 @@ class Base_class:
         self.running: bool = True
         self.cursor_setted: bool = False
         self.last_click: float = time.time()
-        self.relog: pag.time.Clock = pag.time.Clock()
+        self.time_init_program = time.perf_counter()
         self.updates: list[pag.Rect] = []
         self.background_color: tuple[int,int,int] = (20,20,20)
         self.last_size: tuple[int,int] = self.config.resolution
-        self.app_lock = Lock()
 
         # Otras variables
+        self.app_lock = Lock()
         self.Func_pool = uti.Funcs_pool()
         self.class_intervals = uti.multithread.Interval_funcs()
         self.delta_time: uti.Deltatime = uti.Deltatime()
         self.accept_to_move_with_arrows = Union[Input, Button]
+        self.relog: pag.time.Clock = pag.time.Clock()
         self.otras_variables()
         
         # Variables por pantalla
@@ -90,11 +93,10 @@ class Base_class:
                 "inputs": []
                 }
             }
-        self.actual_screen: str = 'main'
+        self.actual_screen: str = self.inicial_screen
         self.overlay: list = []
 
         # Iniciar el programa
-        # self.GUI_manager: GUI.GUI_admin = GUI.GUI_admin()
         self.Mini_GUI_manager: mini_GUI.mini_GUI_admin = mini_GUI.mini_GUI_admin(self.ventana_rect)
         self.load_resources()
         self.generate_objs()
@@ -109,9 +111,9 @@ class Base_class:
         self.on_exit()
         pag.quit()
     
+    def otras_variables(self): ...
     def load_resources(self): ...
     def post_init(self): ...
-    def otras_variables(self): ...
     def move_objs(self): ...
     def on_exit(self): ...
     def update(self, actual_screen: str): ...
@@ -119,6 +121,7 @@ class Base_class:
     def draw_before(self, actual_screen: str): ...
     def draw_after(self, actual_screen: str): ...
     def generate_objs(self): ...
+    def changing_loading(self): ...
 
     def registrar_pantalla(self, alias):
         self.lists_screens[alias] = {
@@ -153,9 +156,9 @@ class Base_class:
 
         self.draw_before(self.actual_screen)
 
-        new_list = lista+[self.Mini_GUI_manager]
+        new_list = itertools.chain(lista,(self.Mini_GUI_manager,))
         if self.loading > 0 and self.loader:
-            new_list.append(self.loader)
+            new_list = itertools.chain(new_list,(self.loader,))
         for i,x in enumerate(new_list):
             if not x.collide(self.ventana_rect):
                 continue
@@ -412,12 +415,14 @@ class Base_class:
     
     def update_general(self):
         mouse_pos = pag.mouse.get_pos()
+
+        self.update(self.actual_screen)
+
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["update"], self.overlay)), reverse=True):
             x.update(mouse_pos=mouse_pos, dt=self.delta_time.dt)
         self.Mini_GUI_manager.update(mouse_pos=mouse_pos)
         if self.loading > 0 and self.loader:
             self.loader.update()
-        self.update(self.actual_screen)
 
     def on_wheel_event_general(self,evento):
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
@@ -453,7 +458,7 @@ class Base_class:
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
             if isinstance(x, (Multi_list,List)) and x.click(evento.pos,pag.key.get_pressed()[pag.K_LCTRL]):
                 return True
-            elif x.click(evento.pos):
+            elif not isinstance(x, (Multi_list,List)) and x.click(evento.pos):
                 self.redraw = True
                 return True
         return False 
@@ -508,7 +513,12 @@ class Base_class:
     @loading.setter
     def loading(self, num: int):
         self.__loading = int(num)
-        self.redraw = True
         if self.__loading > 0:
             for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
                 x.update_hover((-100000,-100000))
+            if self.loader:
+                self.loader.visible = True
+        elif self.loader:
+            self.loader.visible = False
+        self.changing_loading()
+        self.redraw = True
