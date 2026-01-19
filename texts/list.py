@@ -279,9 +279,12 @@ class List(Base):
             self.use_mouse_motion = True
             return 'scrolling'
         touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
-        deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)['deselected']
+        deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)
 
-        return {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected} if touch > -1 and touch < len(self.lista_palabras) else False
+        if deselected:
+            return {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected['deselected']} if touch > -1 and touch < len(self.lista_palabras) else False
+        else:
+            return False
 
     def deselect(self, index):
         if not index in self.selected_nums:
