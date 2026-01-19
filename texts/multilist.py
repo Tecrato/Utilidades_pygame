@@ -195,7 +195,6 @@ class Multi_list(Base):
                 else:
                     self.redraw += 1
                     return {'index':a['index'],'result':[l.select(a['index'], False,ctrl,button)['text'] for l in chain(self.listas[:i],self.listas[i+1:])]}
-        debug_print('No se ha hecho click en ninguna lista de la multilista')
         for x in self.listas:
             x.select(False)
 
