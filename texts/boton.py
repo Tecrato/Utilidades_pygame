@@ -52,9 +52,10 @@ class Button(Text):
                              rect_width=rect_width, border_radius=border_radius,border_top_left_radius=border_top_left_radius, 
                              border_top_right_radius=border_top_right_radius, border_bottom_left_radius=border_bottom_left_radius, 
                              border_bottom_right_radius=border_bottom_right_radius, border_width=border_width,border_color=border_color,
-                             max_width = max_width, min_width = min_width, min_height = min_height, wrap=wrap, **kwargs)
+                             max_width = max_width, min_width = min_width, min_height = min_height, wrap=wrap, text_align=text_align, **kwargs)
         
-        self.with_rect = not self.toggle_rect
+        if self.toggle_rect:
+            self.with_rect = not self.toggle_rect
         self.cursor = cursor if cursor != None else pag.SYSTEM_CURSOR_HAND
 
     @property
@@ -67,8 +68,8 @@ class Button(Text):
             if self.func_out_hover:
                 self.func_out_hover()
             self.__hover = False
-            self.color_rect = self.color_rect_inactive
             self.color = self.color_inactive
+            self.color_rect = self.color_rect_inactive
             self.border_color = self.border_color_inactive
             if self.toggle_rect and self.with_rect2:
                 self.with_rect = False
@@ -80,8 +81,8 @@ class Button(Text):
             if self.func_to_hover:
                 self.func_to_hover()
             self.__hover = True
-            self.color_rect = self.color_rect_active
             self.color = self.color_active if self.color_active else self.color_inactive
+            self.color_rect = self.color_rect_active
             self.border_color = self.color_border_active
             if self.toggle_rect and self.with_rect2:
                 self.with_rect = True
@@ -98,16 +99,20 @@ class Button(Text):
         return True
     def change_color_ad(self,color,color_active = None) -> None:
         self.color_inactive = color
-        self.color_active = color_active if color_active != None else self.color_active
-        if self.hover and self.color_active:
+        if color_active != None:
+            self.color_active = color_active
+
+        if self.hover:
             self.color = self.color_active
         else:
             self.color = self.color_inactive
-        if self.redraw < 1:
-            self.redraw += 1
     def change_color_rect_ad(self,color_inactive,color_active = None) -> None:
-        self.color_rect_inactive = color_inactive if color_inactive != None else self.color_rect_inactive
-        self.color_rect_active = color_active if color_active != None else self.color_rect_active
+        self.color_rect_inactive = color_inactive
+        
+        if color_active != None:
+            self.color_rect_active = color_active
+
+            
         if self.hover:
             self.color_rect = self.color_rect_active
         else:
