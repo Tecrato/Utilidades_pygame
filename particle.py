@@ -32,6 +32,7 @@ class Particle:
     __slots__ = ["__pos", "__radio", "__color", "vel", "__angle", "angle_rad", "angle_sin", "angle_cos", "last_rect", "rect", "image", "start_pos"]
     def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle: float=0):
         self.__pos = Vector2(pos)
+        self.start_pos = Vector2(pos)
         self.__radio = radio
         self.__color = color
         self.vel = velocidad
@@ -44,9 +45,8 @@ class Particle:
         self.generate()
 
     def draw(self,surface: pag.Surface):
-        if not self.rect.colliderect(surface.get_rect()):
-            return ()
-        surface.blit(self.image,self.rect)
+        if self.rect.colliderect(surface.get_rect()):
+            surface.blit(self.image,self.rect)
         r = self.last_rect.copy()
         self.last_rect = self.rect.copy()
         return (self.rect,r)

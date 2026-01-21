@@ -80,7 +80,6 @@ class Particles:
         angle = self.angle + (self.angle_dispersion * (random.random()*2 - 1) )
         color = self.color if not self.random_color else (random.randrange(0,255,50),random.randrange(0,255,50),random.randrange(0,255,50))
         particula = Particle(self.spawn_pos, radio, color, vel, angle)
-        particula.start_pos = self.spawn_pos
         self.particles.append(particula)
 
     def clear(self):
