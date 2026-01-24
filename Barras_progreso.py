@@ -6,7 +6,7 @@ class Barra_de_progreso:
     def __init__(
             self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: Literal['vertical','horizontal'] = 'vertical',
             border_color: tuple[int,int,int] = (0,128,255), fill_color: tuple[int,int,int] = (0,255,0), border_width: int = 2,
-            smoth = False
+            smoth = False, func_on_change = None
             ):
         self.__size = pag.Vector2(size)
         self.__pos = pag.Vector2(pos)
@@ -20,6 +20,12 @@ class Barra_de_progreso:
         self.redraw = 2
         self.smoth = smoth
         self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
+        self.use_mouse_motion = False
+
+        self.visible = True
+        self.hover = False
+        self.func = func_on_change
+
         if self.orientacion == 'vertical':
             self.rect.bottomleft = self.__pos
             self.rect2.bottomleft = self.__pos
@@ -46,9 +52,12 @@ class Barra_de_progreso:
             else:
                 self.rect.w = self.rect2.left + m_x
             self.volumen = float(self.rect.w / self.__size.x)
+        self.func_on_change()
         
 
     def draw(self,surface, *, always_draw=False, **kwargs) -> None:
+        if not self.visible:
+            return ()
         if always_draw:
             self.redraw = 2
         pag.draw.rect(surface, self.fill_color, self.rect)
@@ -58,7 +67,7 @@ class Barra_de_progreso:
     def update(self, dt=1, **kwargs):
         self.redraw = 2
         if self.smoth:
-            v = self.smoth_movent.update(self.__volumen)[0]
+            v = self.smoth_movent.update(self.__volumen, dt=dt)[0]
         else:
             v = self.__volumen
         if self.orientacion == 'vertical':
@@ -67,6 +76,30 @@ class Barra_de_progreso:
         elif self.orientacion == 'horizontal':
             self.rect.w = self.__size.x*v
         pass
+
+    def click(self, mouse_pos) -> None:
+        if not self.visible:
+            return False
+        if self.rect2.collidepoint(mouse_pos):
+            self.use_mouse_motion = True
+            self.pulsando()
+            return True
+    def on_mouse_motion(self, event: pag.event.Event) -> None:
+        self.pulsando()
+
+    def func_on_change(self) -> None:
+        if self.func:
+            self.func(self.volumen)
+
+    def update_hover(self, mouse_pos) -> bool:
+        if self.rect2.collidepoint(mouse_pos):
+            self.hover = True
+            return True
+        else:
+            self.hover = False
+            return False
+    def is_hover(self, pos) -> bool:
+        return self.rect2.collidepoint(pos)
 
     @property
     def volumen(self):
