@@ -86,7 +86,7 @@ class Base_class:
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {
-            "main":{
+            self.inicial_screen:{
                 "draw": [],
                 "update": [],
                 "click": [],
