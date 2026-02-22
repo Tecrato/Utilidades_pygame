@@ -9,7 +9,7 @@ from pygame import Vector2
 from .constants import ALING_DIRECTION
 
 class Base:
-    def __init__(self,pos,dire: ALING_DIRECTION = 'center'):
+    def __init__(self,pos: tuple|Vector2, dire: ALING_DIRECTION = 'center'):
         self.rect = pag.Rect(0,0,50,50)
         self.smothmove_bool = False
 
@@ -25,7 +25,7 @@ class Base:
         self.smothmove_type = None
         self.use_mouse_wheel = False
         self.cursor: int|None = pag.SYSTEM_CURSOR_ARROW
-        self.visible = True
+        self.__visible = True
 
     def create_border(self, rect, border_width) -> None:
         if border_width == -1:
@@ -50,9 +50,9 @@ class Base:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
             
-    def smothmove(self,f, z, r) -> Self:
+    def smothmove(self,f, z, r, fps=60) -> Self:
         self.smothmove_pos = self.pos
-        self.movimiento = Second_Order_Dinamics(f, z, r, self.pos)
+        self.movimiento = Second_Order_Dinamics(f, z, r, self.__pos)
         self.smothmove_bool = True
         self.smothmove_type = 'Second order dinamics'
         return self
@@ -74,18 +74,19 @@ class Base:
         self.direccion(self.rect)
         return self
 
-    def update(self,pos=None,dt=1/60, **kwargs) -> bool:
+    def update(self,pos=None,dt=1, **kwargs) -> bool:
         if not self.smothmove_bool and not pos:
             return False
         elif pos:
             self.pos = pos
+            return True
         if self.__pos == self.smothmove_pos:
             return False
         
         if self.smothmove_type == 'Second order dinamics':
             if abs(sum(self.movimiento.yd)) < 0.01:
                 self.__pos = self.smothmove_pos
-            self.__pos = Vector2(self.movimiento.update(self.smothmove_pos,dt=dt))
+            self.__pos = self.movimiento.update(self.smothmove_pos)
         elif self.smothmove_type == 'Simple Acceleration':
             if self.simplemove_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
@@ -128,8 +129,10 @@ class Base:
         if self.smothmove_bool:
             self.smothmove_pos = Vector2(pos)
         else:
+            self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
             self.__pos = Vector2(pos)
             self.direccion(self.rect)
+
     @property
     def dire(self) -> str:
         return self.__dire
@@ -207,16 +210,26 @@ class Base:
         self.pos = (self.pos.x, self.pos.y + (centery - self.rect.centery))
 
     @property
+    def visible(self) -> bool:
+        return self.__visible
+    @visible.setter
+    def visible(self,visible: bool):
+        if self.__visible == visible:
+            return
+        self.__visible = visible
+        self.redraw += 1
+
+    @property
     def collide_rect(self) -> str:
         return self.rect_border
     def collide(self, rect: pag.Rect) -> bool:
         return self.rect_border.colliderect(rect) or self.last_rect.colliderect(rect)
     def collide_all(self, lista: list[Self]) -> str:
-        lista = []
+        lista_collide = []
         for i,x in enumerate(lista):
             if x.collide(self.collide_rect):
-                lista.append(i)
-        return lista
+                lista_collide.append(i)
+        return lista_collide
     def get_update_rects(self):
         if self.redraw < 1:
             return []

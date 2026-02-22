@@ -39,6 +39,7 @@ class Select_box:
         self.use_mouse_motion = False
         self.separacion = separacion
         self.cursor = pag.SYSTEM_CURSOR_HAND
+        self.visible = True
 
         self.animation_open = Curva_de_Bezier        
 

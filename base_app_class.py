@@ -160,7 +160,7 @@ class Base_class:
         if self.loading > 0 and self.loader:
             new_list = itertools.chain(new_list,(self.loader,))
         for i,x in enumerate(new_list):
-            if not x.collide(self.ventana_rect):
+            if not x.collide(self.ventana_rect) or not getattr(x,'visible',True):
                 continue
             re = x.redraw
             r = x.draw(self.ventana)
@@ -433,11 +433,15 @@ class Base_class:
     def on_mouse_motion_event_general(self,evento):
         if self.click:
             for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
+                if getattr(x,'visible',False) == False:
+                    continue
                 if getattr(x,'use_mouse_motion',False):
                     x.on_mouse_motion(evento)
                     return True
         self.cursor_setted = False
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay, [self.Mini_GUI_manager])), reverse=True):
+            if getattr(x,'visible',False) == False:
+                continue
             x.update_hover(evento.pos)
             if self.cursor_setted:
                 x.hover = False
