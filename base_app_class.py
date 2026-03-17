@@ -105,6 +105,8 @@ class Base_class:
 
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
         self.post_init()
+        
+        self.goto(self.inicial_screen)
 
         self.screen_main()
 
@@ -469,7 +471,10 @@ class Base_class:
     
     def on_mouse_click_up_general(self):
         for i,x in sorted(enumerate(itertools.chain(self.lists_screens[self.actual_screen]["click"], self.overlay)), reverse=True):
-            x.use_mouse_motion = False
+            if getattr(x,'use_mouse_motion',False):
+                x.use_mouse_motion = False
+                if getattr(x,'on_mouse_up',None):
+                    x.on_mouse_up()
         return False
 
     def screen_main(self):
