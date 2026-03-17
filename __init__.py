@@ -23,7 +23,13 @@ from .figuras.engranajes import Engranaje
 from .config_default import Config
 from .graficas import *
 
+from .obj_Base import Base as obj_base
+
 from Utilidades.logger import debug_print
+
+from . import default_loader
+
+from . import constants
 
 __all__ = [
     
@@ -55,6 +61,10 @@ __all__ = [
     "Bloque",
     "Image",
     "Config",
+    "obj_base",
+
+    "default_loader",
+    "constants",
 ]
 
 debug_print(
