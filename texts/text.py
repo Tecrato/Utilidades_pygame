@@ -5,8 +5,6 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from ..constants import ALING_DIRECTION
 
-import Utilidades as uti
-
 
 class Text(Base):
     """
@@ -75,85 +73,66 @@ class Text(Base):
 
         self.__generate()
 
-    
     def __generate(self):
         self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
         self.lista_text.clear()
-        if self.max_width <= 0:
+        if self.max_width <= 0 and not "\n" in self.raw_text:
             self.lista_text.append(self.__font.render(str(self.raw_text), True, self.__color))
             self.create_rect()
             return
-        index = 1
+        NEWLINE_TOKEN = f'$$$NEWLINE$$${self.__hash__()}$$$'
+        splited_text = [] # [" ", "hola", " ", "mundo", "\n", "hola", "mundo"]
+        parrafos = self.raw_text.split('\n')
 
-        splited_text = self.raw_text.split(' ')
-        actual_txt = splited_text[0]
-        lines_count = 0
-        if '\n' in actual_txt:
-            pass
-        elif len(splited_text) == 1 and self.max_width <= 0:
-            self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
-            actual_txt = ''
-        elif self.max_width > 0 and len(splited_text) == 1:
-            self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
-            actual_txt = ''
+        for i,txt in enumerate(parrafos):
+            palabras = [palabra for palabra in txt.split(' ') if palabra]
 
-        while index < len(splited_text):
-            txt = splited_text[index]
-            actual_rendered_txt: pag.Surface = self.__font.render(str(actual_txt+ ' ' +txt), True, self.__color)
-            
-            if '\n' in actual_txt:
-                if actual_txt == '\n':
-                    actual_txt = ''
-                    lines_count += 1
-                    continue
-                actual_txt = actual_txt.split('\n',maxsplit=1)
-                if lines_count >= self.__max_lines:
-                    index += math.inf
-                    break
-                self.lista_text.append(self.__font.render(actual_txt[0], True, self.__color))
-                lines_count += 1
-                actual_txt = actual_txt[1]
-                index -= 1
-            elif index >= len(splited_text):
-                self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
-                lines_count += 1
-                actual_txt = ''
-                break
-            elif lines_count > self.__max_lines:
-                self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
-                lines_count += 1
-                index += math.inf
-                actual_txt = ''
-            elif actual_rendered_txt.get_width() > self.max_width and self.wrap:
-                lines_count += 1
-                if self.max_lines > 0 and lines_count >= self.max_lines:
-                    self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
-                    lines_count += math.inf
-                    index += math.inf
-                    actual_txt = ''
-                # elif index+1 >= len(splited_text):
-                #     self.lista_text.append(self.get_txt_ajustado(str(actual_txt) + ' ' + txt, always_elipsis=True))
-                #     lines_count += 1
-                #     index += math.inf
-                #     actual_txt = ''
+            splited_text.extend(palabras)
+
+            if i < len(parrafos)-1:
+                splited_text.append(NEWLINE_TOKEN)
+
+        if not splited_text:
+            self.create_rect()
+            return
+        actual_txt = splited_text[0] if splited_text else ""
+        token_index = 1
+
+        while token_index < len(splited_text):
+            next_token = splited_text[token_index]
+            if next_token == NEWLINE_TOKEN:
+                if actual_txt:
+                    self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
+                actual_txt = ""
+                token_index += 1
+                continue
+            potential_line = (actual_txt + " " + next_token) if actual_txt else next_token
+            potential_width = self.__font.render(potential_line, True, self.__color).get_width()
+
+            if potential_width > self.max_width and self.wrap and self.max_width > 0:
+                if not actual_txt:
+                    self.lista_text.append(self.get_txt_ajustado(str(next_token)))
+                    token_index += 1
                 else:
-                    self.lista_text.append(self.__font.render(str(actual_txt), True, self.__color))
-                    index -= 1
-                    actual_txt = ''
-            elif actual_rendered_txt.get_width() > self.max_width and not self.wrap:
-                self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
-                index += math.inf
-                math.inf
-                lines_count += 1
-                actual_txt = ''
+                    self.lista_text.append(self.__font.render(actual_txt, True, self.__color))                    
+                    actual_txt = next_token
+                    token_index += 1
+                    
+            elif self.max_lines > 0 and len(self.lista_text) >= self.max_lines:
+                self.lista_text.append(self.get_txt_ajustado(str(actual_txt), always_elipsis=True))
+                break
             else:
-                actual_txt += (' ' if actual_txt else '') + txt
-            index += 1
+                actual_txt = potential_line
+                token_index += 1
         
         if actual_txt:
-            self.lista_text.append(self.__font.render(actual_txt, True, self.__color))
+            if self.max_lines > 0 and len(self.lista_text) >= self.max_lines:
+                pass
+            else:
+                self.lista_text.append(self.get_txt_ajustado(str(actual_txt)))
         
         self.create_rect()
+
     
     def create_rect(self):
         self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
@@ -189,6 +168,7 @@ class Text(Base):
             self.create_texts_rects()
     
     def create_texts_rects(self):
+        self.redraw += 2
         self.lista_text_rects.clear()
         for i,txt in enumerate(self.lista_text):
             r = txt.get_rect()
@@ -212,6 +192,8 @@ class Text(Base):
     def draw(self, surface, always_draw = False, diff_pos = (0,0)) -> list[pag.Rect]|None:
         if always_draw or self.always_draw:
             self.redraw += 2
+        if not self.visible and self.redraw > 0:
+            return [self.rect_border]
         if self.redraw < 1 or not self.visible:
             return []
         
@@ -253,9 +235,10 @@ class Text(Base):
         return self.raw_text
     @text.setter
     def text(self,texto):
-        if self.raw_text == str(texto):
+        texto = str(texto)
+        if self.raw_text == texto:
             return
-        self.raw_text = str(texto)
+        self.raw_text = texto
         self.__generate()
     @property
     def font(self):
@@ -322,6 +305,8 @@ class Text(Base):
     def max_width(self,width):
         if self.__max_width == int(width):
             return
+        if width < 1:
+            raise ValueError("El ancho máximo debe ser mayor o igual a 1")
         self.__max_width = int(width)
         self.__generate()
     
