@@ -9,7 +9,7 @@ from .constants import ALING_DIRECTION
 
 @lru_cache
 def import_img(path) -> pag.Surface:
-    return pag.image.load_extended(path)
+    return pag.image.load(path)
 
 class Image(Base):
     def __init__(
@@ -18,6 +18,8 @@ class Image(Base):
             angle = 0,
             **kwargs):
         super().__init__(pos,dire, **kwargs)
+        pag.display.init()  # Asegura que el módulo de display esté inicializado para cargar imágenes
+
         self.__path: str = image
         self.__size = (int(size[0]),int(size[1])) if size else None
         self.color_key = color_key
@@ -96,6 +98,8 @@ class Image(Base):
         return self.__size
     @size.setter
     def size(self,size):
+        if self.__size == (int(size[0]),int(size[1])):
+            return
         self.__size = (int(size[0]),int(size[1]))
         self.generate_img()
 

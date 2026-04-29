@@ -35,7 +35,7 @@ class Config:
         self.author: str = author
         self.version: str = version
         self.description: str = description
-        self.copyright: str = copyright if copyright is not None else f'© 2025 {self.my_company} Todos los derechos reservados'
+        self.copyright: str = copyright if copyright is not None else f'© 2026 {self.my_company} Todos los derechos reservados'
         self.resolution: Vector2 = Vector2(resolution)
         self.min_resolution: Vector2 = Vector2(min_resolution)
         self.returncode: int = returncode if returncode is not None else 0

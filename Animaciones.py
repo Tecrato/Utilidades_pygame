@@ -23,7 +23,7 @@ class Curva_de_Bezier:
         self.extra_time = extra_time
         self.points = [Vector2(ag) for ag in points]
         if len(self.points) < 2:
-            raise 'Debes dar 2 puntos o mas para logar la animacion deseada (Cubic Bezier)'
+            raise ValueError('Debes dar 2 puntos o mas para logar la animacion deseada (Cubic Bezier)')
 
     def move(self, points) -> None:
         self.points = [Vector2(ag) for ag in points]

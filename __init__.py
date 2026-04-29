@@ -3,7 +3,7 @@ from .Barras_progreso import Barra_de_progreso
 from .particles import Particles
 from .sparks import Spark
 from .bloque import Bloque
-from .image import Image
+from .image import Image, from_exe
 
 from . import GUI
 from . import mini_GUI
@@ -60,6 +60,7 @@ __all__ = [
     "Spark",
     "Bloque",
     "Image",
+    "from_exe",
     "Config",
     "obj_base",
 

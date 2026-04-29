@@ -17,7 +17,7 @@ class Spark():
 		try:
 			rotate_sign = -rotate_direction / rotate_direction
 		except ZeroDivisionError:
-			rotate_sing = 1
+			rotate_sign = 1
 		if abs(rotate_direction) < rate:
 			self.angle = angle
 		else:

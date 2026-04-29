@@ -55,6 +55,10 @@ class BasePolygon:
 	def height(self) -> float:
 		return self.rect.height
 	
+	@property
+	def width(self) -> float:
+		return self.rect.width
+	
 	def update_hover(self,mouse_pos):
 		return
 
