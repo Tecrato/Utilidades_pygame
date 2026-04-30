@@ -245,4 +245,6 @@ class Base:
         return False
 
     def copy(self):
-        return self
+        new_instance = self.__class__.__new__(self.__class__)
+        new_instance.__dict__.update(self.__dict__)
+        return new_instance

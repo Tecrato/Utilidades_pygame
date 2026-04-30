@@ -29,8 +29,12 @@ def radial(radius, startcolor, endcolor):
     return bigSurf
 
 class Particle:
-    __slots__ = ["__pos", "__radio", "__color", "vel", "__angle", "angle_rad", "angle_sin", "angle_cos", "last_rect", "rect", "image", "start_pos"]
-    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle: float=0):
+    __slots__ = [
+        "__pos", "__radio", "__color", "vel", "__angle", "angle_rad", 
+        "angle_sin", "angle_cos", "last_rect", "rect", "image", "start_pos",
+        "transparent_windows", "flag"
+        ]
+    def __init__(self, pos, radio: float, color=(255,255,255), velocidad=0, angle: float=0, transparent_windows=False) -> None:
         self.__pos = Vector2(pos)
         self.start_pos = Vector2(pos)
         self.__radio = radio
@@ -42,11 +46,13 @@ class Particle:
         self.angle_cos = math.cos(self.angle_rad)
         self.last_rect = pag.Rect(0,0,0,0)
         self.rect = pag.Rect(0,0,0,0)
+        self.transparent_windows = transparent_windows
+        self.flag = pag.BLEND_ALPHA_SDL2 if transparent_windows else 0
         self.generate()
 
     def draw(self,surface: pag.Surface):
         if self.rect.colliderect(surface.get_rect()):
-            surface.blit(self.image,self.rect)
+            surface.blit(self.image,self.rect,special_flags=self.flag)
         r = self.last_rect.copy()
         self.last_rect = self.rect.copy()
         return (self.rect,r)

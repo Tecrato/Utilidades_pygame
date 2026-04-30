@@ -32,3 +32,16 @@ se puede sobre escribir la funcion, colocando el codigo deseado y luego llamando
 
 asi que tambien se pueden poner if elif else dentro de la funcion sobre escrita para colocar codigo
 dependiendo de a que pantalla se va
+
+
+
+
+
+
+
+
+
+Para hacer la ventana transparente:
+ - "transparent_windows"=True" en la clase particulas y en cualquiero otra superficie hecha por el dev debe agregar la flag "pag.BLEND_ALPHA_SDL2" al blit de la Surface
+ - "window_transparent=True,noframe=True," en la configuracion de la Ventana
+ - "self.background_color = (0, 0, 0, 0)"

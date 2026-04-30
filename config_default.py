@@ -24,6 +24,7 @@ class Config:
             icon: str=None,
             fonts: dict[str, str|Path|os.PathLike] | None = None,
             noframe: bool=None,
+            window_transparent: bool=False,
             **kwargs
             ):
         self.window_resize = window_resize
@@ -48,6 +49,7 @@ class Config:
         self.fonts: dict[str, str] = fonts if fonts is not None else {}
         self.noframe: bool = noframe if noframe is not None else False
         self.icon: str|None = icon
+        self.window_transparent: bool = window_transparent if window_transparent is not None else False
 
         for x in kwargs:
             setattr(self, x, kwargs[x])

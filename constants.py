@@ -4,3 +4,5 @@ from typing import Literal
 ALING_DIRECTION = Literal['center','left','right','top','bottom','topleft','topright','bottomleft','bottomright']
 VERTICAL = Literal['vertical']
 HORIZONTAL = Literal['horizontal']
+
+TRANSPARENT_COLOR = (255, 0, 128)

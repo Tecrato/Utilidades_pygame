@@ -11,7 +11,8 @@ class Particles:
     def __init__(
             self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity=0, angle = 0, radio_down: float = 0,
             vel_dispersion = 0, angle_dispersion = 0, radio_dispersion = 0, max_particles = 100, time_between_spawns = .1,
-            max_distance = 1000, spawn_count = 1, random_color = False, auto_spawn: bool = True
+            max_distance = 1000, spawn_count = 1, random_color = False, auto_spawn: bool = True,
+            transparent_windows=False
         ) -> None:
         self.particles: list[Particle] = []
         self.spawn_pos = spawn_pos
@@ -34,6 +35,7 @@ class Particles:
         self.redraw = 2
         self.use_mouse_motion = False
         self.use_wheel = False
+        self.transparent_windows = transparent_windows
 
         self.last_pos = 0
         self.last_time = time.time()
@@ -48,7 +50,7 @@ class Particles:
                 if (part.radio-self.radio_down < 1):
                     self.particles.pop(i)
                     continue
-            if  (part.pos-part.start_pos).length() > self.max_distance:
+            if  (part.pos-part.start_pos).length_squared() > self.max_distance**2:
                 self.particles.pop(i)
                 continue
             if self.gravity > 0:
@@ -79,7 +81,7 @@ class Particles:
         radio = self.radio + self.radio_dispersion * (random.random()*2 -1)
         angle = self.angle + (self.angle_dispersion * (random.random()*2 - 1) )
         color = self.color if not self.random_color else (random.randrange(0,255,50),random.randrange(0,255,50),random.randrange(0,255,50))
-        particula = Particle(self.spawn_pos, radio, color, vel, angle)
+        particula = Particle(self.spawn_pos, radio, color, vel, angle, transparent_windows=self.transparent_windows)
         self.particles.append(particula)
 
     def clear(self):

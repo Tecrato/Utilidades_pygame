@@ -2,6 +2,10 @@ import itertools
 import pygame as pag
 import time
 import datetime
+import ctypes
+import win32gui
+import win32con
+from ctypes import wintypes
 import Utilidades as uti
 import Utilidades.win32_tools as win32_tools
 from . import *
@@ -12,6 +16,9 @@ from threading import Lock
 __all__ = [
     "Base_class",
 ]
+
+gdi32 = ctypes.WinDLL('gdi32')
+user32 = ctypes.WinDLL('user32')
 
 class Base_class:
     '''
@@ -45,7 +52,32 @@ class Base_class:
             self.flags |= pag.SCALED
         if self.config.noframe:
             self.flags |= pag.NOFRAME
-        self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags)
+        if self.config.window_transparent:
+            self.flags |= pag.SRCALPHA
+
+            self.ventana = pag.Surface(self.config.resolution, pag.SRCALPHA)
+            pag.display.set_mode(self.config.resolution, self.flags)
+            self.hwnd: int = pag.display.get_wm_info()['window']
+            
+            self.point_destino = wintypes.POINT(self.ventana.get_width(), self.ventana.get_height())
+            self.point_origen = wintypes.POINT(0, 0)
+
+            self.style = win32gui.GetWindowLong(self.hwnd, win32con.GWL_EXSTYLE)
+            win32gui.SetWindowLong(self.hwnd, win32con.GWL_EXSTYLE, self.style | win32con.WS_EX_LAYERED)
+
+            self.hdc_screen = user32.GetDC(0)
+            self.hdc_mem = gdi32.CreateCompatibleDC(self.hdc_screen)
+            self.hbitmap = gdi32.CreateCompatibleBitmap(self.hdc_screen, self.config.resolution[0], self.config.resolution[1])
+            gdi32.SelectObject(self.hdc_mem, self.hbitmap)
+            self.blend = uti.constants.BLENDFUNCTION(0, 0, 255, 1)
+            self.bmi = uti.constants.BITMAPINFOHEADER(
+                biSize=ctypes.sizeof(uti.constants.BITMAPINFOHEADER),
+                biWidth=self.config.resolution[0], biHeight=-self.config.resolution[1],
+                biPlanes=1, biBitCount=32, biCompression=0
+            )
+        else:
+            self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags)
+            self.hwnd: int = pag.display.get_wm_info()['window']
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(self.config.window_title)
         if self.config.icon:
@@ -54,12 +86,11 @@ class Base_class:
         # Variables necesarias
         self.loader = None
         self.draw_mode: Literal["optimized","always"] = 'optimized'
-        self.inicial_screen: str = "main"
+        self.initial_screen: str = "main"
         self.__framerate: int = 60
         self.__loading: int = 0
         self.scroll_speed: int = 15
         self.actual_cursor: int = pag.SYSTEM_CURSOR_ARROW
-        self.hwnd: int = pag.display.get_wm_info()['window']
         self.drawing: bool = True
         self.draw_background: bool = True
         self.redraw: bool = True
@@ -86,14 +117,14 @@ class Base_class:
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {
-            self.inicial_screen:{
+            self.initial_screen:{
                 "draw": [],
                 "update": [],
                 "click": [],
                 "inputs": []
                 }
             }
-        self.actual_screen: str = self.inicial_screen
+        self.actual_screen: str = self.initial_screen
         self.overlay: list = []
 
         # Iniciar el programa
@@ -106,7 +137,7 @@ class Base_class:
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
         self.post_init()
         
-        self.goto(self.inicial_screen)
+        self.goto(self.initial_screen)
 
         self.screen_main()
 
@@ -183,11 +214,19 @@ class Base_class:
             for x in self.updates:
                 pag.draw.rect(self.ventana, 'green', x, 1)
         
-        
-        if redraw:
-            pag.display.update()
+        if not self.config.window_transparent:
+            if redraw:
+                pag.display.update()
+            else:
+                pag.display.update(self.updates)
         else:
-            pag.display.update(self.updates)
+            # img_data = pag.image.tobytes(self.ventana, "BGRA")
+            img_data = self.ventana.get_view("2").raw
+            gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
+            user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
+                                    self.hdc_mem, ctypes.byref(self.point_origen), 0, 
+                                    ctypes.byref(self.blend), 2)
+            ...
         self.app_lock.release()
 
     def draw_always(self, lista):
@@ -207,11 +246,22 @@ class Base_class:
             x.draw(self.ventana)
         self.draw_after(self.actual_screen)
 
-        pag.display.update()
+        if not self.config.window_transparent:
+            pag.display.update()
+        else:
+            img_data = pag.image.tobytes(self.ventana, "BGRA")
+            gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
+            user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
+                                    self.hdc_mem, ctypes.byref(self.point_origen), 0, 
+                                    ctypes.byref(self.blend), 2)
+            ...
         self.app_lock.release()
 
     def exit(self, returncode: int|None = None):
         self.running = False
+        gdi32.DeleteDC(self.hdc_mem)
+        gdi32.DeleteObject(self.hbitmap)
+        user32.ReleaseDC(0, self.hdc_screen)
         if returncode:
             self.returncode = returncode
     
@@ -356,12 +406,12 @@ class Base_class:
 
     def eventos_en_comun(self,evento):
         if evento.type == pag.MOUSEBUTTONDOWN:
-            self.last_click = time.time()
-            self.last_click_pos = pag.mouse.get_pos()
-            self.last_click_pos_system = uti.win32_tools.get_cursor_pos()
             if evento.button == 1:
+                self.last_click = time.time()
+                self.last_click_pos = pag.mouse.get_pos()
+                self.last_click_pos_system = uti.win32_tools.get_cursor_pos()
                 self.click = True
-        elif evento.type == pag.MOUSEBUTTONUP:
+        elif evento.type == pag.MOUSEBUTTONUP and evento.button == 1:
             self.click = False
 
         if evento.type == pag.QUIT:
@@ -403,7 +453,15 @@ class Base_class:
                 size.x = self.config.min_resolution[0]
             if size.y < self.config.min_resolution[1]:
                 size.y = self.config.min_resolution[1]
-            self.ventana = pag.display.set_mode(size,  self.flags)
+            if self.config.window_transparent:
+                self.bmi.biWidth = int(size.x)
+                self.bmi.biHeight = -int(size.y)
+                self.ventana = pag.Surface(size, pag.SRCALPHA)
+                pag.display.set_mode(size,  self.flags)
+
+                self.point_destino = wintypes.POINT(size.x, size.y)
+            else:
+                self.ventana = pag.display.set_mode(size,  self.flags)
             self.ventana_rect = self.ventana.get_rect()
             self.last_size = size
 
