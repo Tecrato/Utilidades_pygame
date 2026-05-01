@@ -259,9 +259,10 @@ class Base_class:
 
     def exit(self, returncode: int|None = None):
         self.running = False
-        gdi32.DeleteDC(self.hdc_mem)
-        gdi32.DeleteObject(self.hbitmap)
-        user32.ReleaseDC(0, self.hdc_screen)
+        if self.config.window_transparent:
+            gdi32.DeleteDC(self.hdc_mem)
+            gdi32.DeleteObject(self.hbitmap)
+            user32.ReleaseDC(0, self.hdc_screen)
         if returncode:
             self.returncode = returncode
     
