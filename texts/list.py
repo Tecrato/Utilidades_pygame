@@ -1,6 +1,6 @@
 import pygame as pag
 import math
-from typing import Iterable
+from typing import Iterable, Callable
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
@@ -24,7 +24,8 @@ class List(Base):
     '''
     def __init__(self, size: tuple, pos: tuple, lista: list = [None], text_size: int = 20, separation: int = 0,
         selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:str = None,
-        background_color = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20, **kwargs) -> None:
+        background_color = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20,
+        func_on_select: Callable=None, **kwargs) -> None:
 
         super().__init__(pos,dire)
         self.__size = Vector2(size)
@@ -46,8 +47,8 @@ class List(Base):
         self.font = pag.font.Font(self.raw_font, text_size)
         self.separacion = separation
 
-        self.header_top_right_radius = kwargs.get('header_top_right_radius',20)
-        self.header_top_left_radius = kwargs.get('header_top_left_radius',20)
+        self.header_top_right_radius = kwargs.get('header_top_right_radius',border_radius)
+        self.header_top_left_radius = kwargs.get('header_top_left_radius',border_radius)
         self.header_border_color = kwargs.get('header_border_color',20)
         self.scroll_bar_active = kwargs.get('scroll_bar_active',True)
 
@@ -67,6 +68,7 @@ class List(Base):
         self.desplazamiento_smoth = 0
         self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
+        self.func_on_select: Callable = func_on_select
 
         self.cursor = pag.SYSTEM_CURSOR_ARROW
         self.use_mouse_motion = False
@@ -175,7 +177,7 @@ class List(Base):
         surface.blit(self.lista_surface,self.rect)
         if self.header:
             self.text_header.draw(surface)
-        pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
+        pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_top_left_radius=self.header_top_left_radius, border_top_right_radius=self.header_top_right_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
         r = self.rect_border.union(self.text_header.rect) if self.header else self.rect_border
         if self.redraw < 2:
             self.redraw = 0
@@ -201,6 +203,8 @@ class List(Base):
             (not self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and self.barra_hover):
             self.barra_hover = not self.barra_hover
             self.redraw += 1
+        return super().update_hover(mouse_pos)
+        
 
     def set_height(self):
         if not self.lista_palabras:
@@ -209,11 +213,14 @@ class List(Base):
         # self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height + self.rect.height)))
         self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height+self.lista_surface_rect.h)))
 
-    def on_wheel(self, y) -> None:
+    def on_wheel(self, y) -> bool:
+        if not self.hover and y != 0:
+            return False
+
         if self.total_content_height + self.lista_surface_rect.h < self.rect.h:
             if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
                 self.draw_surf()
-            return
+            return False
 
         self.desplazamiento += y
         self.desplazamiento = min(0, self.desplazamiento)
@@ -229,6 +236,7 @@ class List(Base):
 
         if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
+        return True
 
     def on_mouse_motion(self, evento):
         rel = evento.rel[1]
@@ -281,8 +289,11 @@ class List(Base):
         touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
         deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)
 
-        if deselected:
-            return {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected['deselected']} if touch > -1 and touch < len(self.lista_palabras) else False
+        d = {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected['deselected']} if touch > -1 and touch < len(self.lista_palabras) else False
+        if deselected and d:
+            if self.func_on_select:
+                self.func_on_select(d)
+            return d
         else:
             return False
 
