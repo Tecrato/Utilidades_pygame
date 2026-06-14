@@ -10,11 +10,6 @@ class Text(Base):
     """
     # Otras variables
     - border_radius: int
-    - border_top_left_radius: int
-    - border_top_right_radius: int
-    - border_bottom_left_radius: int
-    - border_bottom_right_radius: int
-    - border_color: str
 
     ## Anotaciones
     - Si colocas border radius -1 sera redondo\n
@@ -32,7 +27,9 @@ class Text(Base):
             dire: ALING_DIRECTION ='center', color='white',with_rect = False, color_rect ='black', 
             border_width = -1, padding: int|list|tuple = 0, min_width = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
-            underline = False, **kwargs
+            underline = False, border_top_left_radius = -1, border_top_right_radius = -1,
+            border_bottom_left_radius = -1, border_bottom_right_radius = -1,
+            border_color = 'black', **kwargs
         ) -> None:
         super().__init__(pos,dire)
         if not pag.font.get_init():
@@ -56,13 +53,13 @@ class Text(Base):
         self.lista_text_rects: list[pag.Rect] = []
 
 
-        self.border_color = kwargs.get('border_color', 'black')
+        self.border_color = border_color
         self.border_width = border_width
         self.border_radius = border_radius
-        self.border_top_left_radius = kwargs.get('border_top_left_radius',-1)
-        self.border_bottom_left_radius = kwargs.get('border_bottom_left_radius',-1)
-        self.border_top_right_radius = kwargs.get('border_top_right_radius',-1)
-        self.border_bottom_right_radius = kwargs.get('border_bottom_right_radius',-1)
+        self.border_top_left_radius = border_top_left_radius
+        self.border_bottom_left_radius = border_bottom_left_radius
+        self.border_top_right_radius = border_top_right_radius
+        self.border_bottom_right_radius = border_bottom_right_radius
 
         self.lista_text: list[pag.Surface] = []
         self.font = font
