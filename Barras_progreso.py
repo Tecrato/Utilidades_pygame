@@ -43,7 +43,7 @@ class Barra_de_progreso:
             else:
                 self.rect.height = self.rect2.bottom - m_y
             self.rect.bottom = self.pos[1]
-            self.volumen = float(self.rect.height / self.__size.y)
+            new_vol = float(self.rect.height / self.__size.y)
         elif self.orientacion == 'horizontal':
             if self.rect2.left + m_x > self.__size.x:
                 self.rect.w = self.__size.x
@@ -51,8 +51,10 @@ class Barra_de_progreso:
                 self.rect.w = 0
             else:
                 self.rect.w = self.rect2.left + m_x
-            self.volumen = float(self.rect.w / self.__size.x)
-        self.func_on_change()
+            new_vol = float(self.rect.w / self.__size.x)
+        if new_vol != self.volumen:
+            self.volumen = new_vol
+            self.func_on_change()
         
 
     def draw(self,surface, *, always_draw=False, **kwargs) -> None:
