@@ -86,7 +86,7 @@ class Base_class:
         # Variables necesarias
         self.loader = None
         self.draw_mode: Literal["optimized","always"] = 'optimized'
-        self.initial_screen: str = "main"
+        self.__initial_screen: str = kwargs.get("initial_screen","main")
         self.__framerate: int = 60
         self.__loading: int = 0
         self.scroll_speed: int = 15
@@ -113,7 +113,6 @@ class Base_class:
         self.delta_time: uti.Deltatime = uti.Deltatime()
         self.accept_to_move_with_arrows = Union[Input, Button]
         self.relog: pag.time.Clock = pag.time.Clock()
-        self.otras_variables()
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {
@@ -127,6 +126,9 @@ class Base_class:
         self.actual_screen: str = self.initial_screen
         self.overlay: list = []
 
+        # Mas variables del usuario
+        self.otras_variables()
+
         # Iniciar el programa
         self.Mini_GUI_manager: mini_GUI.mini_GUI_admin = mini_GUI.mini_GUI_admin(self.ventana_rect)
         self.load_resources()
@@ -137,7 +139,7 @@ class Base_class:
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
         self.post_init()
         
-        self.goto(self.initial_screen)
+        self.goto(self.actual_screen)
 
         self.screen_main()
 
@@ -157,12 +159,14 @@ class Base_class:
     def changing_loading(self): ...
 
     def registrar_pantalla(self, alias):
-        self.lists_screens[alias] = {
-            "draw": [],
-            "update": [],
-            "click": [],
-            "inputs": []
-        }
+        if not alias in self.lists_screens:
+            self.lists_screens[alias] = {
+                "draw": [],
+                "update": [],
+                "click": [],
+                "inputs": []
+            }
+
     def goto(self, alias):
         self.actual_screen: str = alias
         self.redraw = True
@@ -249,7 +253,7 @@ class Base_class:
         if not self.config.window_transparent:
             pag.display.update()
         else:
-            img_data = pag.image.tobytes(self.ventana, "BGRA")
+            img_data = self.ventana.get_view("2").raw
             gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
             user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
                                     self.hdc_mem, ctypes.byref(self.point_origen), 0, 
@@ -590,3 +594,11 @@ class Base_class:
             self.loader.visible = False
         self.changing_loading()
         self.redraw = True
+        
+    @property
+    def initial_screen(self) -> str:
+        return self.__initial_screen
+    @initial_screen.setter
+    def initial_screen(self, screen: str) -> None:
+        self.__initial_screen = str(screen)
+        self.registrar_pantalla(screen)
