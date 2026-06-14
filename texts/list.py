@@ -62,8 +62,8 @@ class List(Base):
         self.barra_color = kwargs.get('barra_color',(255,255,255))
         self.barra_color_hover = kwargs.get('barra_color_hover',(150,150,150))
 
-        self.desplazamiento = 0
-        self.total_content_height = 0
+        self.desplazamiento: float = 0.0
+        self.total_content_height: int = 0
         self.desplazamiento_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
         self.desplazamiento_smoth = 0
         self.last_dezplazamiento_pos = 0
@@ -157,6 +157,7 @@ class List(Base):
             self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smoth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
+            pag.draw.rect(self.lista_surface, (50,50,50,128), pag.rect.Rect(self.lista_surface_rect.width-self.barra.width, 0, self.barra.width, self.lista_surface_rect.height))
             pag.draw.rect(self.lista_surface, self.barra_color_hover if (self.barra_hover or self.use_mouse_motion) else self.barra_color, self.barra,border_radius=5)
         if self.redraw < 1:
             self.redraw = 1
@@ -213,7 +214,7 @@ class List(Base):
         # self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height + self.rect.height)))
         self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height+self.lista_surface_rect.h)))
 
-    def on_wheel(self, y) -> bool:
+    def on_wheel(self, y: float) -> bool:
         if not self.hover and y != 0:
             return False
 
@@ -223,8 +224,8 @@ class List(Base):
             return False
 
         self.desplazamiento += y
-        self.desplazamiento = min(0, self.desplazamiento)
-        self.desplazamiento = max(-self.total_content_height, self.desplazamiento)
+        self.desplazamiento: float = min(0, self.desplazamiento)
+        self.desplazamiento: float = max(-self.total_content_height, self.desplazamiento)
 
         if not self.smothscroll:
             self.desplazamiento_smoth = self.desplazamiento
@@ -243,10 +244,10 @@ class List(Base):
         self.barra.centery += rel
         if self.barra.top <= 0:
             self.barra.top = 0
-            self.desplazamiento = 0
+            self.desplazamiento: float = 0
             self.on_wheel(0)
             return
-        self.desplazamiento = -(self.total_content_height / ((self.lista_surface_rect.h - self.barra.h) / self.barra.top))
+        self.desplazamiento: float = -(self.total_content_height / ((self.lista_surface_rect.h - self.barra.h) / self.barra.top))
         self.on_wheel(0)
 
     def select(self, index: int = False, diff = True, more = False,button=1) -> dict | bool:
@@ -270,7 +271,7 @@ class List(Base):
             elif index not in self.selected_nums:
                 self.selected_nums.append(index)
             if diff:
-                self.desplazamiento = (-self.letter_size*(index+1) + self.padding_top) + self.lista_surface_rect.h/2
+                self.desplazamiento: float = (-self.letter_size*(index+1) + self.padding_top) + self.lista_surface_rect.h/2
             self.on_wheel(0)
             return {'text': self.lista_palabras[index], 'index': index, 'deselected': deselected}
         else:
@@ -328,7 +329,7 @@ class List(Base):
         self.lista_palabras.clear()
         self.lista_objetos.clear()
         self.selected_nums.clear()
-        self.desplazamiento = 0
+        self.desplazamiento: float = 0
         self.set_height()
         self.on_wheel(0)
 

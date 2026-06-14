@@ -147,6 +147,7 @@ class Multi_list(Base):
 
     def on_wheel(self,y) -> None:
         for x in self.listas:
+            x.hover = True
             x.on_wheel(y)
     def on_mouse_motion(self,evento) -> None:
         self.listas[-1].on_mouse_motion(evento)
