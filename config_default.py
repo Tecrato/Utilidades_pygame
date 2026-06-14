@@ -43,9 +43,11 @@ class Config:
         self.max_fps: int = max_fps
         self.min_fps: int = min_fps
         self.screenshots_dir: Path = screenshot_dir if screenshot_dir is not None else platformdirs.user_pictures_path().joinpath(f'./{self.my_company}/{self.title}')
-        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
+        if not self.screenshots_dir.exists():
+            self.screenshots_dir.mkdir(parents=True, exist_ok=True)
         self.save_dir: Path = Path(save_dir) if save_dir is not None else platformdirs.user_config_path(self.title, self.my_company)
-        self.save_dir.mkdir(parents=True, exist_ok=True)
+        if not self.save_dir.exists():
+            self.save_dir.mkdir(parents=True, exist_ok=True)
         self.fonts: dict[str, str] = fonts if fonts is not None else {}
         self.noframe: bool = noframe if noframe is not None else False
         self.icon: str|None = icon
