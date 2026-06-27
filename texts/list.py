@@ -64,7 +64,7 @@ class List(Base):
 
         self.desplazamiento: float = 0.0
         self.total_content_height: int = 0
-        self.desplazamiento_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
+        self.desplazamiento_movent = Second_Order_Dinamics(1.1, 1, 1.5, (0,0))
         self.desplazamiento_smoth = 0
         self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
@@ -192,7 +192,7 @@ class List(Base):
 
     def update(self,dt=1, **kwargs):
         if self.smothscroll:
-            self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento).x)
+            self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento, dt).x)
         super().update()
         if self.header:
             self.text_header.bottomleft = self.rect.topleft

@@ -22,6 +22,7 @@ class BasePolygon:
 		self._rect: Rect = Rect(0, 0, 0, 0)
 		self.redraw = 2
 		self.last_rect = Rect(0,0,0,0)
+		self.use_mouse_wheel = False
 
 	# ==================== PROPIEDADES OPTIMIZADAS ====================
 	@property

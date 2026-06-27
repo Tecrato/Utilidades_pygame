@@ -63,7 +63,7 @@ class Particle:
             self.rect = self.image.get_rect(center=self.pos)
 
     def update(self,dt=1):
-        self.__pos += (self.angle_cos*self.vel*2*dt,self.angle_sin*self.vel*2*dt)
+        self.__pos += (self.angle_cos*self.vel*dt,self.angle_sin*self.vel*dt)
         self.rect.center = self.__pos
 
     @property

@@ -12,13 +12,14 @@ class Particles:
             self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity=0, angle = 0, radio_down: float = 0,
             vel_dispersion = 0, angle_dispersion = 0, radio_dispersion = 0, max_particles = 100, time_between_spawns = .1,
             max_distance = 1000, spawn_count = 1, random_color = False, auto_spawn: bool = True,
-            transparent_windows=False
+            transparent_windows=False, vel_down: float = 0
         ) -> None:
         self.particles: list[Particle] = []
         self.spawn_pos = spawn_pos
         self.radio = radio
         self.color = color
         self.velocity = velocity
+        self.vel_down = vel_down
         self.__gravity = gravity
         self.radio_down = radio_down
         self.vel_dispersion = vel_dispersion
@@ -26,7 +27,7 @@ class Particles:
         self.radio_dispersion = radio_dispersion
         self.max_particles = max_particles
         self.time_between_spawns = time_between_spawns
-        self.angle = angle
+        self.angle: float|int = angle
         self.max_distance = max_distance
         self.spawn_count = spawn_count
         self.random_color = random_color
@@ -42,12 +43,12 @@ class Particles:
 
 
 
-    def update(self, dt=1, **kwargs) -> None:
+    def update(self, dt: float|int=1, **kwargs) -> None:
         for i,part in sorted(enumerate(self.particles),reverse=True):
             part.update(dt=dt)
             if self.radio_down > 0:
-                part.radio -= self.radio_down
-                if (part.radio-self.radio_down < 1):
+                part.radio -= self.radio_down * dt
+                if (part.radio < 1):
                     self.particles.pop(i)
                     continue
             if  (part.pos-part.start_pos).length_squared() > self.max_distance**2:
@@ -55,7 +56,7 @@ class Particles:
                 continue
             if self.gravity > 0:
                 v = Vector2(part.angle_cos*part.vel,part.angle_sin*part.vel+self.gravity)
-                part.vel = v.length()
+                part.vel = v.length()-(self.vel_down * dt)
                 part.angle = v_0.angle_to(v)
     
         if time.time() - self.last_time > self.time_between_spawns and len(self.particles) < self.max_particles and self.radio >= 1 and self.auto_spawn:

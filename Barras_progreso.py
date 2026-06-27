@@ -19,7 +19,7 @@ class Barra_de_progreso:
         self.__volumen = 1.0
         self.redraw = 2
         self.smoth = smoth
-        self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
+        self.smoth_movent = Second_Order_Dinamics(1.5, 1, 1.5, (0,0))
         self.use_mouse_motion = False
 
         self.visible = True

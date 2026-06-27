@@ -1,8 +1,8 @@
 from typing import Literal, Self
 import pygame as pag
 
-from Utilidades.Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
-from Utilidades import Hipotenuza
+from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
+from Utilidades.maths import Hipotenuza
 
 from pygame import Vector2
 
@@ -50,7 +50,7 @@ class Base:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
             
-    def smothmove(self,f, z, r, fps=60) -> Self:
+    def smothmove(self,f, z, r) -> Self:
         self.smothmove_pos = self.pos
         self.movimiento = Second_Order_Dinamics(f, z, r, self.__pos)
         self.smothmove_bool = True
@@ -86,7 +86,7 @@ class Base:
         if self.smothmove_type == 'Second order dinamics':
             if abs(sum(self.movimiento.yd)) < 0.01:
                 self.__pos = self.smothmove_pos
-            self.__pos = self.movimiento.update(self.smothmove_pos)
+            self.__pos = self.movimiento.update(self.smothmove_pos, dt)
         elif self.smothmove_type == 'Simple Acceleration':
             if self.simplemove_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
@@ -121,16 +121,16 @@ class Base:
     def pos(self):
         return self.__pos if not self.smothmove_bool else self.smothmove_pos
     @property
-    def raw_pos(self):
+    def raw_pos(self) -> Vector2:
         return self.__pos
     @pos.setter
-    def pos(self,pos:tuple[int,int]|Vector2):
+    def pos(self,pos:tuple[int|float,int|float]|Vector2):
         self.redraw += 1
         if self.smothmove_bool:
             self.smothmove_pos = Vector2(pos)
         else:
             self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
-            self.__pos = Vector2(pos)
+            self.__pos: Vector2 = Vector2(pos)
             self.direccion(self.rect)
 
     @property

@@ -3,11 +3,11 @@ from math import pi, cos, sin, atan2
 from pygame.math import Vector2
 
 class Spark():
-	def __init__(self, surface, loc, angle, speed, color, scale=1):
-		self.surface = surface
+	def __init__(self, loc, angle, speed, color, scale:float=1.):
 		self.loc = Vector2(loc)
 		self.angle = angle
 		self.speed = speed
+		self.speed_down = 180.0
 		self.scale = scale
 		self.color = color
 		self.alive = True
@@ -47,12 +47,12 @@ class Spark():
 		# self.velocity_adjust(0.995, .3, 8, dt)
 		# self.angle += 0.1
 
-		self.speed -= 0.1
+		self.speed -= self.speed_down * dt
 
 		if self.speed <= 0:
 			self.alive = False
 
-	def draw(self, surf, offset=[0, 0]):
+	def draw(self, surface, offset=[0, 0]):
 		if self.alive:
 			points = (
 				(self.loc[0] + cos(self.angle) * self.speed * self.scale, self.loc[1] + sin(self.angle) * self.speed * self.scale),
@@ -60,4 +60,4 @@ class Spark():
 				(self.loc[0] - cos(self.angle) * self.speed * self.scale * 3.5, self.loc[1] - sin(self.angle) * self.speed * self.scale * 3.5),
 				(self.loc[0] + cos(self.angle - pi / 2) * self.speed * self.scale * 0.3, self.loc[1] - sin(self.angle + pi / 2) * self.speed * self.scale * 0.3),
 			)
-			pag.draw.polygon(self.surface, self.color, points)
+			pag.draw.polygon(surface, self.color, points)

@@ -1,4 +1,5 @@
 from math import comb, pi
+from typing import Union, Tuple
 
 from pygame.math import Vector2
 
@@ -43,31 +44,66 @@ class Curva_de_Bezier:
             result += coeff * p
         return result
 
-
 class Second_Order_Dinamics:
-    def __init__(self, T, f, z, r, coord:list|tuple|Vector2) -> None:
+    """
+    Sistema de dinámica de segundo orden para animaciones fluidas y realistas.
+    
+    Parámetros:
+        f: Frecuencia (Hz) - Controla la velocidad de la animación
+        z: Factor de amortiguamiento - Evita oscilaciones (0 < z < 1)
+        r: Respuesta inicial - 0 para empezar suave, 1 para inicio instantáneo
+        coord: Posición inicial (Tuple[float, float] o Vector2)
+    """
+    __slots__ = ('_pi', '_k1', '_k2', '_k3', 'xp', 'y', 'yd', '_dt_crit', '_last_time')
+    
+    def __init__(self, f: float, z: float, r: float, coord: Union[Tuple[float, float], Vector2]):
+        # Constantes del sistema
+        self._pi = pi
+        self._k1 = z / (self._pi * f)
+        self._k2 = 1 / ((2 * self._pi * f) ** 2)
+        self._k3 = r * z / (2 * self._pi * f)
 
-        self.k1 = z/ (pi*f)
-        self.k2 = 1/ ((2*pi*f)**2)
-        self.k3 = r * z / (2*pi*f)
-
-        self.__T = 1/T
-
-        self.k2_stable = max(self.k2,self.__T*self.__T/2 + self.__T*self.k1/2, self.__T*self.k1)
-
+        # Estado inicial
         self.xp = Vector2(coord)
         self.y = Vector2(coord)
-        self.yd = Vector2(0,0)
+        self.yd = Vector2(0.0, 0.0)
+        
+        # Ajuste para paso de tiempo variable
+        self._dt_crit = 0.05  # Paso crítico para estabilidad
+        self._last_time = None
 
-    def update(self, x, xd = None, dt=1) -> Vector2:
-        x = Vector2(x)
-
-        if xd is None:
-            xd = (x-self.xp) / self.__T
-            self.xp = x
+    def update(self, target: Union[Tuple[float, float], Vector2], dt: float= None) -> Vector2:
+        """
+        Actualiza el sistema dinámico usando integración estable de Verlet.
+        
+        Args:
+            target: Posición objetivo actual
+            dt: Tiempo delta desde la última actualización (en segundos)
+            
+        Returns:
+            Vector2: Nueva posición suavizada
+        """
+        if dt is None:
+            dt = 1.0 / 60.0  # Asume 60 FPS como caso base
         else:
-            xd = Vector2(xd)
-
-        self.y = self.y + self.__T * (self.yd * dt)
-        self.yd = self.yd + self.__T * (x + self.k3*xd - self.y - self.k1*self.yd) / self.k2_stable
+            dt = min(dt, 0.05)  # Limita a 20 FPS mínimo para estabilidad
+        # Manejo automático de dt para aplicaciones en tiempo real
+        if dt > self._dt_crit:
+            dt = self._dt_crit
+        
+        
+        target_vec = Vector2(target)
+        
+        # Cálculo de velocidad objetivo si no se proporciona
+        xd = (target_vec - self.xp) / dt
+        self.xp = target_vec
+        
+        # Integración numérica estabilizada
+        self.y = self.y + self.yd * dt
+        self.yd = self.yd + (target_vec + xd * self._k3 - self.y - self.yd * self._k1) * (dt / self._k2)
+        
         return self.y
+
+    @property
+    def position(self) -> Tuple[float, float]:
+        return (self.y.x, self.y.y)
