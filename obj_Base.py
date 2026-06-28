@@ -26,8 +26,9 @@ class Base:
         self.use_mouse_wheel = False
         self.cursor: int|None = pag.SYSTEM_CURSOR_ARROW
         self.__visible = True
+        self.keys_using = tuple()
 
-    def create_border(self, rect, border_width) -> None:
+    def create_border(self, rect: pag.Rect, border_width: int) -> None:
         if border_width == -1:
             border_width = 0
         self.rect_border = pag.rect.Rect(0,0,rect.size[0] + border_width,rect.size[1] + border_width)
@@ -114,8 +115,17 @@ class Base:
             self.hover = False
         return self.hover
 
-    def move(self, pos):
+    def move(self, pos) -> None:
         self.pos = pos
+
+    def on_mouse_motion(self):
+        return False
+    def on_key_down(self, key: int) -> bool:
+        return False
+    def on_key_up(self, key: int) -> bool:
+        return False
+    def on_wheel(self, delta):
+        return False
 
     @property
     def pos(self):
@@ -129,7 +139,7 @@ class Base:
         if self.smothmove_bool:
             self.smothmove_pos = Vector2(pos)
         else:
-            self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
+            self.last_rect = self.last_rect.copy().union(self.rect.copy())
             self.__pos: Vector2 = Vector2(pos)
             self.direccion(self.rect)
 
@@ -221,9 +231,9 @@ class Base:
 
     @property
     def collide_rect(self) -> str:
-        return self.rect_border
+        return self.rect
     def collide(self, rect: pag.Rect) -> bool:
-        return self.rect_border.colliderect(rect) or self.last_rect.colliderect(rect)
+        return self.rect.colliderect(rect) or self.last_rect.colliderect(rect)
     def collide_all(self, lista: list[Self]) -> str:
         lista_collide = []
         for i,x in enumerate(lista):
@@ -234,15 +244,12 @@ class Base:
         if self.redraw < 1:
             return []
         elif self.redraw < 2:
-            return [self.rect_border]
+            return [self.rect]
         else:
-            return [self.rect_border,self.last_rect]
+            return [self.rect,self.last_rect]
     
     def is_hover(self,pos) -> bool:
-        return self.rect_border.collidepoint(pos)
-
-    def on_wheel(self, delta):
-        return False
+        return self.rect.collidepoint(pos)
 
     def copy(self):
         new_instance = self.__class__.__new__(self.__class__)
