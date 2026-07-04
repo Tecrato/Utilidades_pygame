@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Tuple, Optional
 import pygame as pag
 import math
 from pygame.math import Vector2
@@ -23,9 +23,9 @@ class Text(Base):
     - smothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
     """
     def __init__(
-            self,text: str,size: int,font: str|None|pag.font.Font=None, pos: tuple = (0,0),
-            dire: ALING_DIRECTION ='center', color='white',with_rect = False, color_rect ='black', 
-            border_width = -1, padding: int|list|tuple = 0, min_width = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
+            self,text: str,size: int,font: str|pag.font.Font|None=None, pos: tuple|pag.Vector2 = (0,0),
+            dire: ALING_DIRECTION ='center', color: str|Tuple[int,int,int]='white',with_rect = False, color_rect: str|Tuple[int,int,int] ='black', 
+            border_width = -1, padding: int|list|tuple = 0, min_width: int|float = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
             underline = False, border_top_left_radius = -1, border_top_right_radius = -1,
             border_bottom_left_radius = -1, border_bottom_right_radius = -1,
@@ -37,14 +37,13 @@ class Text(Base):
         self.raw_text = str(text)
         self.__underline = underline
         self.__size: int = size
-        self.raw_font = 'asasdas' if font is None else None
-        self.__color: str = color
+        self.__color: str|Tuple[int,int,int] = color
         self.with_rect: bool = with_rect
-        self.color_rect: str = color_rect
+        self.color_rect: str|Tuple[int,int,int] = color_rect
         self.padding: Vector2 = Vector2(padding)
         self.rect_width: int = rect_width
-        self.__min_width: int = min_width
-        self.__max_width: int = max_width
+        self.__min_width: int|float = min_width
+        self.__max_width: int|float = max_width
         self.__min_height: int = min_height
         self.always_draw: bool = always_draw
         self.wrap: bool = wrap
@@ -62,7 +61,10 @@ class Text(Base):
         self.border_bottom_right_radius = border_bottom_right_radius
 
         self.lista_text: list[pag.Surface] = []
-        self.font = font
+
+        self.raw_font = None if font is None else font
+        self.__font: pag.font.Font = None
+        self.font: str|pag.font.Font|None = self.raw_font
 
         self.smothmove_bool = False
         self.movimiento = None
@@ -172,18 +174,18 @@ class Text(Base):
             if self.text_align == 'center':
                 r.centerx = self.rect.centerx
             elif 'left' in self.text_align:
-                r.left = self.rect.left + self.padding[0]
+                r.left = int(self.rect.left + self.padding[0])
             elif 'right' in self.text_align:
-                r.right = self.rect.right - self.padding[0]
+                r.right = int(self.rect.right - self.padding[0])
             else:
                 r.centerx = self.rect.centerx
 
             if 'top' in self.text_align:
-                r.top = self.rect.top + self.padding[1] + (i*self.text_height)
+                r.top = int(self.rect.top + self.padding[1] + (i*self.text_height))
             elif 'bottom' in self.text_align:
-                r.bottom = self.rect.bottom - self.padding[1] - (i*self.text_height)
+                r.bottom = int(self.rect.bottom - self.padding[1] - (i*self.text_height))
             else:
-                r.centery = self.rect.centery + ((i-(len(self.lista_text)-1)/2)*self.text_height)
+                r.centery = int(self.rect.centery + ((i-(len(self.lista_text)-1)/2)*self.text_height))
             self.lista_text_rects.append(r.copy())
 
     def draw(self, surface, always_draw = False, diff_pos = (0,0)) -> list[pag.Rect]|None:
@@ -238,11 +240,11 @@ class Text(Base):
         self.raw_text = texto
         self.__generate()
     @property
-    def font(self):
+    def font(self) -> str|pag.font.Font|None:
         return self.__font
     @font.setter
     def font(self,font: str|pag.font.Font):
-        if self.raw_font == font:
+        if self.raw_font == font and self.__font is not None:
             return
         if isinstance(font, pag.font.Font):
             self.raw_font = font
@@ -263,7 +265,8 @@ class Text(Base):
         if self.__size == int(size) or size < 1:
             return
         self.__size = int(size)
-        self.__font = pag.font.Font(self.raw_font, self.__size)
+        if isinstance(self.raw_font, str):
+            self.__font = pag.font.Font(self.raw_font, self.__size)
         self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
         self.__generate()
     @property
