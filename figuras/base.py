@@ -189,3 +189,6 @@ class BasePolygon:
 
 	def is_hover(self, mouse_pos):
 		return self.rect.collidepoint(mouse_pos)
+	
+	def on_wheel(self, val):
+		return False

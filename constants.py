@@ -6,3 +6,5 @@ VERTICAL = Literal['vertical']
 HORIZONTAL = Literal['horizontal']
 
 TRANSPARENT_COLOR = (255, 0, 128)
+
+DELAY_PRESSING = .3

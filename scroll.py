@@ -32,7 +32,7 @@ class Screen_scroll:
         self.set_bar_length()
 
         self.smoth = smoth
-        self.smoth_movent = Second_Order_Dinamics(60, 1.5, 1, 1.5, 0)
+        self.smoth_movent = Second_Order_Dinamics(1.5, 1, 1.5, 0)
         self.smoth_pos = 0
 
     def set_bar_length(self) -> None:

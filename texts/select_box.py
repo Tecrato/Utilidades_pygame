@@ -9,7 +9,7 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
+            self, boton: Button, options: list[str,int,float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
             func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', 
             animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, 
             padding_vertical = 5,separacion = 5,

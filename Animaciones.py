@@ -72,7 +72,7 @@ class Second_Order_Dinamics:
         self._dt_crit = 0.05  # Paso crítico para estabilidad
         self._last_time = None
 
-    def update(self, target: Union[Tuple[float, float], Vector2], dt: float= None) -> Vector2:
+    def update(self, target: Union[Tuple[float, float], Vector2, int, float], dt: float= None) -> Vector2:
         """
         Actualiza el sistema dinámico usando integración estable de Verlet.
         
