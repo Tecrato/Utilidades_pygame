@@ -84,11 +84,11 @@ class Base:
         if self.__pos == self.smothmove_pos:
             return False
         
-        if self.smothmove_type == 'Second order dinamics':
+        if self.smothmove_type == 'Second order dinamics' and isinstance(self.movimiento, Second_Order_Dinamics):
             if abs(sum(self.movimiento.yd)) < 0.01:
                 self.__pos = self.smothmove_pos
             self.__pos = self.movimiento.update(self.smothmove_pos, dt)
-        elif self.smothmove_type == 'Simple Acceleration':
+        elif self.smothmove_type == 'Simple Acceleration' and isinstance(self.movimiento, Simple_acceleration):
             if self.simplemove_type == 'follow':
                 self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
                 self.redraw += 2
@@ -128,7 +128,7 @@ class Base:
         return False
 
     @property
-    def pos(self):
+    def pos(self) -> Vector2:
         return self.__pos if not self.smothmove_bool else self.smothmove_pos
     @property
     def raw_pos(self) -> Vector2:
@@ -230,11 +230,11 @@ class Base:
         self.redraw += 1
 
     @property
-    def collide_rect(self) -> str:
+    def collide_rect(self) -> pag.Rect:
         return self.rect
     def collide(self, rect: pag.Rect) -> bool:
         return self.rect.colliderect(rect) or self.last_rect.colliderect(rect)
-    def collide_all(self, lista: list[Self]) -> str:
+    def collide_all(self, lista: list[Self]) -> list[pag.Rect]:
         lista_collide = []
         for i,x in enumerate(lista):
             if x.collide(self.collide_rect):
