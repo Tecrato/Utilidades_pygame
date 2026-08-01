@@ -25,6 +25,8 @@ class Config:
             fonts: dict[str, str|Path|os.PathLike] | None = None,
             noframe: bool=None,
             window_transparent: bool=False,
+            vsync: bool=False,
+            debug: bool = False,
             **kwargs
             ):
         self.window_resize = window_resize
@@ -52,6 +54,8 @@ class Config:
         self.noframe: bool = noframe if noframe is not None else False
         self.icon: str|None = icon
         self.window_transparent: bool = window_transparent if window_transparent is not None else False
+        self.vsync=vsync
+        self.debug = debug
 
         for x in kwargs:
             setattr(self, x, kwargs[x])

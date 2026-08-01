@@ -11,7 +11,6 @@ class Button(Text):
      - sound_to_hover: pag.Sound
      - sound_to_click: pag.Sound
      - toggle_rect: bool
-     - color_active: pygame.Color
      - color_rect_active: pygame.Color
      - color_border_active: pygame.Color
      - func_to_hover: Callable
@@ -19,12 +18,13 @@ class Button(Text):
 
     '''
     def __init__(self, text, size: int, font: str|None, pos: tuple|pag.Vector2 = (0,0), padding: int|list|tuple = (10,5),
-        dire: ALING_DIRECTION = 'center', color = 'black', color_rect = 'darkgrey',
-        color_rect_active='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
+        dire: ALING_DIRECTION = 'center', color:str|tuple = 'black', color_rect: str|tuple = 'darkgrey',
+        color_rect_active: str|tuple='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
-        border_bottom_right_radius: int = -1, border_width = 2, border_color = 'black', with_rect = True,
+        border_bottom_right_radius: int = -1, border_width = 2, border_color: str|tuple = 'black', with_rect = True,
         func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True,
         cursor: int|None = None, text_align: ALING_DIRECTION = 'center', func_to_hover= None, func_out_hover= None,
+        color_active: pag.Color|str = None, sound_to_click = None,
         **kwargs) -> None:
 
         self.__hover = False
@@ -38,14 +38,15 @@ class Button(Text):
         self.border_color_inactive = border_color
         self.color_border_active = kwargs.get('color_border_active',border_color)
 
-        self.color_active = kwargs.get('color_active',None)
+        self.color_active = color_active
         self.func = func
         self.func_to_hover = func_to_hover
         self.func_out_hover = func_out_hover
     
         self.sound_to_hover = kwargs.get('sound_to_hover',False)
-        self.sound_to_click = kwargs.get('sound_to_click',False)
+        self.sound_to_click = sound_to_click
 
+        self.default_controles_adyacentes: dict[Literal['up','right','down','left'], Button|Input|None] = {'up': None, 'right': None, 'down': None, 'left': None}
         self.controles_adyacentes: dict[Literal['up','right','down','left'], Button|Input|None] = {}
 
         Text.__init__(self,text, size, font, pos, dire, color, with_rect, color_rect, padding=padding, 

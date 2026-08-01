@@ -1,7 +1,7 @@
 # Registrar pantalla
 para agregar una nueva pantalla y elementosse deben ejecutar la siguiente funcion:
 
-self.registrar_pantalla([alias])
+self.registrar_pantalla(alias)
 
  - alias -> Nombre de la pantalla que se desea registrar
 
@@ -23,20 +23,15 @@ para evitar que los botones solapen los selectBox el programador debe colocar
 los selects al final de la lista, cuando se abra el select se dibujara de ultimo
 y se mostraran siempre al frente.
 
-Lo mismo aplica para todo lo demas, el ordene nel que se agregan a la lista de dibujado
+Lo mismo aplica para todo lo demas, el ordene en el que se agregan a la lista de dibujado
 es importante
 
 # Codigo entre pantallas
-si se desea ejecutar una linea de codigo al pasar de una pantalla a otra(self.goto())
-se puede sobre escribir la funcion, colocando el codigo deseado y luego llamando a la clase padre noormalmente.
+si se desea ejecutar una linea de codigo al pasar de una pantalla a otra "self.goto(alias)"
+se puede sobre escribir la funcion, colocando el codigo deseado y luego llamando a la clase padre normalmente.
 
-asi que tambien se pueden poner if elif else dentro de la funcion sobre escrita para colocar codigo
+asi que tambien se pueden poner if elif else dentro de la funcion sobre-escrita para colocar codigo
 dependiendo de a que pantalla se va
-
-
-
-
-
 
 
 
@@ -45,3 +40,65 @@ Para hacer la ventana transparente:
  - "transparent_windows"=True" en la clase particulas y en cualquiero otra superficie hecha por el dev debe agregar la flag "pag.BLEND_ALPHA_SDL2" al blit de la Surface
  - "window_transparent=True,noframe=True," en la configuracion de la Ventana
  - "self.background_color = (0, 0, 0, 0)"
+
+
+# Asignar botones a los objetos
+se puede asignar botones a los objetos que son aceptados en self.list_screens['click']
+## Variables usadas
+
+ - self.keys_using: tuple[int]|list[int]
+
+ - on_key_down(self, key: int) -> bool
+ - on_key_up(self, key: int) -> bool
+
+Donde el int en este caso representa la constante de pygame
+
+
+# Creacion  de objetos admitidos por las listas del framework
+es posible crear elementos nuevos que puedan ser aceptados por el dibujado optimizado y por los algoritmo de la lista de click
+donde el primer requisito es heredar de la clase padre obj_base.py para no crear tanto codigo de cero
+## para el dibujado:
+self.draw = 1  -> especifica que realizo algun cambio pero no se a movido, por lo que se redibuja lo que haya detras
+self.draw = 2 -> Cambio apariencia y  posicion, se redibujara y se actualizara tanto el rect actual como el anterior, ambos deben ser pasados en forma de lista a travez del return del final del draw()
+
+## para los update
+la funcion constal de:
+def update(mouse_pos, dt) -> mouse pos... eso,  y dt es el deltatime de la aplicacion
+
+tambien de requiere requiere que exista un self.rect para el objeto, tanto para coliciones como para definir el movimiento del update padre
+ademas de un rect_border, ambos son obligatorios pero el rect_border se agrega con una funcion llamada create_border(rect: pag.Rect, border_width: int) y se usa normalmente para decoracicon
+
+
+# Uso mejor de draw_always
+ - el dibujado continuo (self.draw_mode = "always") es mas optimo para cantidades grandes de objetos en pantalla, sobre etodo al usar miles de particulas con la clase Particle() y teniendo  el dibujado optimizado
+
+
+# Uso de app_lock "Semaforo"
+existe un Semaforo para la aplicacion, por si se requiere que la aplicacion cuelgue o no continue mientras se trabaja con MultiThreadinig, se llama self.app_lock
+
+si solo se requiere que no se realizen acciones en la aplicacion pero que siga funcionando normal, se puede establecer un loader en la variable
+ - self.loader
+este debe ser un objeto admitido por el dibujado de la aplicacion y aparece cuando se sume al numero self.loading
+
+## Uso de loading
+self.loading normalmente inicia en "0", y se puede sumar 1 al iniciar una funcion y restar el mismo numero al finalizarla, de esta fomra si varias funciones empiezana cargar al haber oprimido alguna accion, o si al trabajar con hilos se busca algo en internet y se nesecita que el usuario no pueda interactuar con la aplicacion
+
+
+# Uso de el cambio de resolucion de pantalla
+En la clase Config() establecida al inicio se pueden observar variables como:
+ - scaled: bool
+ - window_resize: bool
+ - resolution: tuple[int,int]|list[int]|Vector2
+ - min_resolution: tuple[int,int]|list[int]|Vector2
+
+Donde window_resize activa el cambio de tamannio de la ventana
+"resolution" establece el tamannio inicial
+Y "min_resolution" el  tamannio minimo que puede tener la ventana.
+Para ambos casos desactivar scaled, que al aumentar de tamannio se pone rara la ventana
+
+
+# Actualizar la los controles adyacentes
+al cambiar se pantalla se establece los controles adyacentes para los botones, inputs y barras_de_Progreso
+pero en caso de crear, desaparecer, o mover alguno de estos controles se pueden regenerar las referencias automaticas
+llamando a "self.calculate_adjacent_controls()" manualmente
+

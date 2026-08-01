@@ -1,5 +1,6 @@
-from typing import Iterable
+from typing import Iterable, Optional
 import pygame as pag
+import math
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
@@ -18,16 +19,16 @@ class Multi_list(Base):
      - background_color
      - header_radius
     '''
-    def __init__(self, size:tuple,pos:tuple,num_lists:int=2,lista: list[list] = None, text_size: int = 20, separation: int = 0,
-        background_color = 'black', selected_color = (100,100,100,100), text_color= 'white', colums_witdh= -1, header: bool =True,
-        header_text: list = None, dire: ALING_DIRECTION = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
+    def __init__(self, size:tuple,pos:tuple,num_lists:int=2,lista: Optional[list[list]] = None, text_size: int = 20, separation: int = 0,
+        background_color: str|tuple = 'black', selected_color = (100,100,100,100), text_color= 'white', colums_witdh: Optional[list[int|float]]= None, header: bool =True,
+        header_text: Optional[list[str]] = None, dire: ALING_DIRECTION = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
         smothscroll=False, **kwargs) -> None:
         
         self.listas = []
         self.__use_mouse_motion = False
         super().__init__(pos,dire)
         self.size = Vector2(size)
-        self.default = [[None] for _ in range(num_lists)] if not default else default
+        self.default: list[list[Optional[str]]] = [[None] for _ in range(num_lists)] if not default else default
         self.__lista_palabras = self.default if not lista else lista
         self.text_size = text_size
         self.separation = separation
@@ -40,7 +41,10 @@ class Multi_list(Base):
         self.text_color = text_color
         if num_lists <= 0: raise Exception('\n\nComo vas a hacer 0 listas en una multilista\nPensá bro...')
         self.num_list = num_lists
-        self.colums_witdh = [((self.size.x/self.num_list)*x)/self.size.x for x in range(self.num_list)] if colums_witdh == -1 else list(colums_witdh)
+        if colums_witdh and isinstance(colums_witdh, Iterable):
+            self.colums_witdh = list(colums_witdh)
+        else:
+            self.colums_witdh = [((self.size.x/self.num_list)*x)/self.size.x for x in range(self.num_list)]
         self.colums_witdh.append(1.0)
         self.header = header
         self.text_header = [None for x in range(num_lists)] if header_text == None else header_text
@@ -110,7 +114,7 @@ class Multi_list(Base):
     def update(self,pos=None,dt=1, mouse_pos=(-10000,-10000)):
         super().update(pos,dt=1)
         for x in self.listas:
-            x.update(mouse_pos=mouse_pos)
+            x.update(mouse_pos=mouse_pos, dt=dt)
         if self.smothmove_bool:
             for x in range(self.num_list):
                 self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
@@ -121,7 +125,7 @@ class Multi_list(Base):
         for x in self.listas:
             x.update_hover(mouse_pos)
         
-    def draw(self,surface) -> pag.Rect:
+    def draw(self,surface) -> tuple[pag.Rect]|list[pag.Rect]:
         for x in self.listas:
             if x.redraw > 0:
                 self.redraw += 1
@@ -160,7 +164,7 @@ class Multi_list(Base):
             if i < len(data):
                 self.listas[i].append(data[i])
             else:
-                self.listas[i].append(self.default[i])
+                self.listas[i].append(str(self.default[i]))
 
     def change_list(self, list: list) -> None:
         self.clear()
@@ -170,7 +174,7 @@ class Multi_list(Base):
     def clear(self) -> None:
         [x.clear() for x in self.listas]
 
-    def click(self,mouse_pos=False,ctrl=False,button=1):
+    def click(self,mouse_pos: Optional[tuple|list]=None,ctrl=False,button=1):
         if not mouse_pos:
             return
         m = Vector2(mouse_pos)
@@ -199,11 +203,11 @@ class Multi_list(Base):
         for x in self.listas:
             x.select(False)
 
-    def select(self, index: int = False, diff: bool=True) -> str:
+    def select(self, index: int = False, diff: bool=True) -> list[str]:
         return [l.select(index=int(index),diff=diff)['text'] for l in self.listas]
 
     def get_list(self) -> list:
-        var1 = [x.get_list() for x in self.listas]
+        var1 = [x.lista_palabras for x in self.listas]
         return list([list(x) for x in zip(*var1)])
 
     def pop(self, index=-1):
