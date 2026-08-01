@@ -9,7 +9,7 @@ v_0 = Vector2(0,0)
 
 class Particles:
     def __init__(
-            self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity=0, angle = 0, radio_down: float = 0,
+            self, spawn_pos, radio: int, color = (255,255,255), velocity=.1, gravity: int|float=0, angle = 0, radio_down: float = 0,
             vel_dispersion = 0, angle_dispersion = 0, radio_dispersion = 0, max_particles = 100, time_between_spawns = .1,
             max_distance = 1000, spawn_count = 1, random_color = False, auto_spawn: bool = True,
             transparent_windows=False, vel_down: float = 0
@@ -54,8 +54,8 @@ class Particles:
             if  (part.pos-part.start_pos).length_squared() > self.max_distance**2:
                 self.particles.pop(i)
                 continue
-            if self.gravity > 0:
-                v = Vector2(part.angle_cos*part.vel,part.angle_sin*part.vel+self.gravity)
+            if self.__gravity > 0:
+                v = Vector2(part.angle_cos*part.vel,part.angle_sin*part.vel+self.__gravity)
                 part.vel = v.length()-(self.vel_down * dt)
                 part.angle = v_0.angle_to(v)
     
