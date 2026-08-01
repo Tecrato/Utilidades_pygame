@@ -63,8 +63,8 @@ class Engranaje(BasePolygon):
 			
 		# Suavizar transiciones entre dientes
 		self._figure = vertices
-		self._edges = list(zip(self._figure, self._figure[1:] + self._figure[:1]))
-		self._build_spatial_grid()
+		# self._edges = list(zip(self._figure, self._figure[1:] + self._figure[:1]))
+		# self._build_spatial_grid()
 		self.redraw += 2
 
 	def _update_bounding_box(self):

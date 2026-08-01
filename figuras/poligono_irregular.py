@@ -5,7 +5,7 @@ from math import sin, cos, radians
 class PoligonoIrregular(BasePolygon):
     """Polígono irregular con soporte para formas complejas y actualización diferencial."""
     def __init__(self, 
-                 puntos: List[Dict[str, float]], 
+                 puntos: List[Tuple[float, float]], 
                  pos: Tuple[float, float] = (0, 0), 
                  radio: float = 20, 
                  angle: float = 0, 

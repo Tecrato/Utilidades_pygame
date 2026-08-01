@@ -1,6 +1,6 @@
 import pygame as pag
 import math
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Optional
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
@@ -22,10 +22,10 @@ class List(Base):
      - header_border_color
 
     '''
-    def __init__(self, size: tuple, pos: tuple, lista: list = [None], text_size: int = 20, separation: int = 0,
-        selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:str = None,
-        background_color = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20,
-        func_on_select: Callable=None, **kwargs) -> None:
+    def __init__(self, size: tuple, pos: tuple|pag.Vector2, lista: list = [None], text_size: int = 20, separation: int = 0,
+        selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:Optional[str] = "",
+        background_color:str|tuple = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20,
+        func_on_select: Optional[Callable]=None, **kwargs) -> None:
 
         super().__init__(pos,dire)
         self.__size = Vector2(size)
@@ -41,8 +41,8 @@ class List(Base):
         self.border_radius = border_radius
         self.text_color = text_color
         self.header = header
-        self.raw_text_header = text_header
-        self.text_header:Text = Text
+        self.raw_text_header: Optional[str] = text_header
+        self.text_header: Optional[Text] = None
         self.raw_font = font
         self.font = pag.font.Font(self.raw_font, text_size)
         self.separacion = separation
@@ -68,7 +68,7 @@ class List(Base):
         self.desplazamiento_smoth = 0
         self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
-        self.func_on_select: Callable = func_on_select
+        self.func_on_select: Optional[Callable] = func_on_select
 
         self.cursor = pag.SYSTEM_CURSOR_ARROW
         self.use_mouse_motion = False
@@ -80,8 +80,8 @@ class List(Base):
 
     def __generate(self):
 
-        if self.header:
-            self.text_header: Text = Text(self.raw_text_header, 22, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
+        if self.header and self.raw_text_header:
+            self.text_header = Text(self.raw_text_header, 22, None, self.pos, 'bottomleft', 'black', True, 'darkgrey',
             padding=(5 + self.header_top_left_radius/2,10),border_width=1, border_top_left_radius=self.header_top_left_radius,
             border_top_right_radius=self.header_top_right_radius, border_color=self.header_border_color, min_width=self.size[0],
             wrap=False, text_align='left', min_height=30)
@@ -94,7 +94,7 @@ class List(Base):
 
         self.lista_surface= pag.surface.Surface(self.rect.size)
         self.lista_surface_rect = self.lista_surface.get_rect()
-        self.lista_surface_rect.topleft = self.pos
+        self.lista_surface_rect.topleft = (int(self.pos.x), int(self.pos.y))
         self.lista_surface.fill((254,1,1))
         self.lista_surface.set_colorkey((254,1,1))
 
@@ -105,7 +105,7 @@ class List(Base):
         self.__width = max(size[0],30)
         self.__height = max(size[1],100)
         self.__size = Vector2(self.__width,self.__height)
-        if self.header:
+        if self.header and self.text_header:
             self.rect = pag.rect.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1]-self.text_header.height)
             self.direccion(self.rect)
             self.rect.top += self.text_header.height
@@ -116,7 +116,7 @@ class List(Base):
 
         self.lista_surface= pag.surface.Surface(self.rect.size)
         self.lista_surface_rect = self.lista_surface.get_rect()
-        self.lista_surface_rect.topleft = self.pos
+        self.lista_surface_rect.topleft = (int(self.pos.x), int(self.pos.y))
         self.lista_surface.fill((254,1,1))
         self.lista_surface.set_colorkey((254,1,1))
 
@@ -131,7 +131,7 @@ class List(Base):
 
         self.draw_surf()
 
-        p = self.rect.union(self.text_header.rect) if self.header else self.rect
+        p = self.rect.union(self.text_header.rect) if self.header and self.text_header else self.rect
         self.create_border(p, self.border_width)
         self.last_rect = self.last_rect.union(self.rect_border)
         self.redraw += 2
@@ -150,10 +150,11 @@ class List(Base):
                 self.select_box.top = self.padding_top + ((self.letter_size+self.separacion)*num) + self.desplazamiento_smoth - self.separacion/2
                 pag.draw.rect(self.lista_surface, self.selected_color, self.select_box)
 
-        o = (math.floor((-self.desplazamiento_smoth-self.padding_top)/(self.letter_size+self.separacion)), math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smoth-self.padding_top))/(self.letter_size+self.separacion)))
-        for x in range(min(o[0],len(self.lista_objetos)-1),min(o[1],len(self.lista_objetos))):
-            if x < 0:
-                continue
+        o = (
+            max(0,min(math.floor((-self.desplazamiento_smoth-self.padding_top)/(self.letter_size+self.separacion)),len(self.lista_objetos)-1)),
+            max(0,min(math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smoth-self.padding_top))/(self.letter_size+self.separacion)), len(self.lista_objetos))),
+        )
+        for x in range(*o):
             self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smoth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
@@ -168,7 +169,8 @@ class List(Base):
             self.last_dezplazamiento_pos = int(self.desplazamiento_movent.y.y)
 
         if always_draw:
-            self.text_header.redraw += 1
+            if self.text_header:
+                self.text_header.redraw += 1
             self.redraw += 1
 
 
@@ -176,10 +178,10 @@ class List(Base):
             return []
         
         surface.blit(self.lista_surface,self.rect)
-        if self.header:
+        if self.header and self.text_header:
             self.text_header.draw(surface)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_top_left_radius=self.header_top_left_radius, border_top_right_radius=self.header_top_right_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
-        r = self.rect_border.union(self.text_header.rect) if self.header else self.rect_border
+        r = self.rect_border.union(self.text_header.rect) if self.header and self.text_header else self.rect_border
         if self.redraw < 2:
             self.redraw = 0
             return [r]
@@ -194,7 +196,7 @@ class List(Base):
         if self.smothscroll:
             self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento, dt).x)
         super().update()
-        if self.header:
+        if self.header and self.text_header:
             self.text_header.bottomleft = self.rect.topleft
             self.rect_border.bottom = self.rect.bottom
             self.text_header.update()
@@ -212,7 +214,7 @@ class List(Base):
             return
         self.total_content_height = (self.letter_size+self.separacion)*(len(self.lista_palabras)) + self.padding_top - self.lista_surface_rect.h
         # self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height + self.rect.height)))
-        self.barra.h = max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height+self.lista_surface_rect.h)))
+        self.barra.h = int(max(10,self.lista_surface_rect.h*(self.lista_surface_rect.h/(self.total_content_height+self.lista_surface_rect.h))))
 
     def on_wheel(self, y: float) -> bool:
         if not self.hover and y != 0:
@@ -231,7 +233,7 @@ class List(Base):
             self.desplazamiento_smoth = self.desplazamiento
 
         if self.scroll_bar_active and self.total_content_height > 0:
-            self.barra.top = -(self.lista_surface_rect.h - self.barra.h) * (self.desplazamiento / self.total_content_height)
+            self.barra.top = int(-(self.lista_surface_rect.h - self.barra.h) * (self.desplazamiento / self.total_content_height))
         else:
             self.barra.top = 0
 
@@ -290,7 +292,11 @@ class List(Base):
         touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
         deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)
 
-        d = {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected['deselected']} if touch > -1 and touch < len(self.lista_palabras) else False
+        if touch > -1 and touch < len(self.lista_palabras) and isinstance(deselected, dict):
+            d = {'text': self.lista_palabras[touch], 'index': touch, 'deselected': deselected['deselected']}
+        else:
+            d = False
+
         if deselected and d:
             if self.func_on_select:
                 self.func_on_select(d)
