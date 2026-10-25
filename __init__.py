@@ -1,4 +1,4 @@
-from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
+from .Animaciones import Curva_de_Bezier, Second_Order_Dynamics, Simple_acceleration
 from .Barras_progreso import Barra_de_progreso
 from .particles import Particles
 from .sparks import Spark
@@ -54,7 +54,7 @@ __all__ = [
 
     # other classes
     "Curva_de_Bezier",
-    "Second_Order_Dinamics",
+    "Second_Order_Dynamics",
     "Simple_acceleration",
     "Particles",
     "Spark",
@@ -68,7 +68,7 @@ __all__ = [
     "constants",
 ]
 
-debug_print(
-    "Bienvenido a las utilidades para pygame, Hecho por Edouard Sandoval\n"
-    "Para empezar leer la guia y crear una clase que herede de 'Utilidades_pygame.base_app_class.Base_class'"
-)
+def about() -> None:
+    print("Utilidades_pygame — Hecho por Edouard Sandoval")
+    print("Crea una clase que herede de Utilidades_pygame.base_app_class.Base_class")
+

@@ -1,5 +1,5 @@
 import pygame as pag
-from .Animaciones import Second_Order_Dinamics
+from .Animaciones import Second_Order_Dynamics
 
 class Screen_scroll:
     '''
@@ -8,14 +8,14 @@ class Screen_scroll:
         - color_hover
     '''
     def __init__(
-            self, limit: int, inside_height: int = 1, visible: bool = True, min_bar_lenght: int = 10, bar_thickness: int = 10,
-                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smoth = True, **kwargs
+            self, limit: int, inside_height: int = 1, visible: bool = True, min_bar_length: int = 10, bar_thickness: int = 10,
+                 bar_orientation: str = 'vertical', color: tuple[int,int,int] = (255,255,255), smooth = True, **kwargs
         ) -> None:
         self.limit = limit
         self.visible = visible
         self.pos = pag.Vector2(0, 0)
         self.__desplazamiento = 0
-        self.min_bar_lenght = min_bar_lenght
+        self.min_bar_length = min_bar_length
         self.inside_height = inside_height
         self.bar_length = 10
         self.bar_thickness = bar_thickness
@@ -31,9 +31,9 @@ class Screen_scroll:
         self.last_rect = pag.Rect(0,0,0,0)
         self.set_bar_length()
 
-        self.smoth = smoth
-        self.smoth_movent = Second_Order_Dinamics(1.5, 1, 1.5, 0)
-        self.smoth_pos = 0
+        self.smooth = smooth
+        self.smooth_movent = Second_Order_Dynamics(1.5, 1, 1.5, 0)
+        self.smooth_pos = 0
 
     def set_bar_length(self) -> None:
         if self.inside_height <= self.limit:
@@ -42,12 +42,12 @@ class Screen_scroll:
         
         self.bar_active = True
         if self.bar_orientation == 'vertical':
-            self.rect.h = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
+            self.rect.h = max(self.min_bar_length,self.limit * (self.limit / self.inside_height))
             self.bar_length = self.rect.h
             self.rect.w = self.bar_thickness
             self.rect.x = self.pos[0] - self.bar_thickness
         elif self.bar_orientation == 'horizontal':
-            self.rect.w = max(self.min_bar_lenght,self.limit * (self.limit / self.inside_height))
+            self.rect.w = max(self.min_bar_length,self.limit * (self.limit / self.inside_height))
             self.bar_length = self.rect.w
             self.rect.h = self.bar_thickness
             self.rect.y = self.pos[1] - self.bar_thickness
@@ -84,8 +84,8 @@ class Screen_scroll:
         return False
 
     def update(self, dt=1, pos=None, **kwargs) -> None:
-        if self.smoth:
-            self.smoth_pos = self.smoth_movent.update(self.__desplazamiento)[0]
+        if self.smooth:
+            self.smooth_pos = self.smooth_movent.update(self.__desplazamiento)[0]
             if self.inside_height <= self.limit:
                 self.bar_active = False
                 return
@@ -136,7 +136,7 @@ class Screen_scroll:
 
     @property
     def diff(self) -> float:
-        return self.__desplazamiento if not self.smoth else self.smoth_pos
+        return self.__desplazamiento if not self.smooth else self.smooth_pos
     
     def collide(self, rect: pag.Rect) -> bool:
         return self.rect.collidepoint(rect.center)

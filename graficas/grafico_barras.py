@@ -1,29 +1,29 @@
 import random
 import pygame as pag
 
-from ..Animaciones import Second_Order_Dinamics
+from ..Animaciones import Second_Order_Dynamics
 from ..obj_Base import Base
 
 
 class Barra:
-    def __init__(self, data_x, data_y, start_pos = (0,0), smothmove = True, color = (255,255,255)):
+    def __init__(self, data_x, data_y, start_pos = (0,0), smooth_move = True, color = (255,255,255)):
         self.data_x = data_x
         self.data_y = data_y
         self.x = 0
         self.y = 0
         self.width = 0
         self.height = 0
-        self.smothmove = smothmove
+        self.smooth_move = smooth_move
         self.color = color
 
-        self.cambio_tamaño = Second_Order_Dinamics(60,2,1.0,1.1, (0,0))
-        self.cambio_posicion = Second_Order_Dinamics(60,2,1.0,1.1, start_pos)
+        self.cambio_tamaño = Second_Order_Dynamics(60,2,1.0,1.1, (0,0))
+        self.cambio_posicion = Second_Order_Dynamics(60,2,1.0,1.1, start_pos)
 
         self.rect = pag.Rect(*start_pos,0,0)
 
 
     def update(self,pos,size):
-        if self.smothmove:
+        if self.smooth_move:
             self.x,self.y = self.cambio_posicion.update(pos)
             self.width, self.height = self.cambio_tamaño.update(size)
         else:

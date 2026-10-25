@@ -2,7 +2,7 @@ import pygame as pag
 from typing import Literal, Callable
 from .text import Text
 from .input import Input
-from ..constants import ALING_DIRECTION
+from ..constants import ALIGN_DIRECTION
 
 
 class Button(Text):
@@ -18,12 +18,12 @@ class Button(Text):
 
     '''
     def __init__(self, text, size: int, font: str|None, pos: tuple|pag.Vector2 = (0,0), padding: int|list|tuple = (10,5),
-        dire: ALING_DIRECTION = 'center', color:str|tuple = 'black', color_rect: str|tuple = 'darkgrey',
+        dire: ALIGN_DIRECTION = 'center', color:str|tuple = 'black', color_rect: str|tuple = 'darkgrey',
         color_rect_active: str|tuple='lightgrey',rect_width=0,border_radius:int=15,border_top_left_radius:int=-1,
         border_top_right_radius: int = -1, border_bottom_left_radius: int = -1,
         border_bottom_right_radius: int = -1, border_width = 2, border_color: str|tuple = 'black', with_rect = True,
         func:None|Callable = None, max_width = 0, min_width = 0, min_height = 0, wrap=True,
-        cursor: int|None = None, text_align: ALING_DIRECTION = 'center', func_to_hover= None, func_out_hover= None,
+        cursor: int|None = None, text_align: ALIGN_DIRECTION = 'center', func_to_hover= None, func_out_hover= None,
         color_active: pag.Color|str = None, sound_to_click = None,
         **kwargs) -> None:
 

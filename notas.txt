@@ -1,0 +1,8 @@
+# BUGS
+ - arreglar el dirty rects de los bloques
+
+# Cosas nuevas:
+ - 
+
+# Cambios
+ - que en las listas no se guarden las superficies de los textos, se generen al hacer draw_surf

@@ -8,9 +8,8 @@ class PoligonoRegular(BasePolygon):
                  pos: Tuple[float, float] = (0, 0), 
                  lados: int = 4, 
                  radio: float = 10, 
-                 angle: float = 0, 
-                 cell_size: float = 50.0):
-        super().__init__(pos, radio, angle, cell_size)
+                 angle: float = 0):
+        super().__init__(pos, radio, angle)
         self._lados = lados
         self._generate()
         self._update_bounding_box()
@@ -24,8 +23,6 @@ class PoligonoRegular(BasePolygon):
                 self._pos[1] - sin(radians(step * i + self._angle)) * self._radio
             ) for i in range(self._lados)
         ]
-        self._edges = list(zip(self._figure, self._figure[1:] + self._figure[:1]))
-        self._build_spatial_grid()
         self.redraw += 1
 
     @property

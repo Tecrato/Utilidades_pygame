@@ -1,5 +1,5 @@
 from typing import Tuple, Literal
-from .Animaciones import Second_Order_Dinamics
+from .Animaciones import Second_Order_Dynamics
 import pygame as pag
 import time
 from .constants import DELAY_PRESSING, VERTICAL, HORIZONTAL
@@ -8,7 +8,7 @@ class Barra_de_progreso:
     def __init__(
             self, pos: Tuple[int,int], size: int|tuple[int,int], orientacion: VERTICAL|HORIZONTAL = 'vertical',
             border_color: tuple[int,int,int] = (0,128,255), fill_color: tuple[int,int,int] = (0,255,0), border_width: int = 2,
-            smoth = False, func_on_change = None, highlight_color = "cyan"
+            smooth = False, func_on_change = None, highlight_color = "cyan"
             ):
         self.__size = pag.Vector2(size)
         self.__pos = pag.Vector2(pos)
@@ -22,8 +22,8 @@ class Barra_de_progreso:
         self.rect2 = pag.rect.Rect(0, 0, *self.__size)
         self.__volumen = 1.0
         self.redraw = 2
-        self.smoth = smoth
-        self.smoth_movent = Second_Order_Dinamics(1.5, 1, 1.5, (0,0))
+        self.smooth = smooth
+        self.smooth_movent = Second_Order_Dynamics(1.5, 1, 1.5, (0,0))
         self.use_mouse_motion = False
         self.keys_to_use = (pag.K_UP, pag.K_DOWN)  if self.__orientacion == "vertical" else (pag.K_RIGHT, pag.K_LEFT)
         self.keys_using: Tuple = tuple()
@@ -82,8 +82,8 @@ class Barra_de_progreso:
         self.redraw = 2
         if self.pressing and time.time() - self.last_press >  DELAY_PRESSING:
             self.volumen += dt * self.volumen_change_direction
-        if self.smoth:
-            v = self.smoth_movent.update(self.__volumen, dt=dt)[0]
+        if self.smooth:
+            v = self.smooth_movent.update(self.__volumen, dt=dt)[0]
         else:
             v = self.__volumen
         if self.__orientacion == 'vertical':

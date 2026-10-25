@@ -5,7 +5,7 @@ from Utilidades.win32_tools import extract_icon
 from .obj_Base import Base
 from functools import lru_cache
 
-from .constants import ALING_DIRECTION
+from .constants import ALIGN_DIRECTION
 
 @lru_cache
 def import_img(path) -> pag.Surface:
@@ -13,7 +13,7 @@ def import_img(path) -> pag.Surface:
 
 class Image(Base):
     def __init__(
-            self,image: bytes|pag.Surface,pos,dire: ALING_DIRECTION = 'center', size = None,color_key=(254,1,1), 
+            self,image: bytes|pag.Surface,pos,dire: ALIGN_DIRECTION = 'center', size = None,color_key=(254,1,1), 
             always_draw = False, border_width = -1, border_color = (0,0,0,0), border_radius = 0,
             angle = 0,
             **kwargs):

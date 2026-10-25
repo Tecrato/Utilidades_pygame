@@ -42,12 +42,14 @@ class Base_class:
     1) self.registrar_pantalla(alias: str)
     2) Agregar los botones y otros widgets a self.lists_screens[alias_de_pantalla]["draw"|"update"|"click"|"inputs"]
     '''
-    def __init__(self,config: Config = Config(), *args, **kwargs) -> None:
+    def __init__(self,config: Config|None = None, *args, **kwargs) -> None:
         self.args = args
         self.kwargs = kwargs
         pag.init()
         pag.font.init()
-        self.config: Config = config
+        
+        self.config: Config = config if config is not None else Config()
+        
         self.flags: int = pag.DOUBLEBUF|pag.HWACCEL
         if self.config.window_resize:
             self.flags |= pag.RESIZABLE
@@ -100,7 +102,7 @@ class Base_class:
         self.hitboxes: bool = False
         self.can_resize: bool = True
         self.click: bool = False
-        self.navegate_with_keys: bool = True
+        self.navigate_with_keys: bool = True
         self.running: bool = True
         self.cursor_setted: bool = False
         self.last_click: float = time.time()
@@ -115,7 +117,7 @@ class Base_class:
         self.class_intervals = uti.multithread.Interval_funcs()
         self.delta_time: uti.Deltatime = uti.Deltatime()
         self.accept_to_move_with_arrows: Union[Input, Button, Barra_de_progreso] = Union[Input, Button, Barra_de_progreso]
-        self.relog: pag.time.Clock = pag.time.Clock()
+        self.clock: pag.time.Clock = pag.time.Clock()
         
         # Variables por pantalla
         self.lists_screens: dict[str,dict[Literal['draw','update','click','inputs'],list]] = {
@@ -137,7 +139,7 @@ class Base_class:
         self.load_resources()
         self.generate_objs()
         self.move_objs()
-        if self.navegate_with_keys:
+        if self.navigate_with_keys:
             self.calculate_adjacent_controls()
 
         # aqui puedes añadir codigo extra que se ejcutara al iniciar la aplicacion,
@@ -145,10 +147,11 @@ class Base_class:
         
         self.goto(self.actual_screen)
 
-        self.screen_main()
-
-        self.on_exit()
-        pag.quit()
+        try:
+            self.screen_main()
+        finally:
+            self.on_exit()
+            pag.quit()
     
     def otras_variables(self): ...
     def load_resources(self): ...
@@ -180,93 +183,91 @@ class Base_class:
         self.Mini_GUI_manager.update_hover(pag.mouse.get_pos())
         for i,x in sorted(enumerate(self.lists_screens[self.actual_screen]["click"]), reverse=True):
             x.update_hover(pag.mouse.get_pos())
-        if self.navegate_with_keys:
+        if self.navigate_with_keys:
             self.calculate_adjacent_controls()
 
     def draw_optimized(self, lista: list[Text|Button|Input|Multi_list|Select_box|Bloque|Engranaje]):
-        self.app_lock.acquire()
-        lista = list(lista).copy()
-        if self.draw_background:
-            self.ventana.fill(self.background_color)
-        self.updates.clear()
+        with self.app_lock:
+            lista = list(lista).copy()
+            if self.draw_background:
+                self.ventana.fill(self.background_color)
+            self.updates.clear()
+                
+            redraw = self.redraw
+            self.redraw = False
+            if redraw:
+                for x in lista:
+                    x.redraw += 1
+
+            self.draw_before(self.actual_screen)
+
+            new_list = itertools.chain(lista,(self.Mini_GUI_manager,))
+            if self.loading > 0 and self.loader:
+                new_list = itertools.chain(new_list,(self.loader,))
+            for i,x in enumerate(new_list):
+                if not x.collide(self.ventana_rect) or not getattr(x,'visible',True):
+                    continue
+                re = x.redraw
+                r = x.draw(self.ventana)
+                for s in r:
+                    self.updates.append(s)
+                for y in r:
+                    for p in lista[i+1:]:
+                        if p.collide(y) and p.redraw < 1:
+                            p.redraw += 1
+                if re < 2:
+                    continue
+                for y in r:
+                    for p in lista[:i]:
+                        if p.collide(y) and p.redraw < 1:
+                            p.redraw += 1
+            self.draw_after(self.actual_screen)
+            if self.hitboxes:
+                for x in self.updates:
+                    pag.draw.rect(self.ventana, 'green', x, 1)
             
-        redraw = self.redraw
-        self.redraw = False
-        if redraw:
+            if not self.config.window_transparent:
+                if redraw:
+                    pag.display.update()
+                else:
+                    pag.display.update(self.updates)
+            else:
+                # img_data = pag.image.tobytes(self.ventana, "BGRA")
+                img_data = self.ventana.get_view("2").raw
+                gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
+                user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
+                                        self.hdc_mem, ctypes.byref(self.point_origen), 0, 
+                                        ctypes.byref(self.blend), 2)
+                ...
+
+    def draw_always(self, lista):
+        with self.app_lock:
+            lista = list(lista).copy()
+            if self.draw_background:
+                self.ventana.fill(self.background_color)
             for x in lista:
                 x.redraw += 1
 
-        self.draw_before(self.actual_screen)
+            new_list = lista+[self.Mini_GUI_manager]
+            if self.loading > 0 and self.loader:
+                new_list.append(self.loader)
 
-        new_list = itertools.chain(lista,(self.Mini_GUI_manager,))
-        if self.loading > 0 and self.loader:
-            new_list = itertools.chain(new_list,(self.loader,))
-        for i,x in enumerate(new_list):
-            if not x.collide(self.ventana_rect) or not getattr(x,'visible',True):
-                continue
-            re = x.redraw
-            r = x.draw(self.ventana)
-            for s in r:
-                self.updates.append(s)
-            for y in r:
-                for p in lista[i+1:]:
-                    if p.collide(y) and p.redraw < 1:
-                        p.redraw += 1
-            if re < 2:
-                continue
-            for y in r:
-                for p in lista[:i]:
-                    if p.collide(y) and p.redraw < 1:
-                        p.redraw += 1
-        self.draw_after(self.actual_screen)
-        if self.hitboxes:
-            for x in self.updates:
-                pag.draw.rect(self.ventana, 'green', x, 1)
-        
-        if not self.config.window_transparent:
-            if redraw:
+            self.draw_before(self.actual_screen)
+            for i,x in enumerate(new_list):
+                if not getattr(x,'visible',True):
+                    continue
+                x.draw(self.ventana)
+            self.draw_after(self.actual_screen)
+
+            if not self.config.window_transparent:
                 pag.display.update()
             else:
-                pag.display.update(self.updates)
-        else:
-            # img_data = pag.image.tobytes(self.ventana, "BGRA")
-            img_data = self.ventana.get_view("2").raw
-            gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
-            user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
-                                    self.hdc_mem, ctypes.byref(self.point_origen), 0, 
-                                    ctypes.byref(self.blend), 2)
-            ...
-        self.app_lock.release()
-
-    def draw_always(self, lista):
-        self.app_lock.acquire()
-        lista = list(lista).copy()
-        if self.draw_background:
-            self.ventana.fill(self.background_color)
-        for x in lista:
-            x.redraw += 1
-
-        new_list = lista+[self.Mini_GUI_manager]
-        if self.loading > 0 and self.loader:
-            new_list.append(self.loader)
-
-        self.draw_before(self.actual_screen)
-        for i,x in enumerate(new_list):
-            if not getattr(x,'visible',True):
-                continue
-            x.draw(self.ventana)
-        self.draw_after(self.actual_screen)
-
-        if not self.config.window_transparent:
-            pag.display.update()
-        else:
-            img_data = self.ventana.get_view("2").raw
-            gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
-            user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
-                                    self.hdc_mem, ctypes.byref(self.point_origen), 0, 
-                                    ctypes.byref(self.blend), 2)
-            ...
-        self.app_lock.release()
+                img_data = self.ventana.get_view("2").raw
+                gdi32.SetDIBits(self.hdc_mem, self.hbitmap, 0, self.ventana_rect.height, img_data, ctypes.byref(self.bmi), 0)
+                user32.UpdateLayeredWindow(self.hwnd, self.hdc_screen, None, ctypes.byref(self.point_destino),
+                                        self.hdc_mem, ctypes.byref(self.point_origen), 0, 
+                                        ctypes.byref(self.blend), 2)
+                ...
 
     def exit(self, returncode: int|None = None):
         self.running = False
@@ -356,7 +357,7 @@ class Base_class:
             return r if isinstance(r,bool) else False
 
         # Navegar con teclas de flecha si no hay inputs activos o se presionó Tab
-        elif self.navegate_with_keys and evento.key in [pag.K_UP, pag.K_DOWN, pag.K_LEFT, pag.K_RIGHT, pag.K_TAB]:
+        elif self.navigate_with_keys and evento.key in [pag.K_UP, pag.K_DOWN, pag.K_LEFT, pag.K_RIGHT, pag.K_TAB]:
             return self.select_btns_with_arrows(evento, self.actual_screen)
         elif evento.key == pag.K_SPACE:
             # Activar el botón o input que tiene hover actualmente con la tecla espaciadora
@@ -374,7 +375,7 @@ class Base_class:
         return False
 
     def on_keyup_general(self, evento):
-        if not self.navegate_with_keys:
+        if not self.navigate_with_keys:
             return False
         # Esto para saber si el objeto esta usando alguna tecla que se aduennie de esa teclas
         obj = self.search_actual_hover(self.actual_screen)
@@ -419,7 +420,7 @@ class Base_class:
             
             # Procesar cada botón y asignarlo a la dirección correspondiente
             for other in other_buttons:
-                distance = uti.Hipotenuza(button.center, other.center)
+                distance = uti.Hipotenusa(button.center, other.center)
                 angle = uti.Angulo(button.center, other.center)
                 
                 # Clasificar por sector angular (dividir en 4 cuadrantes)
@@ -509,7 +510,7 @@ class Base_class:
             self.last_size = size
 
             self.move_objs()
-            if self.navegate_with_keys:
+            if self.navigate_with_keys:
                 self.calculate_adjacent_controls()
             self.redraw = True
             return True
@@ -581,7 +582,7 @@ class Base_class:
 
     def screen_main(self):
         while self.running:
-            self.relog.tick(self.framerate)
+            self.clock.tick(self.framerate)
             self.delta_time.update()
             eventos = pag.event.get()
             for x in self.lists_screens[self.actual_screen]['inputs']:

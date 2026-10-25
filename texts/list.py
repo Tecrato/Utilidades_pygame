@@ -4,8 +4,8 @@ from typing import Iterable, Callable, Optional
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
-from ..Animaciones import Second_Order_Dinamics
-from ..constants import ALING_DIRECTION
+from ..Animaciones import Second_Order_Dynamics
+from ..constants import ALIGN_DIRECTION
 
 
 class List(Base):
@@ -24,15 +24,16 @@ class List(Base):
     '''
     def __init__(self, size: tuple, pos: tuple|pag.Vector2, lista: list = [None], text_size: int = 20, separation: int = 0,
         selected_color = (100,100,100,100), text_color= 'white', header: bool =False, text_header:Optional[str] = "",
-        background_color:str|tuple = 'black', font=None, smothscroll=False, dire:ALING_DIRECTION='topleft',border_width=2,border_radius=20,
+        background_color:str|tuple = 'black', font=None, smoothscroll=False, dire:ALIGN_DIRECTION='topleft',border_width=2,border_radius=20,
         func_on_select: Optional[Callable]=None, **kwargs) -> None:
+        
 
         super().__init__(pos,dire)
         self.__size = Vector2(size)
         self.__width = size[0]
         self.__height = size[1]
         self.text_size = max(6,text_size)
-        self.__smothscroll = bool(smothscroll)
+        self.__smoothscroll = bool(smoothscroll)
         self.background_color = background_color
         self.selected_color = selected_color
         self.padding_top = kwargs.get('padding_top',10)+separation//2
@@ -64,8 +65,8 @@ class List(Base):
 
         self.desplazamiento: float = 0.0
         self.total_content_height: int = 0
-        self.desplazamiento_movent = Second_Order_Dinamics(1.1, 1, 1.5, (0,0))
-        self.desplazamiento_smoth = 0
+        self.desplazamiento_movent = Second_Order_Dynamics(1.1, 1, 1.5, (0,0))
+        self.desplazamiento_smooth = 0
         self.last_dezplazamiento_pos = 0
         self.selected_nums: list[int] = []
         self.func_on_select: Optional[Callable] = func_on_select
@@ -147,15 +148,15 @@ class List(Base):
 
         if self.selected_nums:
             for num in self.selected_nums:
-                self.select_box.top = self.padding_top + ((self.letter_size+self.separacion)*num) + self.desplazamiento_smoth - self.separacion/2
+                self.select_box.top = self.padding_top + ((self.letter_size+self.separacion)*num) + self.desplazamiento_smooth - self.separacion/2
                 pag.draw.rect(self.lista_surface, self.selected_color, self.select_box)
 
         o = (
-            max(0,min(math.floor((-self.desplazamiento_smoth-self.padding_top)/(self.letter_size+self.separacion)),len(self.lista_objetos)-1)),
-            max(0,min(math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smoth-self.padding_top))/(self.letter_size+self.separacion)), len(self.lista_objetos))),
+            max(0,min(math.floor((-self.desplazamiento_smooth-self.padding_top)/(self.letter_size+self.separacion)),len(self.lista_objetos)-1)),
+            max(0,min(math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smooth-self.padding_top))/(self.letter_size+self.separacion)), len(self.lista_objetos))),
         )
         for x in range(*o):
-            self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smoth))
+            self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smooth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
             pag.draw.rect(self.lista_surface, (50,50,50,128), pag.rect.Rect(self.lista_surface_rect.width-self.barra.width, 0, self.barra.width, self.lista_surface_rect.height))
@@ -164,7 +165,7 @@ class List(Base):
             self.redraw = 1
 
     def draw(self,surface, always_draw = False):
-        if (self.smothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
+        if (self.smoothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
             self.draw_surf()
             self.last_dezplazamiento_pos = int(self.desplazamiento_movent.y.y)
 
@@ -193,8 +194,8 @@ class List(Base):
         
 
     def update(self,dt=1, **kwargs):
-        if self.smothscroll:
-            self.desplazamiento_smoth = int(self.desplazamiento_movent.update(self.desplazamiento, dt).x)
+        if self.smoothscroll:
+            self.desplazamiento_smooth = int(self.desplazamiento_movent.update(self.desplazamiento, dt).x)
         super().update()
         if self.header and self.text_header:
             self.text_header.bottomleft = self.rect.topleft
@@ -221,7 +222,7 @@ class List(Base):
             return False
 
         if self.total_content_height + self.lista_surface_rect.h < self.rect.h:
-            if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
+            if not self.smoothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
                 self.draw_surf()
             return False
 
@@ -229,15 +230,15 @@ class List(Base):
         self.desplazamiento: float = min(0, self.desplazamiento)
         self.desplazamiento: float = max(-self.total_content_height, self.desplazamiento)
 
-        if not self.smothscroll:
-            self.desplazamiento_smoth = self.desplazamiento
+        if not self.smoothscroll:
+            self.desplazamiento_smooth = self.desplazamiento
 
         if self.scroll_bar_active and self.total_content_height > 0:
             self.barra.top = int(-(self.lista_surface_rect.h - self.barra.h) * (self.desplazamiento / self.total_content_height))
         else:
             self.barra.top = 0
 
-        if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
+        if not self.smoothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
         return True
 
@@ -260,7 +261,7 @@ class List(Base):
         if index is False:
             self.selected_nums.clear()
             self.select_box.top = -200
-            if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
+            if not self.smoothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
                 self.draw_surf()
             return False
         elif isinstance(index,int):
@@ -289,7 +290,7 @@ class List(Base):
         if self.scroll_bar_active and self.barra.collidepoint(m):
             self.use_mouse_motion = True
             return 'scrolling'
-        touch = round((m.y-self.padding_top - self.desplazamiento_smoth+self.separacion/2)//(self.letter_size+self.separacion))
+        touch = round((m.y-self.padding_top - self.desplazamiento_smooth+self.separacion/2)//(self.letter_size+self.separacion))
         deselected = self.select(touch if touch > -1 else False,False, more=ctrl, button=button)
 
         if touch > -1 and touch < len(self.lista_palabras) and isinstance(deselected, dict):
@@ -309,7 +310,7 @@ class List(Base):
             return
         self.selected_nums.remove(index)
         self.redraw += 1
-        if not self.smothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
+        if not self.smoothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
 
     def append(self, text: str):
@@ -363,12 +364,12 @@ class List(Base):
         self.__selected_color = selected_color
 
     @property
-    def smothscroll(self):
-        return self.__smothscroll
+    def smoothscroll(self):
+        return self.__smoothscroll
 
-    @smothscroll.setter
-    def smothscroll(self, smothscroll):
-        self.__smothscroll = bool(smothscroll)
+    @smoothscroll.setter
+    def smoothscroll(self, smoothscroll):
+        self.__smoothscroll = bool(smoothscroll)
 
     @property
     def size(self):

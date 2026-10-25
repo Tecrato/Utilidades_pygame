@@ -3,7 +3,7 @@ import pygame as pag
 import math
 from pygame.math import Vector2
 from ..obj_Base import Base
-from ..constants import ALING_DIRECTION
+from ..constants import ALIGN_DIRECTION
 
 
 class Text(Base):
@@ -20,11 +20,11 @@ class Text(Base):
     - change_color() - Cambia el color del texto\n
     - get_text() - Retorna el texto actual
     - move() - Mueve el texto al sitio seleccionado\n
-    - smothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
+    - smoothmove() - permite una transicion suave en el movimiento utilizando la clase Second Order Dinamics
     """
     def __init__(
             self,text: str,size: int,font: str|pag.font.Font|None=None, pos: tuple|pag.Vector2 = (0,0),
-            dire: ALING_DIRECTION ='center', color: str|Tuple[int,int,int]='white',with_rect = False, color_rect: str|Tuple[int,int,int] ='black', 
+            dire: ALIGN_DIRECTION ='center', color: str|Tuple[int,int,int]='white',with_rect = False, color_rect: str|Tuple[int,int,int] ='black', 
             border_width = -1, padding: int|list|tuple = 0, min_width: int|float = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
             underline = False, border_top_left_radius = -1, border_top_right_radius = -1,
@@ -66,7 +66,7 @@ class Text(Base):
         self.__font: pag.font.Font = None
         self.font: str|pag.font.Font|None = self.raw_font
 
-        self.smothmove_bool = False
+        self.smoothmove_bool = False
         self.movimiento = None
         self.cursor = pag.SYSTEM_CURSOR_ARROW
 
@@ -264,9 +264,11 @@ class Text(Base):
     def size(self,size):
         if self.__size == int(size) or size < 1:
             return
+        if isinstance(self.raw_font, pag.font.Font):
+            raise ValueError('No se puede cambiar el tamaño de un Font ya creado; pasa la ruta en `font`')
+
         self.__size = int(size)
-        if isinstance(self.raw_font, str):
-            self.__font = pag.font.Font(self.raw_font, self.__size)
+        self.__font = pag.font.Font(self.raw_font, self.__size)
         self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
         self.__generate()
     @property

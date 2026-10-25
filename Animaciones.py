@@ -44,7 +44,7 @@ class Curva_de_Bezier:
             result += coeff * p
         return result
 
-class Second_Order_Dinamics:
+class Second_Order_Dynamics:
     """
     Sistema de dinámica de segundo orden para animaciones fluidas y realistas.
     

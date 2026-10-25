@@ -5,7 +5,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from .list import List
-from ..constants import ALING_DIRECTION
+from ..constants import ALIGN_DIRECTION
 from itertools import chain
 
 
@@ -21,8 +21,8 @@ class Multi_list(Base):
     '''
     def __init__(self, size:tuple,pos:tuple,num_lists:int=2,lista: Optional[list[list]] = None, text_size: int = 20, separation: int = 0,
         background_color: str|tuple = 'black', selected_color = (100,100,100,100), text_color= 'white', colums_witdh: Optional[list[int|float]]= None, header: bool =True,
-        header_text: Optional[list[str]] = None, dire: ALING_DIRECTION = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
-        smothscroll=False, **kwargs) -> None:
+        header_text: Optional[list[str]] = None, dire: ALIGN_DIRECTION = 'topleft', fonts: list[str]|None = None, default: list[list]=None,
+        smoothscroll=False, **kwargs) -> None:
         
         self.listas = []
         self.__use_mouse_motion = False
@@ -32,7 +32,7 @@ class Multi_list(Base):
         self.__lista_palabras = self.default if not lista else lista
         self.text_size = text_size
         self.separation = separation
-        self.__smothscroll = smothscroll
+        self.__smoothscroll = smoothscroll
         self.background_color = background_color
         self.selected_color = selected_color
         self.padding_top = kwargs.get('padding_top',10)
@@ -55,7 +55,7 @@ class Multi_list(Base):
 
         self.listas: list[List] = []
         self.lineas = []
-        self.smothmove_bool = False
+        self.smoothmove_bool = False
         self.actual_index = -1
         self.use_mouse_motion = False
         self.use_mouse_wheel = True
@@ -84,7 +84,7 @@ class Multi_list(Base):
             txt_header = self.text_header[x] if self.header else None
 
             self.listas.append(List(l_size, l_pos, l_list, self.text_size, l_separacion, self.selected_color, self.text_color, 
-                background_color=self.background_color, smothscroll=self.smothscroll, padding_top=l_padding_top,
+                background_color=self.background_color, smoothscroll=self.smoothscroll, padding_top=l_padding_top,
                 padding_left=self.padding_left, with_index=l_with_index, scroll_bar_active=l_scroll_bar_active,
                 header=self.header, text_header=txt_header, header_top_left_radius=l_header_top_left_radius, 
                 header_top_right_radius=l_header_top_right_radius, font=self.fonts[x], header_border_color=self.border_color,
@@ -115,7 +115,7 @@ class Multi_list(Base):
         super().update(pos,dt=1)
         for x in self.listas:
             x.update(mouse_pos=mouse_pos, dt=dt)
-        if self.smothmove_bool:
+        if self.smoothmove_bool:
             for x in range(self.num_list):
                 self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],30) + self.pos
             
@@ -222,13 +222,13 @@ class Multi_list(Base):
 
 
     @property
-    def smothscroll(self):
-        return self.__smothscroll
-    @smothscroll.setter
-    def smothscroll(self,smothscroll):
-        self.__smothscroll = smothscroll
+    def smoothscroll(self):
+        return self.__smoothscroll
+    @smoothscroll.setter
+    def smoothscroll(self,smoothscroll):
+        self.__smoothscroll = smoothscroll
         for x in self.listas:
-            x.smothscroll = self.smothscroll
+            x.smoothscroll = self.smoothscroll
 
     @property
     def lista_palabras(self):

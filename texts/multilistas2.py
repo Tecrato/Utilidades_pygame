@@ -2,11 +2,12 @@ import pygame as pag
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
+from ..constants import ALIGN_DIRECTION
 import math
 
 class Multilist(Base):
-    def __init__(self,pos=(0,0),direccion='center',size=(400,400),num_lists=(2), lists_start=[.0,.5], text_size=20,separacion=5,header=True, headers_texts=['id','obj'],
-                 background_color='black', selected_color='grey', text_color='white', padding_top=25,smothscroll=True, color_key=(1,1,1)):
+    def __init__(self,pos=(0,0),direccion: ALIGN_DIRECTION ='center',size=(400,400),num_lists=(2), lists_start=[.0,.5], text_size=20,separacion=5,header=True, headers_texts=['id','obj'],
+                 background_color='black', selected_color='grey', text_color='white', padding_top=25,smoothscroll=True, color_key=(1,1,1)):
         super().__init__(pos,direccion)
 
         self.size = Vector2(size)
@@ -18,7 +19,7 @@ class Multilist(Base):
         self.header = header
         self.headers_texts = headers_texts
         self.backgroun_color = background_color
-        self.__smothscroll = smothscroll
+        self.__smoothscroll = smoothscroll
         self.color_key = color_key
         self.padding_top = padding_top
 

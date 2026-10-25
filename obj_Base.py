@@ -1,28 +1,29 @@
 from typing import Literal, Self
+from copy import deepcopy
 import pygame as pag
 
-from .Animaciones import Curva_de_Bezier, Second_Order_Dinamics, Simple_acceleration
-from Utilidades.maths import Hipotenuza
+from .Animaciones import Curva_de_Bezier, Second_Order_Dynamics, Simple_acceleration
+from Utilidades.maths import Hipotenusa
 
 from pygame import Vector2
 
-from .constants import ALING_DIRECTION
+from .constants import ALIGN_DIRECTION
 
 class Base:
-    def __init__(self,pos: tuple|Vector2, dire: ALING_DIRECTION = 'center'):
+    def __init__(self,pos: tuple|Vector2, dire: ALIGN_DIRECTION = 'center'):
         self.rect = pag.Rect(0,0,50,50)
-        self.smothmove_bool = False
+        self.smoothmove_bool = False
 
         self.__dire: str = dire
         self.__pos = Vector2(pos)
-        self.smothmove_pos = Vector2(0)
+        self.smoothmove_pos = Vector2(0)
         self.rect_border = pag.rect.Rect(0,0,0,0)
         self.redraw: int = 2
         self.last_rect = pag.Rect(0,0,0,0)
         self.mouse_pos = Vector2(0,0)
         self.hover = False
         self.use_mouse_motion = False
-        self.smothmove_type = None
+        self.smoothmove_type = None
         self.use_mouse_wheel = False
         self.cursor: int|None = pag.SYSTEM_CURSOR_ARROW
         self.__visible = True
@@ -51,23 +52,23 @@ class Base:
             rect.bottom = self.__pos.y
         self.rect_border.center = rect.center
             
-    def smothmove(self,f, z, r) -> Self:
-        self.smothmove_pos = self.pos
-        self.movimiento = Second_Order_Dinamics(f, z, r, self.__pos)
-        self.smothmove_bool = True
-        self.smothmove_type = 'Second order dinamics'
+    def smoothmove(self,f, z, r) -> Self:
+        self.smoothmove_pos = self.pos
+        self.movimiento = Second_Order_Dynamics(f, z, r, self.__pos)
+        self.smoothmove_bool = True
+        self.smoothmove_type = 'Second order dinamics'
         return self
     def Cubic_bezier_move(self, puntos, multiplicador:float = 1) -> Self:
-        self.smothmove_pos = self.pos
-        self.smothmove_bool = True
-        self.smothmove_type = 'Cubic Bezier'
-        self.movimiento = Curva_de_Bezier(puntos,multiplicador)
+        self.smoothmove_pos = self.pos
+        self.smoothmove_bool = True
+        self.smoothmove_type = 'Cubic Bezier'
+        self.movimiento = Curva_de_Bezier(multiplicador,puntos)
         return self
     def simple_acceleration_move(self, vel,dir=[1,0],tipo: Literal['follow','forward']='follow') -> Self:
-        self.smothmove_pos = self.pos
+        self.smoothmove_pos = self.pos
         self.movimiento = Simple_acceleration(vel, dir, self.pos)
-        self.smothmove_bool = True
-        self.smothmove_type = 'Simple Acceleration'
+        self.smoothmove_bool = True
+        self.smoothmove_type = 'Simple Acceleration'
         self.simplemove_type = tipo
 
         self.vel = float(vel)
@@ -76,32 +77,34 @@ class Base:
         return self
 
     def update(self,pos=None,dt=1, **kwargs) -> bool:
-        if not self.smothmove_bool and not pos:
+        if not self.smoothmove_bool and not pos:
             return False
         elif pos:
             self.pos = pos
             return True
-        if self.__pos == self.smothmove_pos:
+        if self.__pos == self.smoothmove_pos:
             return False
         
-        if self.smothmove_type == 'Second order dinamics' and isinstance(self.movimiento, Second_Order_Dinamics):
-            if abs(sum(self.movimiento.yd)) < 0.01:
-                self.__pos = self.smothmove_pos
-            self.__pos = self.movimiento.update(self.smothmove_pos, dt)
-        elif self.smothmove_type == 'Simple Acceleration' and isinstance(self.movimiento, Simple_acceleration):
+        if self.smoothmove_type == 'Second order dinamics' and isinstance(self.movimiento, Second_Order_Dynamics):
+            nueva = self.movimiento.update(self.smoothmove_pos, dt)
+            # Si ya casi no se mueve, clávalo en el objetivo para que la animación acabe.
+            if abs(sum(self.movimiento.yd)) < 0.01 and Hipotenusa(nueva, self.smoothmove_pos) < 0.5:
+                nueva = Vector2(self.smoothmove_pos)
+            self.__pos = Vector2(nueva)
+        elif self.smoothmove_type == 'Simple Acceleration' and isinstance(self.movimiento, Simple_acceleration):
             if self.simplemove_type == 'follow':
-                self.__pos = self.movimiento.follow(self.smothmove_pos,dt=dt)
+                self.__pos = self.movimiento.follow(self.smoothmove_pos,dt=dt)
                 self.redraw += 2
-                if Hipotenuza(self.__pos,self.smothmove_pos) < self.vel+1:
-                    self.__pos = self.smothmove_pos
+                if Hipotenusa(self.__pos,self.smoothmove_pos) < self.vel+1:
+                    self.__pos = self.smoothmove_pos
             else:
-                self.__pos = self.movimiento.update()
-        elif self.smothmove_type == 'Cubic Bezier':
+                self.__pos = self.movimiento.update(dt)
+        elif self.smoothmove_type == 'Cubic Bezier':
             r = self.movimiento.update(dt)
 
             if (r == True):
-                self.smothmove_bool = False
-                self.smothmove_type = None
+                self.smoothmove_bool = False
+                self.smoothmove_type = None
             else:
                 self.__pos = Vector2(r)
         
@@ -129,15 +132,15 @@ class Base:
 
     @property
     def pos(self) -> Vector2:
-        return self.__pos if not self.smothmove_bool else self.smothmove_pos
+        return self.__pos if not self.smoothmove_bool else self.smoothmove_pos
     @property
     def raw_pos(self) -> Vector2:
         return self.__pos
     @pos.setter
     def pos(self,pos:tuple[int|float,int|float]|Vector2):
         self.redraw += 1
-        if self.smothmove_bool:
-            self.smothmove_pos = Vector2(pos)
+        if self.smoothmove_bool:
+            self.smoothmove_pos = Vector2(pos)
         else:
             self.last_rect = self.last_rect.copy().union(self.rect.copy())
             self.__pos: Vector2 = Vector2(pos)
@@ -251,7 +254,15 @@ class Base:
     def is_hover(self,pos) -> bool:
         return self.rect.collidepoint(pos)
 
-    def copy(self):
+    def copy(self) -> Self:
+        """Copia independiente: rects, posiciones y animación no se comparten."""
         new_instance = self.__class__.__new__(self.__class__)
         new_instance.__dict__.update(self.__dict__)
+        for attr in ('rect', 'rect_border', 'last_rect'):
+            new_instance.__dict__[attr] = getattr(self, attr).copy()
+        new_instance.__dict__['_Base__pos'] = Vector2(self._Base__pos)
+        new_instance.__dict__['smoothmove_pos'] = Vector2(self.smoothmove_pos)
+        movimiento = new_instance.__dict__.get('movimiento')
+        if movimiento is not None:
+            new_instance.__dict__['movimiento'] = deepcopy(movimiento)
         return new_instance

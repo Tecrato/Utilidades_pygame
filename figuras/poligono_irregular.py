@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from .base import BasePolygon
 from math import sin, cos, radians
 
@@ -9,9 +9,8 @@ class PoligonoIrregular(BasePolygon):
                  pos: Tuple[float, float] = (0, 0), 
                  radio: float = 20, 
                  angle: float = 0, 
-                 cell_size: float = 50.0,
                  color='white'):
-        super().__init__(pos, radio, angle, cell_size, color=color)
+        super().__init__(pos, radio, angle, color=color)
         self._puntos = puntos
         self._generate()
         self._update_bounding_box()
@@ -24,8 +23,6 @@ class PoligonoIrregular(BasePolygon):
                 self._pos[1] - sin(radians(p[0] + self._angle)) * p[1] * self._radio
             ) for p in self._puntos
         ]
-        self._edges = list(zip(self._figure, self._figure[1:] + self._figure[:1]))
-        self._build_spatial_grid()
         self.redraw += 2
 
     def actualizar_punto(self, index: int, **kwargs):

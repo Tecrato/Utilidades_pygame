@@ -5,11 +5,11 @@ from pygame import Vector2
 from typing import Any
 from .obj_Base import Base
 from .scroll import Screen_scroll
-from .constants import ALING_DIRECTION
+from .constants import ALIGN_DIRECTION
 
 class Bloque(Base):
     def __init__(
-            self,pos,size,dire: ALING_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, 
+            self,pos,size,dire: ALIGN_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, 
             border_width=-1, border_color=(0,0,0,0), scroll_y=True, scroll_x=True, func_to_hover=None, func_out_hover=None
             ) -> None:
         self.scroll_y = False
@@ -50,8 +50,8 @@ class Bloque(Base):
         self.scroll_class_x = Screen_scroll(self.rect.w, bar_orientation='horizontal')
         self.scroll_class_x.pos = (0,self.rect.h)
 
-        self.actual_smoth_pos = 0
-        self.actual_smoth_pos_x = 0
+        self.actual_smooth_pos = 0
+        self.actual_smooth_pos_x = 0
         self.pos = pos
         
 
@@ -186,11 +186,11 @@ class Bloque(Base):
         if self.scroll_x and self.scroll_class_x.redraw > 3 and self.scroll_class_x.visible and self.scroll_class_x.bar_active:
             self.redraw += 1
 
-        if self.scroll_y and self.actual_smoth_pos != int(self.scroll_class.diff):
-            self.actual_smoth_pos = int(self.scroll_class.diff)
+        if self.scroll_y and self.actual_smooth_pos != int(self.scroll_class.diff):
+            self.actual_smooth_pos = int(self.scroll_class.diff)
             self.move_objs()
-        if self.scroll_x and self.actual_smoth_pos_x != int(self.scroll_class_x.diff):
-            self.actual_smoth_pos_x = int(self.scroll_class_x.diff)
+        if self.scroll_x and self.actual_smooth_pos_x != int(self.scroll_class_x.diff):
+            self.actual_smooth_pos_x = int(self.scroll_class_x.diff)
             self.move_objs()
 
         for x in self.list_objs:

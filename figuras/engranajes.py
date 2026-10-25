@@ -11,11 +11,10 @@ class Engranaje(BasePolygon):
 			radio: float, 
 			angle: float = 0, 
 			color: Tuple[int, int, int] = (255, 255, 255),
-			cell_size: float = 100.0,
 			circle = True
 		):
 		
-		super().__init__(pos, radio, angle, cell_size, color)
+		super().__init__(pos, radio, angle, color)
 		self._n_dientes = dientes
 		self._size_diente = size_diente
 		self._circle = circle
@@ -63,8 +62,6 @@ class Engranaje(BasePolygon):
 			
 		# Suavizar transiciones entre dientes
 		self._figure = vertices
-		# self._edges = list(zip(self._figure, self._figure[1:] + self._figure[:1]))
-		# self._build_spatial_grid()
 		self.redraw += 2
 
 	def _update_bounding_box(self):
