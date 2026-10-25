@@ -1,6 +1,6 @@
 # Recomendaciones de la IA — `Utilidades` + `Utilidades_pygame`
 
-> Revisión hecha el **23/10/2026** sobre el código que hay hoy en `site-packages`, ampliada el mismo día con ejemplos de corrección.
+> Revisión hecha el **23/10/2026** sobre el código que hay hoy en `site-packages`, ampliada el mismo día con ejemplos de corrección y el **25/10/2026** con una pasada completa por las tres apps de ejemplo (`Acelerador-de-descargas`, `Buscaminas`, `BrickBricker`). El estilo, los flujos y las convenciones de esas apps están en `perfil_de_codigo.md`.
 > **No se ha modificado ni una línea de código de las librerías.** Este archivo es el único que la IA puede editar libremente; las ideas de aquí las implementas tú, a tu manera.
 > Cada recomendación tiene un **ID** para que la puedas marcar, discutir o descartar sin perder el hilo.
 
@@ -23,7 +23,7 @@
 
 ## Resumen ejecutivo (si solo lees 10 líneas)
 
-1. **La unidad de `dt` ya está unificada** (`UNITS-01`, hecho y medido): animaciones y widgets trabajan en segundos. De §2 solo queda `BUG-18`, un `return` inválido en `__init__`.
+1. **La unidad de `dt` ya está unificada** (`UNITS-01`, hecho y medido) y `BUG-18` está cerrado: el `finally` de `__init__` ya solo limpia. §2 recoge ahora los diez bugs que aparecieron al usar las librerías desde fuera, en las tres apps.
 2. **La semántica de `redraw` (0/1/2/3) está repartida y es implícita** (`API-01`). Es la mayor fuente futura de parpadeos y de bugs difíciles. Formalizarla no cuesta casi nada y lo ordena todo.
 3. **El texto se mide renderizando**, y `Input` re-renderiza su superficie **en cada frame** (`OPT-03`, `OPT-04`). Ahí está el gasto más fácil de eliminar.
 4. **`draw_optimized` es O(n²) con copias de listas** (`OPT-01`), pero como los widgets de UI son estáticos, se puede resolver con un índice construido **una vez por pantalla**.
@@ -98,6 +98,8 @@ print(f"optimized: {ms_por_frame(lambda: app.draw_optimized(dibujo)):.2f} ms/fra
 app.draw_mode = "always"
 print(f"always:    {ms_por_frame(lambda: app.draw_always(dibujo)):.2f} ms/frame")
 ```
+
+**Aviso:** tal como está, ese esqueleto **no arranca**. Con `SDL_VIDEODRIVER=dummy`, `Base_class.__init__` falla en `pag.display.get_wm_info()['window']` con `KeyError` (BUG-26), y además `__init__` termina con `pag.quit()`, así que el `pag.init()` de después no te salva. Arregla BUG-26 (dos líneas) antes de usar el banco; es el mismo cambio que desbloquea los tests de la app entera de API-04.
 
 Para el perfil, envuelve el bucle: `cProfile.runctx("app.draw_optimized(dibujo)", globals(), locals(), "bench.prof")` y luego `python -m pstats bench.prof` → `sort tottime` → `stats 20`.
 
@@ -493,38 +495,74 @@ for i in reversed(to_del):
 
 # 2. Corrección
 
-Última pasada: 25-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25 y UNITS-01.
+Última pasada: 25-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25 y UNITS-01.
 
-Queda abierto lo siguiente. 📖 = verificado leyendo el código actual; 🟡 = parcial.
+Los de abajo salieron de usar las librerías **desde fuera** (las tres apps), que es donde no llegan los tests actuales. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
 
 | ID | Estado | Dónde | Qué pasa |
 |---|---|---|---|
-| BUG-18 | 📖 abierto | `base_app_class.py` → `__init__` | El `finally` ya cubre cierre normal y error, pero dentro quedó `return self.config.returncode`: un `__init__` no puede devolver nada, así que Python lanza `TypeError: __init__() should return None, not 'int'` justo al cerrar la app. Y un `return` en `finally` además se traga la excepción original. |
+| BUG-26 | ✅ | `base_app_class.py` → `__init__` | `pag.display.get_wm_info()['window']` lanza `KeyError: 'window'` con `SDL_VIDEODRIVER=dummy`: la app no se puede crear headless y el banco de pruebas de `OPT-00` no llega a arrancar. |
+| BUG-27 | ✅ | `bloque.py` → `move_objs`, `collide` | `move_objs` sale en `if not self.scroll_y: return`, así que con scroll horizontal pero no vertical el `inside_height` del eje X se queda en 1 y la barra no aparece nunca. Y `collide` solo mira a los hijos, no a su propio `rect`: un `Bloque` vacío no colisiona con la ventana y `draw_optimized` lo salta sin dibujarlo. |
+| BUG-28 | ✅ | `Barras_progreso.py` → `pulsando` | Rama horizontal: `self.rect.w = self.rect2.left + m_x` debería ser `m_x - self.rect2.left`. Medido con la barra en x=100 y ancho 200: clic en x=150 y clic en x=250 dan **volumen 1.0** los dos. En vertical funciona. |
+| BUG-29 | ✅ | `texts/multilist.py` → `__init__` | `Multi_list((100,100),(10,10))` con los valores por defecto revienta: `AttributeError: 'NoneType' object has no attribute 'height'` al leer `self.listas[0].text_header.height`, porque `header=True` y `header_text=None`. Solo funciona pasando `header_text` o `header=False`. |
+| BUG-30 | ✅ | `texts/text.py` → setter de `size` | El setter recrea la fuente pero no le repone el subrayado (el setter de `font` sí lo hace). Medido: con `underline=True`, la fuente nace subrayada y tras `size = 48` `get_underline()` da `False` mientras `texto.underline` sigue diciendo `True`. |
+| BUG-31 | ✅ | `obj_Base.py` → `copy` | Copia bien `rect`/`pos`/animación, pero las listas quedan **compartidas**: `lista_text` y `lista_text_rects` son el mismo objeto en original y copia. Medido: copiar un `Text` multilínea y cambiarle el texto deja 7 rects en el original, cuyo texto no cambió. `Select_box` y `mini_GUI.select` viven de `Text.copy()`. |
+| BUG-32 | ✅ | `texts/app_menu.py`, `graficas/grafico_barras.py` | `App_menu.draw` y `Grafico_Barras.draw` devuelven `None` → `for s in r` lanza `TypeError: 'NoneType' object is not iterable` dentro de `draw_optimized`. Además `Barra` llama `Second_Order_Dynamics(60,2,1.0,1.1,(0,0))` con 5 argumentos (la clase toma 4), así que no se puede ni instanciar, y `Grafico_Barras` no está exportado. |
+| BUG-33 | ✅ | `image.py` → `draw` | La rama `redraw < 2` devuelve `[self.rect_border]` **sin** `diff_pos`; la otra sí lo aplica. Medido con `diff_pos=(30,30)`: devuelve `(45,45)` y después `(75,75)`. Dentro de un `Bloque` con scroll ensucia el rect equivocado. |
+| BUG-34 | ✅ | `Utilidades/multithread.py` → `Interval_funcs.__start_func` | Si la función del intervalo lanza, el hilo muere y el intervalo **deja de existir en silencio**: medido, 1 ejecución y `is_alive()` en `False`, sin log. En `V_download` eso son tres intervalos que pueden desaparecer sin avisar. |
+| BUG-35 | ✅ | `texts/list.py`, `texts/input.py`, `texts/select_box.py` | No aceptan `diff_pos` y `Select_box` ni siquiera tiene `pos`, así que no pueden ir dentro de un `Bloque`: `TypeError: List.draw() got an unexpected keyword argument 'diff_pos'` y `AttributeError: 'Select_box' object has no attribute 'pos'`. |
 
 ## Correcciones, con código
 
 Un bloque por fila de la tabla. Son **el cambio mínimo**, no el parche final: van escritos contra el código de esta fecha y algunos tocan firmas. Donde hay una trampa, la digo debajo.
 
-### BUG-18 · el `return` en `__init__`
+### BUG-26 · `hwnd` cuando no hay ventana real
 
 ```python
-def __init__(self, config=None, autostart: bool = True, **kwargs) -> None:
-    ...
-    self.post_init()
-    self.goto(self.actual_screen)
-    if autostart:
-        self.run()
-
-def run(self) -> int:            # el código de salida vive aquí, no en __init__
-    try:
-        self.screen_main()
-    finally:
-        self.on_exit()
-        pag.quit()
-    return self.config.returncode
+self.hwnd: int|None = pag.display.get_wm_info().get('window')
 ```
 
-Mientras el bucle siga dentro de `__init__`, basta quitar esa línea: el `finally` se queda con `on_exit()` y `pag.quit()` y nada más.
+Y donde se usa (`take_window_snapshot` del F12, `win32_tools.front2`), comprobar `if self.hwnd is None: return`. Es lo que desbloquea el banco de `OPT-00` y cualquier test de la app entera.
+
+### BUG-28 · la barra horizontal
+
+```python
+elif self.__orientacion == 'horizontal':
+    rel = m_x - self.rect2.left                 # antes: self.rect2.left + m_x (en las tres ramas)
+    self.rect.w = min(max(rel, 0), self.__size.x)
+```
+
+Es el mismo patrón que ya usas en vertical (`rect2.bottom - m_y`), solo que con el signo bien. Ojo con un detalle aparte que vi al medirlo: `pulsando()` ignora el `mouse_pos` que recibe y lee `pag.mouse.get_pos()`. En la app coincide, pero hace que la barra no se pueda probar sin ventana real.
+
+### BUG-30 · el subrayado al cambiar de tamaño
+
+```python
+self.__font = pag.font.Font(self.raw_font, self.__size)
+self.__font.set_underline(self.__underline)      # ← lo que falta
+```
+
+### BUG-29 · cabecera sin texto
+
+```python
+# en Multi_list.__init__, antes del bucle de columnas
+header_h = self.listas[0].text_header.height if (self.header and self.listas[0].text_header) else 0
+# y usar header_h en las dos líneas que hoy hacen .text_header.height
+```
+
+### BUG-34 · un intervalo que sobrevive a sus errores
+
+```python
+from .logger import debug_print        # multithread no importa logger: no hay ciclo
+
+def __start_func(self, alias, stop: Event):
+    while not stop.wait(self.task_dict[alias]['time']):
+        try:
+            self.task_dict[alias]['func']()
+        except Exception:
+            debug_print(f'intervalo {alias} lanzó una excepción', priority=3)
+```
+
+Así el intervalo sigue vivo y te enteras. Si prefieres que muera, al menos que lo diga en el log: hoy el `Thread` escupe el traceback a stderr y el objeto queda como si estuviera funcionando.
 
 ---
 
@@ -645,6 +683,68 @@ Ojo: `gdi32 = ctypes.WinDLL('gdi32')` también está a nivel de módulo y tambi�
 
 **Qué probar.** Una sola fuente de verdad y reexportar desde la otra librería. Para `Logger`: envolver `logging` (20 líneas) en vez de mantener el tuyo; te llevas handlers, rotación, niveles y thread-safety gratis.
 
+**Ya no es solo duplicado: los contratos divergieron.** Verificado leyendo las dos versiones.
+
+| Miembro | `Utilidades` | `Utilidades_pygame` | Consecuencia |
+|---|---|---|---|
+| `Curva_de_Bezier.update` | devuelve `Vector2` siempre, y `is_finished()` aparte | devuelve `True` al acabar | `obj_Base` y `Select_box` comprueban `r == True`: con la versión de `Utilidades` **la animación no termina nunca** (siempre recibe un `Vector2`) |
+| `Simple_acceleration.follow` | multiplica por 60 | no multiplica | la misma llamada va 60× más rápido en una librería, y las dos se llaman igual |
+
+No hace falta arreglarlo hoy: basta con que sepas que importar `Curva_de_Bezier` del paquete equivocado no da error, solo una animación que se queda a medias. Si algún día unificas, el contrato bueno es el de `Utilidades` (`is_finished()` explícito) y adaptar los dos `r == True`.
+
+## API-09 — `**kwargs` se traga los errores de escritura 📖✅
+
+**Qué pasa.** `Text`, `Button`, `Input`, `List`, `Multi_list`, `Bloque`, `Screen_scroll`... aceptan `**kwargs` y no comprueban las claves. Un nombre mal escrito no falla: se pierde.
+
+**Medido**, y es el caso real de tus apps:
+
+```
+List((100,100), (10,10), ["a"], smothscroll=True)   -> smoothscroll sigue en False, sin aviso
+lista.smothscroll = True                             -> crea un atributo suelto, la property no cambia
+```
+
+Eso deja el "modo bajo consumo" de `Acelerador` sin efecto en las cinco llamadas que pasan `smothscroll=`. Es el peor tipo de regresión: la app arranca, el botón se pulsa y no pasa nada.
+
+**El arreglo mínimo**, cinco líneas al final del `__init__` de cada clase con kwargs:
+
+```python
+sobrantes = set(kwargs) - set(getattr(self, 'kwargs_validos', ()))
+if sobrantes:
+    raise TypeError(f'argumentos desconocidos: {", ".join(sorted(sobrantes))}')
+```
+
+O, si prefieres no listar lo válido, un `pop` explícito por clave en vez de `kwargs.get(...)` para las que importan. Cuesta poco y te encuentra los renombrados el día que los haces.
+
+## API-10 — El contrato de `draw` no es el mismo en todos 📖✅
+
+Existen tres firmas distintas y tres formas de devolver, y el bucle llama a todas igual:
+
+| Clase | Firma | Devuelve |
+|---|---|---|
+| `Text`, `Button`, `Bloque`, `Image` | `draw(surface, always_draw=False, diff_pos=(0,0))` | `list[Rect]` — `Image` olvida `diff_pos` en la rama `< 2` (BUG-33) |
+| `List` | `draw(surface, always_draw=False)` | `list[Rect]` |
+| `Input` | `draw(surface)` | `list[Rect]` |
+| `Multi_list` | `draw(surface)` | `tuple[Rect]` |
+| `Select_box` | `draw(surface, always_draw=False)` | `list[Rect]` |
+| `mini_GUI.Base` / `select` | `draw(surface)` | **un `Rect` suelto** |
+| `App_menu`, `Grafico_Barras`, `Multilist` | `draw(surface)` | **`None`** |
+
+Consecuencias medidas: `for s in App_menu.draw(...)` lanza `TypeError`; `list(mini_GUI.Base.draw(...))` da `[0, 0, 0, 0]` y `display.update` lo acepta como un rect de área cero (el popup se dibuja pero nunca entra en el dirty rect, así que deja restos al moverse); `List` dentro de `Bloque` lanza `TypeError` por el `diff_pos` (BUG-35).
+
+El contrato que ya usas en `Text`/`Image`/`Bloque` funciona. Lo barato es hacer que todos lo cumplan:
+
+```python
+def draw(self, surface, *, always_draw=False, diff_pos=(0, 0)) -> list[pag.Rect]:
+    if always_draw:
+        self.redraw = 2
+    if self.redraw < 1:
+        return []
+    ...
+    return [self.rect, r] if self.redraw > 1 else [self.rect]
+```
+
+Y `App_menu`/`Grafico_Barras` devolviendo la lista de rects que ya podrían calcular (hoy dibujan y tiran esa información).
+
 ---
 
 # 4. Empaquetado y estructura
@@ -670,8 +770,10 @@ Utilidades_pygame/ (repo, ya tiene .git ✅)
 Falta lo mínimo para que sea instalable y reproducible:
 
 - `[project] name/version/description/requires-python`;
+- `requires-python` tiene que ser **`>=3.12`**, no 3.11: usas `typing.override` (`mini_GUI/base.py`) y f-strings con las mismas comillas dentro y fuera (`List.__str__`, PEP 701). En 3.11 la librería no compila;
 - dependencias reales: `Utilidades_pygame` **importa `Utilidades`** pero su `requirements.txt` solo tiene `pygame` y `platformdirs`;
 - `Utilidades` usa `pywin32`/`pystray`/`Pillow`/`certifi`/`colorama`/`platformdirs` — márcalas con `platform_system` como ya hiciste en el `requirements.txt` (bien hecho), pero eso en `pyproject` se expresa con marcadores de entorno;
+- **falta `psutil`** en `requirements.txt`: `linux_tools.py` lo importa a nivel de módulo, así que en Linux la librería no arranca hasta instalarlo. En Windows no se nota porque ese módulo no se importa;
 - `__version__` en el `__init__` (el README dice 2.3.0 y el código no lo sabe);
 - un `classifiers`/`keywords` básicos si algún día lo publicas.
 
@@ -686,7 +788,7 @@ build-backend = "setuptools.build_meta"
 name = "Utilidades-pygame"
 version = "2.3.0"
 description = "Framework de UI y utilidades sobre pygame"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pygame>=2.5",
     "platformdirs>=4",
@@ -707,11 +809,28 @@ El nombre del proyecto y el del paquete pueden diferir; lo que no puede diferir 
 
 ## PKG-03 — Imports con efectos secundarios 📖
 
-Importar `Utilidades` imprime un banner y crea/loguea cosas; importar `Utilidades_pygame` imprime otro. **Un import no debe escribir en stdout ni crear carpetas.** Si quieres el saludo, que sea `uti.about()` a petición, o detrás de una variable de entorno (`UTI_QUIET=1`). Esto es lo que hace que una librería se sienta "de juguete" aunque no lo sea.
+Corrección a lo que decía antes: **medido hoy, los imports son silenciosos**. `import Utilidades` + `import Utilidades_pygame` no escriben nada en stdout (el único texto es el banner de pygame). Se ve que ya limpiaste los `print`, así que este punto baja a dos detalles menores: `logger.py` llama a `colorama.init()` a nivel de módulo (modifica el stdout global de quien importe) y `Config()` crea dos carpetas al construirse, lo cual es razonable pero conviene saberlo. La regla general sigue en pie: **un import no debería crear carpetas ni tocar la consola.**
 
 ## PKG-04 — Tipado 📖
 
-Tienes anotaciones (bien), pero con ruido: `Hipotenuza(...) -> int` devolviendo float, `@property`/`@x.setter` con tipos distintos, `Self` sin importar en algunos sitios, `Literal[False]` en `click` de `Text` (siempre False) mezclado con `click` que sí hace cosas. Pasar `pyright --basic` o `mypy` una vez te da una lista larga pero muy barata de arreglar, y te encuentra usos de `None` que hoy revientan en runtime.
+Tienes anotaciones (bien), pero con ruido: `Hipotenusa(...) -> int` devuelve un `float`, `@property`/`@x.setter` con tipos distintos, `Literal[False]` en `click` de `Text` (siempre `False`) mezclado con `click` que sí hace cosas, `Particle.angle` anotado como `Vector2` y devolviendo `float`, `collide_all(self, lista) -> str`. Pasar `pyright --basic` o `mypy` una vez te da una lista larga pero muy barata de arreglar, y te encuentra usos de `None` que hoy revientan en runtime (`Multi_list` con header, por ejemplo).
+
+## PKG-05 — Nombres que no salen del paquete 📖✅
+
+Hay código terminado al que no se puede llegar desde `import Utilidades`. Medido con `hasattr(uti, nombre)`:
+
+| Nombre | `hasattr(uti, ...)` | Dónde vive |
+|---|---|---|
+| `Interval_funcs` | ❌ | `uti.multithread.Interval_funcs` (así lo usa `base_app_class`) |
+| `notacion_cientifica`, `Angulo_radians`, `Angulo_solo` | ❌ | `uti.maths.*` |
+| `fibonacci`, `calcular_pendiente`, `calcular_centroide`, `calcular_integral`, `rect_get_center` | ❌ | `uti.maths.*` |
+| `Animator` | ✅ pero es el **módulo**, no la clase | `uti.Animator.Animator` |
+
+Y en `Utilidades_pygame/graficas/__init__.py` solo se exporta `Graficador`: `Grafico_Barras` y `Barra` son inalcanzables desde el paquete (y además no se pueden instanciar, BUG-32).
+
+Lo mismo, en pequeño, con `GUI/__init__.py`: exporta `Desicion` e `Info` pero no `Classic_window`, que es la clase de la que heredan las dos. `up.GUI.Classic_window` no existe; hay que ir a `up.GUI.objs.Classic_window`.
+
+**Qué probar.** Añadirlos al `from .x import` y al `__all__`. Para `Animator`, decidir si quieres `uti.Animator` como clase (como `Logger`, `Collision_handler`) o como módulo; hoy es el único módulo suelto en el `__init__`.
 
 ---
 
@@ -777,7 +896,8 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 | # | Qué | IDs | Riesgo | Por qué ahora |
 |---|---|---|---|---|
-| 1 | Cerrar BUG-18 y montar el CI | TST-02, TST-03, BUG-18 | Ninguno | El suelo ya está puesto (97 tests): queda el golden, el CI y el `return` del cierre. |
+| 1 | Los diez bugs de §2 que rompen widgets | BUG-26..35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
+| 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto (97 tests): queda el golden y saber que las libs importan en Linux. |
 | 2 | Quitar el re-render por frame de `Input` | OPT-04 | Bajo | La mejora más barata que hay. |
 | 3 | Medir + arreglar el doble bucle | OPT-00, OPT-01 | Medio | Aquí está el techo de escalabilidad de la UI. |
 | 4 | Medir texto con `font.size` + caché | OPT-03 | Bajo | Segundo mayor gasto, y aislado en un archivo. |
@@ -797,7 +917,7 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 # Apéndice A — Comandos de reproducción
 
-Los bugs de §2 no necesitan comando suelto: cada uno se reproduce con la suite (desde `site-packages`):
+Los bugs de §2 no necesitan comando suelto: cada uno se reproduce con un par de líneas (los que no son de pygame) o con la suite (desde `site-packages`):
 
 ```
 python -m pytest Utilidades/test Utilidades_pygame/tests -q
@@ -810,7 +930,7 @@ Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-
 Copia esta sección a medida que avances (o marca aquí mismo).
 
 **Corrección** (solo lo pendiente; lo resuelto no se lista)
-- [ ] BUG-18 quitar el `return` del `finally` de `__init__`
+- [ ] BUG-26..35 — los diez de §2 (uno por commit, con su test)
 
 **Optimización**
 - [ ] OPT-00 benchmark

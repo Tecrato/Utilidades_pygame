@@ -1,5 +1,6 @@
 from pygame import Rect, draw
 from typing import List, Tuple
+from abc import abstractmethod
 
 class BasePolygon:
 	"""Clase base para polígonos con el protocolo de dibujado de la librería."""
@@ -7,45 +8,48 @@ class BasePolygon:
 				 pos: Tuple[float, float],
 				 radio: float,
 				 angle: float,
-				 color = 'white'):
+				 color: Tuple[int,int,int]|str = 'white'):
 		self.color = color
-		self._pos = pos
-		self._radio = radio
-		self._angle = angle
-		self._figure: List[Tuple[float, float]] = []
-		self._rect: Rect = Rect(0, 0, 0, 0)
+		self.__pos = pos
+		self.__radio = radio
+		self.__angle = angle
+		self.__figure: List[Tuple[float, float]] = []
+		self.__rect: Rect = Rect(0, 0, 0, 0)
 		self.redraw = 2
 		self.last_rect = Rect(0,0,0,0)
 		self.use_mouse_wheel = False
 
+	@abstractmethod
+	def __generate(self): ...
+
 	# ==================== PROPIEDADES OPTIMIZADAS ====================
 	@property
 	def pos(self) -> Tuple[float, float]:
-		return self._pos
+		return self.__pos
 	@pos.setter
 	def pos(self, value: Tuple[float, float]):
-		self._pos = value
-		self._generate()
-		self._update_bounding_box()
+		self.__pos = value
+		self.__generate()
+		self.__update_bounding_box()
 
 	@property
 	def radio(self) -> float:
-		return self._radio
+		return self.__radio
 	@radio.setter
 	def radio(self, value: float):
-		if self._radio != value:
-			self._radio = value
-			self._generate()
-			self._update_bounding_box()
+		if self.__radio != value:
+			self.__radio = value
+			self.__generate()
+			self.__update_bounding_box()
 
 	@property
 	def angle(self) -> float:
-		return self._angle
+		return self.__angle
 	@angle.setter
 	def angle(self, value: float):
-		if self._angle != value:
-			self._angle = float(value)
-			self._generate()
+		if self.__angle != value:
+			self.__angle = float(value)
+			self.__generate()
 	@property
 	def height(self) -> float:
 		return self.rect.height
@@ -59,21 +63,21 @@ class BasePolygon:
 
 	# ==================== CAJA DE COLISIÓN (AABB) ====================
 
-	def _update_bounding_box(self):
+	def __update_bounding_box(self):
 		"""Actualiza el AABB (Axis-Aligned Bounding Box) del polígono"""
-		if not self._figure:
-			self._rect = Rect(0, 0, 0, 0)
+		if not self.__figure:
+			self.__rect = Rect(0, 0, 0, 0)
 			return
-		self._rect = Rect(0,0,self.radio*2,self.radio*2)
-		self._rect.center = self.pos
+		self.__rect = Rect(0,0,self.radio*2,self.radio*2)
+		self.__rect.center = self.pos
 		self.redraw += 2
 
 	# ==================== MÉTODOS DE INTERFAZ PÚBLICA ====================
 	def draw(self, surface, diff_pos = None) -> list[Rect]:
 		"""Renderizado optimizado"""
-		if len(self._figure) < 3 or self.redraw < 1:
+		if len(self.__figure) < 3 or self.redraw < 1:
 			return []
-		draw.polygon(surface, self.color, self._figure)
+		draw.polygon(surface, self.color, self.__figure)
 		if self.redraw < 2:
 			self.redraw = 0
 			return (self.rect,)
@@ -89,10 +93,10 @@ class BasePolygon:
 	@property
 	def rect(self):
 		"""Rectángulo de colisión actualizado dinámicamente"""
-		return self._rect
+		return self.__rect
 	@property
 	def figura(self) -> List[Tuple[float, float]]:
-		return self._figure
+		return self.__figure
 		
 	def collide(self, rect):
 		return self.rect.colliderect(rect)

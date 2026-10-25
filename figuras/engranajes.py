@@ -10,95 +10,95 @@ class Engranaje(BasePolygon):
 			size_diente: float, 
 			radio: float, 
 			angle: float = 0, 
-			color: Tuple[int, int, int] = (255, 255, 255),
+			color: Tuple[int, int, int]|str = (255, 255, 255),
 			circle = True
 		):
 		
 		super().__init__(pos, radio, angle, color)
-		self._n_dientes = dientes
-		self._size_diente = size_diente
-		self._circle = circle
-		self._generate()
-		self._update_bounding_box()
+		self.__n_dientes = dientes
+		self.__size_diente = size_diente
+		self.__circle = circle
+		self.__generate()
+		self.__update_bounding_box()
 
-	def _generate(self):
+	def __generate(self):
 		"""Generación precisa de dientes cuadrados radiales"""
 		vertices = []
 		paso_angular = 360 / self.n_dientes
-		radio_total = self._radio + self._size_diente
+		radio_total = self.__radio + self.__size_diente
 		
 		for i in range(self.n_dientes):
-			angulo_central = radians(paso_angular * i + self._angle)
+			angulo_central = radians(paso_angular * i + self.__angle)
 			
 			# Base inicio
 			vertices.append(
 				(
-					self._pos[0] + cos(angulo_central - radians(paso_angular/4)) * self._radio,
-					self._pos[1] - sin(angulo_central - radians(paso_angular/4)) * self._radio
+					self.__pos[0] + cos(angulo_central - radians(paso_angular/4)) * self.__radio,
+					self.__pos[1] - sin(angulo_central - radians(paso_angular/4)) * self.__radio
 				)
 			)
 			# Punta inicio
 			vertices.append(
 				(
-					self._pos[0] + cos(angulo_central - radians(paso_angular/8)) * radio_total,
-					self._pos[1] - sin(angulo_central - radians(paso_angular/8)) * radio_total
+					self.__pos[0] + cos(angulo_central - radians(paso_angular/8)) * radio_total,
+					self.__pos[1] - sin(angulo_central - radians(paso_angular/8)) * radio_total
 				)
 			)
 
 			# Base fin
 			vertices.append(
 				(
-					self._pos[0] + cos(angulo_central + radians(paso_angular/8)) * radio_total,
-					self._pos[1] - sin(angulo_central + radians(paso_angular/8)) * radio_total
+					self.__pos[0] + cos(angulo_central + radians(paso_angular/8)) * radio_total,
+					self.__pos[1] - sin(angulo_central + radians(paso_angular/8)) * radio_total
 				)
 			)
 			# Punta fin
 			vertices.append(
 				(
-					self._pos[0] + cos(angulo_central + radians(paso_angular/4)) * self._radio,
-					self._pos[1] - sin(angulo_central + radians(paso_angular/4)) * self._radio
+					self.__pos[0] + cos(angulo_central + radians(paso_angular/4)) * self.__radio,
+					self.__pos[1] - sin(angulo_central + radians(paso_angular/4)) * self.__radio
 				)
 			)
 			
 		# Suavizar transiciones entre dientes
-		self._figure = vertices
+		self.__figure = vertices
 		self.redraw += 2
 
-	def _update_bounding_box(self):
+	def __update_bounding_box(self):
 		"""Actualiza el AABB (Axis-Aligned Bounding Box) del polígono"""
-		if not self._figure:
-			self._rect = Rect(0, 0, 0, 0)
+		if not self.__figure:
+			self.__rect = Rect(0, 0, 0, 0)
 			return
-		self._rect = Rect(0,0,self.radio*2 + self._size_diente*2,self.radio*2 + self._size_diente*2)
-		self._rect.center = self.pos
+		self.__rect = Rect(0,0,self.radio*2 + self.__size_diente*2,self.radio*2 + self.__size_diente*2)
+		self.__rect.center = self.pos
 		self.redraw += 2
 		
 	def collide(self, rect):
 		return self.rect.colliderect(rect)
 		
-	def draw(self, surface) -> Rect:
+	def draw(self, surface) -> list[Rect]:
 		"""Renderizado optimizado"""
 		a = super().draw(surface)
-		if a and self._circle:
-			draw.circle(surface, self.color, self._pos, self._radio)
+		if a and self.__circle:
+			draw.circle(surface, self.color, self.__pos, self.__radio)
 		return a
 	
 	# Setters actualizados para regeneración automática
 	@property
 	def n_dientes(self) -> int:
-		return self._n_dientes
+		return self.__n_dientes
 	@n_dientes.setter
 	def n_dientes(self, value: int):
-		if value != self._n_dientes and value > 3:
-			self._n_dientes = value
-			self._generate()
+		if value != self.__n_dientes and value > 3:
+			self.__n_dientes = value
+			self.__generate()
 
 	@property
 	def size_diente(self) -> float:
-		return self._size_diente
+		return self.__size_diente
 	@size_diente.setter
 	def size_diente(self, value: float):
-		if value != self._size_diente:
-			self._size_diente = value
-			self._generate()
-			self._update_bounding_box()
+		if value != self.__size_diente:
+			self.__size_diente = value
+			self.__generate()
+			self.__update_bounding_box()
