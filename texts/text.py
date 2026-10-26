@@ -106,7 +106,7 @@ class Text(Base):
                 token_index += 1
                 continue
             potential_line = (actual_txt + " " + next_token) if actual_txt else next_token
-            potential_width = self.__font.render(potential_line, True, self.__color).get_width()
+            potential_width = self.__font.size(potential_line)[0]
 
             if potential_width > self.max_width and self.wrap and self.max_width > 0:
                 if not actual_txt:
@@ -255,7 +255,7 @@ class Text(Base):
         else:
             raise TypeError('El tipo de font debe ser "str" o "pag.font.Font"')
         self.__font.set_underline(self.underline)
-        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
+        self.text_height = self.__font.size('hola|-|█', )[1]
         self.__generate()
     @property
     def size(self):
@@ -269,7 +269,7 @@ class Text(Base):
 
         self.__size = int(size)
         self.__font = pag.font.Font(self.raw_font, self.__size)
-        self.text_height = self.__font.render('hola|-|█', True, self.__color).get_height()
+        self.text_height = self.__font.size('hola|-|█')[1]
         self.__generate()
     @property
     def color(self):

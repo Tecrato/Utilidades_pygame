@@ -160,3 +160,6 @@ cython_debug/
 .idea/
 
 .vscode/
+
+# Artefactos del banco de pruebas (se regeneran con run_all.py)
+benchmarks/*.prof

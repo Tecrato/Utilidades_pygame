@@ -1,7 +1,7 @@
 # Recomendaciones de la IA — `Utilidades` + `Utilidades_pygame`
 
-> Revisión hecha el **23/10/2026** sobre el código que hay hoy en `site-packages`, ampliada el mismo día con ejemplos de corrección y el **25/10/2026** con una pasada completa por las tres apps de ejemplo (`Acelerador-de-descargas`, `Buscaminas`, `BrickBricker`). El estilo, los flujos y las convenciones de esas apps están en `perfil_de_codigo.md`.
-> **No se ha modificado ni una línea de código de las librerías.** Este archivo es el único que la IA puede editar libremente; las ideas de aquí las implementas tú, a tu manera.
+> Revisión hecha el **23/10/2026** sobre el código que hay hoy en `site-packages`, ampliada el mismo día con ejemplos de corrección, el **25/10/2026** con una pasada completa por las tres apps de ejemplo (`Acelerador-de-descargas`, `Buscaminas`, `BrickBricker`) y el **26/10/2026** con un banco de pruebas medido (`benchmarks/`). El estilo, los flujos y las convenciones de esas apps están en `perfil_de_codigo.md`.
+> **La librería solo se ha tocado donde lo autorizaste:** `Base_class(..., autostart=False)` y el `hwnd` opcional para poder probar headless. Todo lo demás de este archivo son ideas para que las implementes tú, a tu manera.
 > Cada recomendación tiene un **ID** para que la puedas marcar, discutir o descartar sin perder el hilo.
 
 ## Leyenda de estado
@@ -12,6 +12,7 @@
 | 📖 | **Verificado leyendo el código** (no hace falta ejecutar: se ve a simple vista) |
 | 💭 | **Hipótesis de rendimiento**: suena a cuello de botella, pero hay que medirlo antes de tocarlo |
 | 🧪 | **Ejemplo de corrección probado aparte** (en un script suelto, nunca editando la librería): hoy `OPT-03` y `OPT-05` |
+| 📊 | **Medido en `benchmarks/`** el 26/10/2026 (headless, 800×600, pygame 2.6.1) |
 
 ## Cómo usar este documento
 
@@ -23,91 +24,76 @@
 
 ## Resumen ejecutivo (si solo lees 10 líneas)
 
-1. **La unidad de `dt` ya está unificada** (`UNITS-01`, hecho y medido) y `BUG-18` está cerrado: el `finally` de `__init__` ya solo limpia. §2 recoge ahora los diez bugs que aparecieron al usar las librerías desde fuera, en las tres apps.
-2. **La semántica de `redraw` (0/1/2/3) está repartida y es implícita** (`API-01`). Es la mayor fuente futura de parpadeos y de bugs difíciles. Formalizarla no cuesta casi nada y lo ordena todo.
-3. **El texto se mide renderizando**, y `Input` re-renderiza su superficie **en cada frame** (`OPT-03`, `OPT-04`). Ahí está el gasto más fácil de eliminar.
-4. **`draw_optimized` es O(n²) con copias de listas** (`OPT-01`), pero como los widgets de UI son estáticos, se puede resolver con un índice construido **una vez por pantalla**.
-5. Antes de optimizar nada: **mide** (`OPT-00`). No he ejecutado benchmarks, así que todo lo de §1 salvo lo marcado 📖 es hipótesis.
+1. **Ya hay banco de pruebas y cifras** (`OPT-00`, hecho): `benchmarks/` con un archivo por widget, uno combinado y `RESULTADOS.md`. Todo lo de §1 va ahora con 📊.
+2. **El hallazgo grande: un `Input` en pantalla dispara la cascada de dirty rects cada frame.** `draw_surf()` deja `redraw = 1` al dibujarse, así que el frame “limpio” recorre la lista entera. Medido: **200 widgets sin `Input` = 0,49 ms; con 33 `Input` = 6,9 ms** y **10 100 llamadas a `collide` por frame** en vez de 200. Es el mismo `OPT-01`, pero con un disparador concreto.
+3. **`draw_optimized` con todo sucio es O(n²) y peor que `draw_always`**: 200 `Text` sucios cuestan ~27 ms con cascada frente a ~2,2 ms sin ella. La cascada solo compensa con pocos objetos sucios.
+4. **Crear es mucho más caro que dibujar**: un `Text` ~2 ms, un `Input` ~6 ms, un `Boton` ~1,8 ms de construcción. 1 000 `Text` tardan ~2 s en crearse; un frame con 1 000 ya creados cuesta <1 ms. Si una pantalla tarda en abrir, está en el constructor.
+5. **La lista de dibujo escala lineal y no aguanta un millón**: ~0,8 ms con 1 000 objetos, ~67 ms con 100 000, **~700 ms con 1 000 000** (~1,4 FPS) *sin dibujar nada*, solo recorriéndolos. La `List` de un millón sí puede ir a 60 FPS en runtime (solo blitea lo visible), pero cuesta ~3,1 GiB de RAM y ~14 s de creación (ver `OPT-09`/`bench_list`).
 
 ---
 
 # 1. Optimización
 
-## OPT-00 — Medir antes de tocar 📖💭
+## OPT-00 — Banco de pruebas y cifras reales ✅📊
 
-**Qué hacer.** Un script aparte (fuera de la librería, en `benchmarks/`) que:
+**Hecho.** `Utilidades_pygame/benchmarks/` — un archivo por widget, uno combinado y un ejecutor que escribe el informe:
 
-- arranque pygame headless: `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`;
-- monte una pantalla con N widgets de cada tipo (`Text`, `Button`, `Input`, `Bloque`) para N = 10, 50, 200, 1000;
-- dibuje 300 frames con `draw_mode` `optimized` y `always`, midiendo con `time.perf_counter()` alrededor de la llamada, y separando **dibujado** de **update**;
-- perfile 10 frames con `cProfile` y guarde el `.prof` (`python -m pstats`).
-
-**Por qué.** Ahora mismo no hay ninguna cifra de referencia. Sin ella, cualquier "optimización" es fe y el riesgo de romper el dirty-rect sin ganar nada es alto.
-
-**Presupuesto de frame** (60 FPS → 16.6 ms). Objetivo razonable, no medido todavía:
-
-| Fase | Presupuesto |
+| Archivo | Qué mide |
 |---|---|
-| eventos + update de widgets | ≤ 4 ms |
-| dibujado (blits + `display.update`) | ≤ 8 ms |
-| margen para tu lógica de juego | resto |
+| `common.py` | app headless (`autostart=False`), cronómetro con mediana/p95, `sin_presentacion()` |
+| `bench_text.py` | crear / dibujar limpio / dibujar sucio, párrafos, `font.size` vs `font.render` |
+| `bench_button.py` | el coste propio de `Button` (hover, colores) |
+| `bench_input.py` | re-render por frame de `OPT-04` y tecleo letra a letra |
+| `bench_list.py` | creación, scroll, `select`, smoothscroll y **memoria por elemento** |
+| `bench_bloque.py` | contenedor con scroll: dibujar, mover hijos |
+| `bench_image.py` | escalar, girar y **animar** el ángulo cada frame |
+| `bench_figuras.py` | polígonos y engranajes (hoy bloqueado, `BUG-36`) |
+| `bench_particulas.py` | update + draw de 10 / 100 / 1 000 partículas |
+| `bench_app.py` | escena mixta, escalado del bucle, cascada y **perfil `cProfile`** |
+| `run_all.py` | todo + `RESULTADOS.md` con entorno y tablas |
 
-**Cómo verificar.** Guarda la tabla de tiempos en `benchmarks/RESULTADOS.md` antes y después de cada cambio. Si un cambio no mueve la aguja, se revierte. Eso es todo el método.
+**Cómo se ejecuta** (desde `site-packages`):
 
-**Cómo podría quedar** (esqueleto del banco de pruebas):
-
-```python
-# benchmarks/bench_ui.py
-import os, time
-os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
-
-import pygame as pag
-from Utilidades_pygame import Config, Text
-from Utilidades_pygame.base_app_class import Base_class
-
-
-class Bench(Base_class):
-    """Neutraliza el bucle para medir el dibujado a mano (API-04 lo hará innecesario)."""
-    def screen_main(self): ...
-    def on_exit(self): ...
-
-    def montar(self, n):
-        for i in range(n):
-            self.lists_screens["main"]["draw"].append(
-                Text(f"texto {i}", 16, pos=(i % 20 * 40, i // 20 * 24))
-            )
-
-
-def ms_por_frame(fn, frames=300):
-    fn()                                    # calentamiento
-    t0 = time.perf_counter()
-    for _ in range(frames):
-        fn()
-    return (time.perf_counter() - t0) * 1000 / frames
-
-
-app = Bench(Config(resolution=(800, 600)), initial_screen="main")
-pag.init(); pag.font.init()                 # __init__ ya llamó a pag.quit()
-app.ventana = pag.display.set_mode((800, 600))
-app.ventana_rect = app.ventana.get_rect()
-app.montar(200)
-
-dibujo = app.lists_screens["main"]["draw"]
-print(f"optimized: {ms_por_frame(lambda: app.draw_optimized(dibujo)):.2f} ms/frame")
-app.draw_mode = "always"
-print(f"always:    {ms_por_frame(lambda: app.draw_always(dibujo)):.2f} ms/frame")
+```
+python Utilidades_pygame/benchmarks/run_all.py            # todas las tablas → RESULTADOS.md
+python Utilidades_pygame/benchmarks/bench_text.py         # una sola
+type Utilidades_pygame\benchmarks\RESULTADOS.md          # ver el informe
+BENCH_BIG=1 python Utilidades_pygame/benchmarks/run_all.py   # añade 100 000 en List y 1 000 000 en el bucle
 ```
 
-**Aviso:** tal como está, ese esqueleto **no arranca**. Con `SDL_VIDEODRIVER=dummy`, `Base_class.__init__` falla en `pag.display.get_wm_info()['window']` con `KeyError` (BUG-26), y además `__init__` termina con `pag.quit()`, así que el `pag.init()` de después no te salva. Arregla BUG-26 (dos líneas) antes de usar el banco; es el mismo cambio que desbloquea los tests de la app entera de API-04.
+**Resultados clave** (26/10/2026, headless 800×600, pygame 2.6.1, presupuesto 16,6 ms):
 
-Para el perfil, envuelve el bucle: `cProfile.runctx("app.draw_optimized(dibujo)", globals(), locals(), "bench.prof")` y luego `python -m pstats bench.prof` → `sort tottime` → `stats 20`.
+| Qué | Medida |
+|---|---|
+| Frame limpio de 200 widgets **sin** `Input` | 0,49 ms (2 022 FPS) |
+| Frame limpio de 200 widgets **con** 33 `Input` | 6,89 ms (145 FPS) · **10 100** `collide`/frame |
+| 200 `Text` todos sucios: `optimized` vs `always` | ~27 ms vs ~2,2 ms |
+| Rejilla de 1 000 `Text`, mover uno | 1,85 ms `optimized` / 8,4 ms `always` |
+| Crear 1 `Text` / 1 `Input` / 1 `Button` | ~2 ms / ~6 ms / ~1,8 ms |
+| Dibujar 1 000 `Text` ya creados, sin cambios | 0,7–0,8 ms |
+| Bucle con 1 000 / 100 000 / 1 000 000 objetos falsos | ~0,8 ms / ~67 ms / **~700 ms** |
+| `List` de 1 000 / 100 000 | 3,1 MiB / 310 MiB; crear 14 ms / 1,36 s |
+| Girar una imagen de 400×300 (un frame) | 1,3–4,2 ms **por imagen** |
+| 1 000 partículas: update + draw | 4,3 ms |
+
+**Cómo usar esto.** Antes de tocar nada, corre el banco y guarda `RESULTADOS.md`. Haz **un** cambio, vuelve a correrlo y compara. Si no mueve la aguja, se revierte. Ese es todo el método; el resto de §1 son los candidatos ordenados por lo que ya se ve.
+
+**Lo que el banco corrige de las hipótesis anteriores:**
+
+- `OPT-04` era cierto pero pequeño **por widget** (~0,04 ms); lo caro no es el re-render, es que **dispara la cascada** (ver `OPT-01`).
+- `OPT-02` (`fill` por frame) pesa poco: ~0,2–0,5 ms en 800×600 (`sin fill` apenas cambia). No es lo primero.
+- `OPT-03` está a medias: `Text` ya mide con `font.size()`, pero `get_txt_ajustado` sigue renderizando una vez por letra. El gasto grande medido no está ahí: está en **construir** el widget (~2 ms por `Text`).
+- La lista de dibujo **no** aguanta un millón de objetos: ~700 ms por frame solo en recorrerlos. El millón que tú tienes funciona porque está **dentro** de `List` (solo se blitea lo visible); en la lista global no cabe.
+
+**Limitaciones del banco.** Driver *dummy*: no mide presentación real ni GPU. Una sola máquina y una sola versión de pygame. Las cifras son para comparar antes/después, no como verdad absoluta.
 
 ---
 
-## OPT-01 — El doble bucle de `draw_optimized` 📖💭
+## OPT-01 — El doble bucle de `draw_optimized` 📖📊
 
 **Dónde.** `base_app_class.py` → `Base_class.draw_optimized`.
+
+**Lo que dice el banco.** El peor caso está confirmado: con **200 `Text` todos sucios**, `draw_optimized` tarda ~27 ms y `draw_always` (misma cantidad de dibujo, sin cascada) ~2,2 ms. Con la rejilla de 1 000 `Text` y **solo uno movido**, `optimized` gana (1,85 ms vs 8,4 ms), o sea que la cascada es correcta cuando hay pocos sucios y tóxica cuando hay muchos. Y hay un disparador escondido que la mantiene encendida siempre: **cada `Input` visible se marca sucio al dibujarse** (`OPT-04`), así que 200 widgets con 33 `Input` hacen **10 100 `collide` por frame** en vez de 200 y pasan de 0,49 a 6,9 ms **sin que nada cambie**. Arreglar eso es independiente de reescribir la cascada, y es lo primero por relación beneficio/riesgo.
 
 **Qué cuesta hoy.**
 
@@ -240,22 +226,32 @@ Recomendación: **no lo toques hasta que el benchmark diga que `fill` pesa**. En
 
 ---
 
-## OPT-03 — El texto se mide **renderizando** 📖💭
+## OPT-03 — El texto se mide **renderizando** 📖📊 (a medias)
 
-**Dónde.** `texts/text.py` → `Text.__generate`, `Text.create_rect`, `Text.get_txt_ajustado`, `Text.font` (setter).
+**Dónde.** `texts/text.py` → `Text.__generate`, `Text.get_txt_ajustado`, `Text.font` (setter).
 
-**Qué cuesta hoy.**
+**Lo que ya está hecho.** `__generate` ya mide con `self.__font.size(potential_line)[0]` y el alto sale de `font.size('hola|-|█')[1]`, no de un `render`. Eso era la mitad del problema y está resuelto.
 
-- `__generate` recorre palabra por palabra y para **cada** palabra candidata llama `self.__font.render(potential_line, ...).get_width()`. Un párrafo de 40 palabras son ~40 renders completos **solo para medir**. Renderizar crea una superficie con antialiasing; medir no debería costar eso.
-- `get_txt_ajustado` va quitando letras desde el final y **renderizando una vez por letra** hasta que cabe. Peor caso: `len(texto)` renders por línea truncada.
-- El setter de `font` renderiza `'hola|-|█'` solo para sacar el alto.
+**Lo que queda: `get_txt_ajustado`.** Sigue renderizando:
+
+```python
+txt = self.__font.render(text + ('...' if always_elipsis else ''), True, self.__color)
+if txt.get_width() <= self.max_width:
+    return txt
+for i in range(1, len(text)):
+    txt = self.__font.render(text[:-i] + '...', True, self.__color)   # ← un render por letra
+    if txt.get_width() <= self.max_width:
+        break
+```
+
+Dos cosas malas ahí: mide **renderizando** en un bucle (hasta `len(texto)` renders por línea truncada) y el bucle recorre letras **de una en una**. Con el texto que se pasa de ancho en una lista o un párrafo, eso se paga en cada `text = ...`.
 
 **Qué probar.**
 
-- Medir con `font.size(texto)` → `(ancho, alto)` **sin crear superficie**. Es la API pensada para esto.
-- Para `get_txt_ajustado`, el ancho es **monótono** con la longitud del prefijo: búsqueda binaria sobre el número de caracteres en vez de lineal. Pasa de ~n renders a ~log₂(n) mediciones.
-- Cachear el resultado de `render` en un dict pequeño con tope (LRU casero o `functools.lru_cache` sobre una función pura `(texto, color, aa) -> Surface`). En una UI hay muchísimo texto repetido (etiquetas, "OK", "Cancelar").
-- El alto del texto se puede sacar de `font.get_height()` / `font.get_linesize()`, sin render de prueba.
+- `font.size(texto)` para medir; ya sabes que coincide con `render().get_width()` (0 discrepancias en 300 cadenas, medido).
+- El ancho es **monótono** con el prefijo: **bisección** sobre el número de caracteres, de ~n renders a ~log₂(n) mediciones. Solo se renderiza **una vez**, el resultado final.
+- Cachear los `render` en un dict acotado (LRU casero o `lru_cache` sobre `(texto, color, aa) -> Surface`): en una UI hay muchísimo texto repetido ("OK", "Cancelar", etiquetas).
+- El banco ya separa las dos cosas: `medir 100 cadenas con font.size()` (~20 ms) frente a `font.render()` (~33 ms) en cadenas largas. La diferencia es la que te ahorras por medición, multiplicada por cada palabra de un párrafo.
 
 **Cómo verificar.** Un test que compare `size(t)` con `render(t).get_size()` para un puñado de cadenas y fuentes. Si coinciden (deberían, salvo detalles de padding), el cambio es seguro. Después, benchmark de un `Text` de 200 palabras que cambia 60 veces.
 
@@ -309,9 +305,11 @@ O sea: aquí no hay coste de fidelidad. Aun así deja el test en el repo, porque
 
 ---
 
-## OPT-04 — `Input` re-renderiza cada frame (y cada tecla) 📖💭
+## OPT-04 — `Input` re-renderiza cada frame (y cada tecla) 📖📊
 
 **Dónde.** `texts/input.py` → `update_pressed_keys`, `draw_surf`, `add_letter`.
+
+**Lo que dice el banco.** El re-render en sí es barato (~0,04 ms por `Input` y frame: 50 `Input` en `always` = 2,1 ms). **Lo caro es el efecto colateral**: `draw_surf()` termina con `if self.redraw < 1: self.redraw = 1`, así que el widget se declara sucio **al dibujarse**. En `optimized` eso hace que cada `Input` devuelva un rect y lance la cascada de `OPT-01` sobre toda la lista: 200 widgets con 33 `Input` = **10 100 `collide`/frame y 6,9 ms**, frente a 200 y 0,49 ms sin ellos. La línea que hay que cambiar es esa, no el bucle.
 
 **Qué cuesta hoy.**
 
@@ -490,39 +488,59 @@ for i in reversed(to_del):
 - `Second_Order_Dinamics` está bien: `__slots__`, integración estable, clamp de `dt`. No lo toques.
 - `maths.line_to_polygon_intersection` con spatial hashing es correcto por diseño; primero mide si tu juego lo llama lo suficiente como para importar.
 - `Vector2` propio frente a `pygame.Vector2`: el tuyo con `__slots__` evita el puente Python↔C por atributo, pero pierde las operaciones vectorizadas de pygame. **Mide los dos** en el caso real (mover 1.000 partículas) antes de decidir. No hay respuesta universal.
+- `fill` de la ventana entera por frame (`OPT-02`): medido, ~0,2–0,5 ms en 800×600. No es el problema.
+
+---
+
+## OPT-09 — La clase `Image` está medio rota: escalar o girar cuesta un frame 📖📊
+
+**Lo que pedías anotar, y es exacto.** Hoy **no hay ninguna forma óptima de cambiar el tamaño ni de girar una imagen**: cada `size = ...` y cada `angle = ...` llama a `generate_img()`, y ese método **vuelve a escalar y a rotar desde la imagen original**. No hay caché, no hay versión preconvertida, no hay forma de decir “esto no cambia, no lo recalcules”.
+
+**Medido** (`benchmarks/bench_image.py`, 400×300, headless):
+
+| Operación | Mediana |
+|---|---|
+| `size = (400, 300)` (una vez, cambia) | 0,44 ms |
+| `angle = 45°` de una imagen grande | **4,2 ms** |
+| animar el ángulo cada frame (400×300) | **1,3–2,2 ms por imagen y frame** |
+| animar el ángulo de un icono 64×64 | 0,03 ms |
+| crear la imagen ya girada | 1,3–1,5 ms |
+
+Con **una** imagen grande animada te comes el 10 % del frame; con cuatro, el frame entero. Y no es culpa de la rotación de pygame: es que se hace **completa** cada vez, y si hay `size`, se hace `smoothscale` **y** `rotate` desde el original.
+
+**Las tres salidas, de menos a más trabajo.** Ninguna la implemento aquí (queda para ti, como pediste):
+
+1. **Caché de ángulos precalculados** (lo que ya probaste tú en `Pygame/test FPS/CPU - CPU + CACHED/imagen.py`: `img_cached = [pag.transform.rotate(img, x) for x in range(181)]`). Para un sprite que gira 0–360°, 360 superficies de 64×64 son 5,9 MB y el frame pasa a un `blit`. Para imágenes grandes no cabe entera, pero sí **las 24–36 poses que de verdad usas**. Es la solución de tu propio experimento, y sigue siendo la correcta.
+2. **Invalidación explícita.** Que `angle` y `size` solo regeneren si cambia el valor (el setter de `size` ya lo hace; el de `angle` no, aunque le asignes el mismo ángulo) y que exista algo como `set_angle(angle, redibujar=False)` para preparar la imagen y pintarla después. Un `angle` que no cambia no debería costar 4 ms.
+3. **Preconvertir una vez.** `generate_img` trabaja sobre el original cada vez; guardar `self.__original` ya en el formato de la pantalla (`convert_alpha()`) evita una conversión por regeneración.
+
+**Lo que NO haría:** rotar con `smoothscale`/`rotate` dentro de `draw()`. Eso multiplica el coste por cada frame y por cada copia visible.
+
+**Cómo verificar.** `bench_image.py` ya mide el caso real (`animar ángulo de imagen grande`); si baja de 1 ms sin cambiar el resultado visual, va bien. Y un detalle aparte que salió al medirlo: `Image.draw` blitea **siempre**, incluso con `redraw == 0` (la comprobación de `redraw` está después del `blit`), así que una imagen quieta sigue costando su blit cada frame.
 
 ---
 
 # 2. Corrección
 
-Última pasada: 25-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25 y UNITS-01.
+Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-33** y UNITS-01.
 
-Los de abajo salieron de usar las librerías **desde fuera** (las tres apps), que es donde no llegan los tests actuales. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
+Los de abajo salieron de usar las librerías **desde fuera** (las tres apps) y de montar el banco de pruebas, que es donde no llegan los tests unitarios. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
 
 | ID | Estado | Dónde | Qué pasa |
 |---|---|---|---|
-| BUG-26 | ✅ | `base_app_class.py` → `__init__` | `pag.display.get_wm_info()['window']` lanza `KeyError: 'window'` con `SDL_VIDEODRIVER=dummy`: la app no se puede crear headless y el banco de pruebas de `OPT-00` no llega a arrancar. |
 | BUG-27 | ✅ | `bloque.py` → `move_objs`, `collide` | `move_objs` sale en `if not self.scroll_y: return`, así que con scroll horizontal pero no vertical el `inside_height` del eje X se queda en 1 y la barra no aparece nunca. Y `collide` solo mira a los hijos, no a su propio `rect`: un `Bloque` vacío no colisiona con la ventana y `draw_optimized` lo salta sin dibujarlo. |
 | BUG-28 | ✅ | `Barras_progreso.py` → `pulsando` | Rama horizontal: `self.rect.w = self.rect2.left + m_x` debería ser `m_x - self.rect2.left`. Medido con la barra en x=100 y ancho 200: clic en x=150 y clic en x=250 dan **volumen 1.0** los dos. En vertical funciona. |
 | BUG-29 | ✅ | `texts/multilist.py` → `__init__` | `Multi_list((100,100),(10,10))` con los valores por defecto revienta: `AttributeError: 'NoneType' object has no attribute 'height'` al leer `self.listas[0].text_header.height`, porque `header=True` y `header_text=None`. Solo funciona pasando `header_text` o `header=False`. |
 | BUG-30 | ✅ | `texts/text.py` → setter de `size` | El setter recrea la fuente pero no le repone el subrayado (el setter de `font` sí lo hace). Medido: con `underline=True`, la fuente nace subrayada y tras `size = 48` `get_underline()` da `False` mientras `texto.underline` sigue diciendo `True`. |
 | BUG-31 | ✅ | `obj_Base.py` → `copy` | Copia bien `rect`/`pos`/animación, pero las listas quedan **compartidas**: `lista_text` y `lista_text_rects` son el mismo objeto en original y copia. Medido: copiar un `Text` multilínea y cambiarle el texto deja 7 rects en el original, cuyo texto no cambió. `Select_box` y `mini_GUI.select` viven de `Text.copy()`. |
 | BUG-32 | ✅ | `texts/app_menu.py`, `graficas/grafico_barras.py` | `App_menu.draw` y `Grafico_Barras.draw` devuelven `None` → `for s in r` lanza `TypeError: 'NoneType' object is not iterable` dentro de `draw_optimized`. Además `Barra` llama `Second_Order_Dynamics(60,2,1.0,1.1,(0,0))` con 5 argumentos (la clase toma 4), así que no se puede ni instanciar, y `Grafico_Barras` no está exportado. |
-| BUG-33 | ✅ | `image.py` → `draw` | La rama `redraw < 2` devuelve `[self.rect_border]` **sin** `diff_pos`; la otra sí lo aplica. Medido con `diff_pos=(30,30)`: devuelve `(45,45)` y después `(75,75)`. Dentro de un `Bloque` con scroll ensucia el rect equivocado. |
 | BUG-34 | ✅ | `Utilidades/multithread.py` → `Interval_funcs.__start_func` | Si la función del intervalo lanza, el hilo muere y el intervalo **deja de existir en silencio**: medido, 1 ejecución y `is_alive()` en `False`, sin log. En `V_download` eso son tres intervalos que pueden desaparecer sin avisar. |
 | BUG-35 | ✅ | `texts/list.py`, `texts/input.py`, `texts/select_box.py` | No aceptan `diff_pos` y `Select_box` ni siquiera tiene `pos`, así que no pueden ir dentro de un `Bloque`: `TypeError: List.draw() got an unexpected keyword argument 'diff_pos'` y `AttributeError: 'Select_box' object has no attribute 'pos'`. |
+| BUG-36 | ✅ | `figuras/base.py` + las tres subclases | El refactor a `pygame.Rect` dejó los atributos con **doble guion bajo en `BasePolygon`**, y las subclases los leen con su propio nombre manglado: `self.__pos` en `PoligonoRegular._generate` es `_PoligonoRegular__pos`, pero quien lo creó fue `BasePolygon.__init__` como `_BasePolygon__pos`. Resultado: `AttributeError` al construir cualquier figura, y `self.__figure` de la subclase no es el que lee `BasePolygon.draw`. **11 tests de `tests/test_figuras.py` en rojo**; `bench_figuras.py` no puede ejecutarse. |
 
 ## Correcciones, con código
 
 Un bloque por fila de la tabla. Son **el cambio mínimo**, no el parche final: van escritos contra el código de esta fecha y algunos tocan firmas. Donde hay una trampa, la digo debajo.
-
-### BUG-26 · `hwnd` cuando no hay ventana real
-
-```python
-self.hwnd: int|None = pag.display.get_wm_info().get('window')
-```
-
-Y donde se usa (`take_window_snapshot` del F12, `win32_tools.front2`), comprobar `if self.hwnd is None: return`. Es lo que desbloquea el banco de `OPT-00` y cualquier test de la app entera.
 
 ### BUG-28 · la barra horizontal
 
@@ -563,6 +581,23 @@ def __start_func(self, alias, stop: Event):
 ```
 
 Así el intervalo sigue vivo y te enteras. Si prefieres que muera, al menos que lo diga en el log: hoy el `Thread` escupe el traceback a stderr y el objeto queda como si estuviera funcionando.
+
+### BUG-36 · las figuras no se pueden ni construir
+
+El cambio mínimo es que **subclase y base usen el mismo nombre**, y el más barato es dejar de usar el manglado en la base:
+
+```python
+# figuras/base.py
+self._pos = pos          # antes: self.__pos  →  _BasePolygon__pos
+self._radio = radio
+self._angle = angle
+self._figure = []
+self._rect = Rect(0, 0, 0, 0)
+
+# y en las tres subclases, lo mismo: self._pos, self._radio, self._angle, self._figure
+```
+
+Las propiedades públicas (`pos`, `radio`, `angle`, `figura`, `rect`) ya existen: úsalas desde la subclase (`self.pos`, `self.radio`...) y así el nombre da igual. Lo que **no** funciona es dejar `__pos` en la base y escribirlo en la subclase: son dos atributos distintos y el segundo no existe. Después de arreglarlo, `python -m pytest Utilidades_pygame/tests/test_figuras.py -q` debe volver a 11 verdes, y `bench_figuras.py` ya mide.
 
 ---
 
@@ -721,7 +756,7 @@ Existen tres firmas distintas y tres formas de devolver, y el bucle llama a toda
 
 | Clase | Firma | Devuelve |
 |---|---|---|
-| `Text`, `Button`, `Bloque`, `Image` | `draw(surface, always_draw=False, diff_pos=(0,0))` | `list[Rect]` — `Image` olvida `diff_pos` en la rama `< 2` (BUG-33) |
+| `Text`, `Button`, `Bloque`, `Image` | `draw(surface, always_draw=False, diff_pos=(0,0))` | `list[Rect]` |
 | `List` | `draw(surface, always_draw=False)` | `list[Rect]` |
 | `Input` | `draw(surface)` | `list[Rect]` |
 | `Multi_list` | `draw(surface)` | `tuple[Rect]` |
@@ -744,6 +779,20 @@ def draw(self, surface, *, always_draw=False, diff_pos=(0, 0)) -> list[pag.Rect]
 ```
 
 Y `App_menu`/`Grafico_Barras` devolviendo la lista de rects que ya podrían calcular (hoy dibujan y tiran esa información).
+
+## API-11 — `Bloque` no tiene dirty rects y está a medio hacer 📖
+
+**Anotado, no para arreglarlo ahora.** La idea de `Bloque` es ser el `<div>` de la librería: un contenedor con posición, tamaño, scroll y sus hijos dentro. Hoy no cumple el contrato de dirty rects y por eso no es un `<div>`, es un “redibuja todo lo mío”:
+
+- **`draw()` no baja `redraw` nunca.** Al final devuelve `[rect_border, unión]` pero no pone `self.redraw = 0`; como `draw_optimized` solo llama a `draw` (que internamente corta en `if self.redraw < 2`), el bloque queda siempre ≥2 y **se redibuja entero cada frame aunque nada cambie**. Medido: `dibujar Bloque(100), sin scroll` = 1,0–1,1 ms por frame, igual que forzado; no hay estado “quieto”.
+- **Marca sucios a todos los hijos** en cada `draw` (`x['GUI'].redraw += 2`), así que el dirty rect de dentro tampoco descansa: es `draw_always` disfrazado.
+- **No intersecta los updates de los hijos con su propio rect**, y los traslada con `k.center += self.topleft` en vez de `move`; con scroll y bordes se ensucian zonas de fuera del bloque.
+- **`collide` mira solo a los hijos, no a su `rect`** (BUG-27): un `Bloque` vacío no se dibuja nunca, y uno con hijos fuera de pantalla tampoco.
+- **`move_objs` sale antes si falta un eje** (BUG-27): con `scroll_x=False` no recalcula nada, y con scroll horizontal solo tampoco.
+- **`update` llama a `x['GUI'].update()`** sin `mouse_pos` ni `dt`: los hijos con animación o con `update` que espera `dt` no reciben el delta, y los que usan `mouse_pos` se quedan con el último.
+- **`add()` reconstruye el layout completo** (`move_objs` por cada hijo añadido): meter 100 hijos cuesta O(n²) y se nota (100 hijos = 190 ms de creación).
+
+Nada de esto se toca aquí. La forma correcta, cuando lo abordes, es la misma que el resto de la librería: que el bloque tenga su `redraw` de verdad (0 = nada, 1 = su zona, 2 = su zona + la anterior), que los hijos se dibujen a una superficie interna solo cuando **ellos** están sucios, y que su `collide` empiece por `self.rect.colliderect(rect)`. El banco (`bench_bloque.py`) ya mide las tres cosas para que puedas comparar.
 
 ---
 
@@ -844,12 +893,14 @@ Hay dos carpetas de tests, escritas y en verde. Desde `site-packages`:
 python -m pytest Utilidades/test Utilidades_pygame/tests -q
 ```
 
-Estado al 25-10-2026: **97 tests, todos en verde en un par de segundos**. Los tres bugs que aparecieron al escribirlos ya están arreglados y sus tests siguen ahí: lo que hoy es una regresión fue ayer un bug, y así no vuelve.
+Estado al 26-10-2026: **90 pasan, 11 fallan**. Los que fallan son **todos los de `test_figuras.py`**, y no por los tests: `BUG-36` rompió la construcción de figuras después de escribirlos. Es exactamente para lo que estaban. Cuando arregles el manglado, la suite vuelve a verde sin tocar un test. El resto (textos, base headless y todo `Utilidades`) sigue en verde.
 
 | Carpeta | Archivos | Qué cubre |
 |---|---|---|
 | `Utilidades/test/` | `test_maths`, `test_mytime`, `test_animaciones`, `test_multithread`, `test_collision_handler` | puro, sin pygame |
-| `Utilidades_pygame/tests/` | `test_figuras`, `test_texts` | headless, `SDL_VIDEODRIVER=dummy` |
+| `Utilidades_pygame/tests/` | `test_figuras`, `test_texts`, `test_base_app` | headless, `SDL_VIDEODRIVER=dummy` |
+
+`test_base_app.py` es nuevo y cubre `API-04`: construir la app con `autostart=False`, `hwnd is None` en headless, un frame con `draw_optimized` que devuelve rects y el siguiente que no dibuja nada, y `draw_always` sin reventar.
 
 Lo que hace que no sean frágiles:
 
@@ -896,15 +947,17 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 | # | Qué | IDs | Riesgo | Por qué ahora |
 |---|---|---|---|---|
-| 1 | Los diez bugs de §2 que rompen widgets | BUG-26..35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
-| 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto (97 tests): queda el golden y saber que las libs importan en Linux. |
-| 2 | Quitar el re-render por frame de `Input` | OPT-04 | Bajo | La mejora más barata que hay. |
-| 3 | Medir + arreglar el doble bucle | OPT-00, OPT-01 | Medio | Aquí está el techo de escalabilidad de la UI. |
-| 4 | Medir texto con `font.size` + caché | OPT-03 | Bajo | Segundo mayor gasto, y aislado en un archivo. |
+| 0 | Reparar `BUG-36` (figuras) | BUG-36 | Ninguno | Son 11 tests en rojo y un benchmark menos; el arreglo es de nombres, no de lógica. |
+| 1 | Los bugs de §2 que rompen widgets | BUG-27..32, BUG-34, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
+| 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto: queda el golden y saber que las libs importan en Linux. |
+| 2 | `Input` deja de marcarse sucio al dibujarse | OPT-04, OPT-01 | Bajo | Medido: 6,9 ms → 0,49 ms en una escena de 200 widgets. La mejora más barata que hay. |
+| 3 | Arreglar el doble bucle | OPT-01 | Medio | Aquí está el techo de escalabilidad de la UI. |
+| 4 | Caché de ángulos/tamaños en `Image` | OPT-09 | Bajo | Una imagen grande girando se come el frame ella sola. |
 | 5 | Formalizar `redraw` | API-01 | Bajo | Evita la clase de bug más cara de depurar. |
 | 6 | `pyproject.toml` + salir de `site-packages` | PKG-01, PKG-02 | Bajo | Trabajar cómodo y no perder el código. |
-| 7 | Separar `run()` de `__init__` | API-04 | Medio | Desbloquea tests headless de la app entera. |
+| 7 | Separar `run()` de `__init__` | API-04 ✅ | — | Hecho: `autostart=False` y `run()` separado; ya hay tests headless de la app entera. |
 | 8 | Una sola fuente de verdad | API-08 | Medio | Evita que vuelva a divergir. |
+| 9 | `Bloque` con dirty rects de verdad | API-11 | Alto | Es el `<div>` de la librería y hoy redibuja todo siempre; anotado, no urgente. |
 
 ## Lo que no cambiaría
 
@@ -923,6 +976,14 @@ Los bugs de §2 no necesitan comando suelto: cada uno se reproduce con un par de
 python -m pytest Utilidades/test Utilidades_pygame/tests -q
 ```
 
+Y el banco de pruebas (headless, desde `site-packages`):
+
+```
+python Utilidades_pygame/benchmarks/run_all.py
+python Utilidades_pygame/benchmarks/bench_text.py       # uno suelto
+BENCH_BIG=1 python Utilidades_pygame/benchmarks/run_all.py   # 100 000 en List y 1 000 000 en el bucle
+```
+
 Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-02`) en vez de dejarlo en la terminal. Así la lista de §2 nunca vuelve a caducar.
 
 # Apéndice B — Checklist
@@ -930,24 +991,26 @@ Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-
 Copia esta sección a medida que avances (o marca aquí mismo).
 
 **Corrección** (solo lo pendiente; lo resuelto no se lista)
-- [ ] BUG-26..35 — los diez de §2 (uno por commit, con su test)
+- [ ] BUG-36 — figuras rotas por name mangling (11 tests en rojo)
+- [ ] BUG-27..32, BUG-34, BUG-35 — los de §2 (uno por commit, con su test)
 
 **Optimización**
-- [ ] OPT-00 benchmark
+- [x] OPT-00 banco de pruebas y `RESULTADOS.md`
 - [ ] OPT-01 doble bucle
-- [ ] OPT-02 `fill` por frame
-- [ ] OPT-03 medir texto sin render
-- [ ] OPT-04 `Input` por frame
+- [ ] OPT-02 `fill` por frame (medido: pesa poco, puede esperar)
+- [ ] OPT-03 crear texto más barato / caché de renders
+- [ ] OPT-04 `Input` deja de marcarse sucio
 - [ ] OPT-05 `move_obj`
-- [ ] OPT-06 superficies
+- [ ] OPT-06 superficies (`convert`, `union`)
 - [ ] OPT-07 eventos
+- [ ] OPT-09 caché de rotación/escala en `Image`
 
 **Deuda**
 - [ ] API-01 `redraw` con nombre
 - [ ] API-02 `Protocol` de widget
-- [ ] API-04 `run()` separado
 - [ ] API-05 Windows aislado
 - [ ] API-08 fuente única
+- [ ] API-11 `Bloque` con dirty rects (anotado, sin prisa)
 - [ ] PKG-01..04 empaquetado
 - [ ] TST-02 lo que falta de la pirámide
 - [ ] TST-03 CI

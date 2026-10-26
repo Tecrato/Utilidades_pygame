@@ -42,7 +42,7 @@ class Base_class:
     1) self.registrar_pantalla(alias: str)
     2) Agregar los botones y otros widgets a self.lists_screens[alias_de_pantalla]["draw"|"update"|"click"|"inputs"]
     '''
-    def __init__(self,config: Config|None = None, *args, **kwargs) -> None:
+    def __init__(self,config: Config|None = None, *args, autostart: bool = True, **kwargs) -> None:
         self.args = args
         self.kwargs = kwargs
         pag.init()
@@ -62,7 +62,7 @@ class Base_class:
 
             self.ventana = pag.Surface(self.config.resolution, pag.SRCALPHA)
             pag.display.set_mode(self.config.resolution, self.flags, vsync=self.config.vsync)
-            self.hwnd: int = pag.display.get_wm_info()['window']
+            self.hwnd: int|None = pag.display.get_wm_info().get('window')
             
             self.point_destino = wintypes.POINT(self.ventana.get_width(), self.ventana.get_height())
             self.point_origen = wintypes.POINT(0, 0)
@@ -82,7 +82,7 @@ class Base_class:
             )
         else:
             self.ventana: pag.Surface = pag.display.set_mode(self.config.resolution,  self.flags, vsync=self.config.vsync)
-            self.hwnd: int = pag.display.get_wm_info()['window']
+            self.hwnd: int|None = pag.display.get_wm_info().get('window')
         self.ventana_rect: pag.Rect = self.ventana.get_rect()
         pag.display.set_caption(self.config.window_title)
         if self.config.icon:
@@ -147,6 +147,12 @@ class Base_class:
         
         self.goto(self.actual_screen)
 
+        if autostart:
+            self.run()
+
+    def run(self):
+        '''Arranca el bucle principal y limpia al salir. `__init__(..., autostart=False)`
+        crea la app sin entrar al bucle, util para tests y benchmarks headless.'''
         try:
             self.screen_main()
         finally:
@@ -458,7 +464,7 @@ class Base_class:
 
         if evento.type == pag.QUIT:
             self.exit()
-        elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12 and self.config.screenshots_dir:
+        elif evento.type == pag.KEYDOWN and evento.key == pag.K_F12 and self.config.screenshots_dir and self.hwnd is not None:
             momento = datetime.datetime.today().strftime('%d-%m-%y %f')
             result = win32_tools.take_window_snapshot(self.hwnd)
             surf = pag.image.frombuffer(result['buffer'],(result['bmpinfo']['bmWidth'], result['bmpinfo']['bmHeight']),'BGRA')

@@ -1,8 +1,10 @@
 # Perfil de código — cómo trabajas tú, para que la IA no te haga perder tiempo
 
-> Revisión del **25/10/2026**. Fuentes: `Utilidades` (4.280 líneas), `Utilidades_pygame` (5.513),
-> y las tres apps que me dejaste — `Acelerador-de-descargas` (~3.800), `Buscaminas` (~250 + copia
-> vendorizada de las libs) y `BrickBricker` (~3.700). Python 3.13.15, pygame 2.6.1.
+> Revisión del **26/10/2026**. Fuentes: `Utilidades` (4.280 líneas), `Utilidades_pygame` (5.513),
+> las tres apps que me dejaste — `Acelerador-de-descargas` (~3.800), `Buscaminas` (~250 + copia
+> vendorizada de las libs) y `BrickBricker` (~3.700) — y el curso completo
+> (`Documents\curso de programacion\Python`: 599 archivos propios, 74.598 líneas).
+> Python 3.13.15, pygame 2.6.1.
 >
 > Este documento **no propone cambios**: describe lo que ya haces, con evidencia del código, para que
 > cualquier IA (yo incluido, en la próxima sesión) escriba código que encaje a la primera.
@@ -280,9 +282,9 @@ mano — y ahí están las inconsistencias (ver API-10).
 
 ## 10. Estado real de las tres apps contra las librerías de hoy
 
-Verificado con `grep` sobre el código de las apps y con la suite de las libs en verde (**97 tests,
-1,9 s**). Las apps **no** están cubiertas por tests, y ese es justo el hueco donde aparecen estos
-desajustes:
+Verificado con `grep` sobre el código de las apps y con la suite de las libs (**101 tests, 2,2 s**;
+90 en verde y los 11 de figuras en rojo por `BUG-36`). Las apps **no** están cubiertas por tests, y
+es justo el hueco donde aparecen estos desajustes:
 
 | Nombre que usan las apps | Nombre de hoy | Dónde | Efecto |
 |---|---|---|---|
@@ -369,11 +371,97 @@ Ninguna es "estética": todas han producido ya un error real o lo producirán.
 
 ---
 
+## 14. Historia: de dónde viene todo esto
+
+> Pasada del **26/10/2026** por `C:\Users\Edouard\Documents\curso de programacion\Python`:
+> **599 archivos `.py` propios** (sin `.venv`, sin `Ejemplos` de terceros), **74.598 líneas**, 2,8 MB.
+> Se inventariaron todos (tamaño, docstring, imports, duplicados por hash) y se leyeron completos
+> los que explican la evolución. Esta sección es el *porqué* del código de hoy; las propuestas
+> siguen en `recomendaciones_de_la_IA.md`.
+
+### 14.1 Las etapas, en orden
+
+| Etapa | Archivos testigo | Qué se ve |
+|---|---|---|
+| **1. Fundamentos** | `Numeros.py`, `numeros2.py`, `numeros3.py`, `Metodos de cadenas.py`, `cosas_random/p2/` | `print` de todo, variables de una letra (`a`, `b`, `q`), listas/dicts/sets, `for`/`while`/`break`/`else`, funciones con `*args`/`**kwargs`, decoradores. La curiosidad por el lenguaje antes que por el programa. |
+| **2. Pygame crudo** | `Pygame/Inicio.py` | 34 líneas: `while True` + `clock.tick(60)` + `fill` + `flip` + dos `Rect`. Ese esqueleto aparece **113 veces** en el curso. |
+| **3. Primer framework** | `Pygame/inicio remastered.py` | Ya está *todo*: clase con `load_resources` / `generate_objs` / `move_objs` / `eventos_en_comun` / `main_cycle`, listas `list_to_draw`, `list_to_click`, `redraw` global y `display.update(rects)`. Es literalmente el antecesor de `Base_class`, con dos intentos que luego se cayeron: `ciclo_general` + `cicle_try` (navegar entre pantallas sin anidar bucles) y un `isinstance` por tipo dentro del bucle de dibujo. De ahí salieron `goto()` y el método `draw()` uniforme. |
+| **4. Primer `Text`** | `Pygame/Juegos/Tower Defense/Utilidades/text.py`, `.../"Texto con superficies"/text.py`, `aplicaciones/inventario sencillo/NegocioV3/Utilidades/text.py` | `Create_text` con `mode = 1` (una línea) y `mode = 2` (lista de `Create_text` por línea). El multilínea nació **creando un widget por línea** y de ahí pasó a `lista_text` de superficies. Ya están `padding` como `Vector2`, `border_radius == 10000` para “redondo”, `with_rect`, `color_rect` y el `try/except` para detectar si el texto es una lista. Casi todos los `**kwargs` actuales vienen de aquí. |
+| **5. Animación** | `NegocioV2.py` (dentro de una app de inventario), luego `Utilidades/Animaciones.py` | `Second_Order_Dinamics` escrita a mano en el archivo, con `k1/k2/k3`, `k2_stable` y `Vector2`. Después se movió a la librería y se le puso `__slots__`. No es una librería que encontraste: la derivaste y la probaste dentro de una app real. |
+| **6. Colisiones** | `pruebas variadas/colicion_check_manager/` (dos versiones) | La v1 (`Colition_check_manager`) guarda listas de aristas, nodos adyacentes y objetos por zona, y busca la zona moviéndose por distancia. La v2 (`Collision_handler`) tira todo eso y se queda con rejilla uniforme + `dict` de objetos + `set` de ids. La comparación de los dos archivos es la decisión de diseño: **menos flexibilidad, más velocidad**. |
+| **7. Rendimiento** | `Pygame/test FPS/`, `Pygame/prueba_modernGL/rendimiento*.py`, `Pygame/pruebas/pruebas_poligonos_rendimiento.py` | Medías FPS a mano (`1/(end-start)`), probaste **caché de 181 rotaciones** (`img_cached = [rotate(img, x) for x in range(181)]`), `ventana.blits(...)`, un `Thread` que actualiza a `sleep(1/60)`, shaders con moderngl, raylib, y 900 polígonos dibujados con `draw_after` + `pag.draw.polygon` **saltándote el `draw()` de cada figura** porque era más rápido. De ahí viene tu obsesión (correcta) por el coste por frame y por el dirty rect. |
+| **8. Primer layout** | `Pygame/UI maker/` | Clase `Base` que **envuelve** un widget y reexporta `pos/left/center/...`, con `pos_type='zone_rel'` y `reset_pos()` que calcula la posición como porcentaje del tamaño de la zona. Es el primer intento de layout declarativo; quedó en experimento, pero es el antecesor de `dire` y de `move_objs`. También ahí aparece el patrón de duplicar la property `pos` dos veces seguidas (copiar/pegar). |
+| **9. Era de apps** | `API's/`, `aplicaciones/`, `Juegos/`, `flet/`, `HTML/`, `raylib/`, `IA/`, `Autoclicker/`, `Seguridad/` | Acelerador (Flask + SQLite + procesos + i18n), Buscaminas, BrickBricker, Tamagotchi, Minimarket, TecraTools, Regedit Changer, File transfer (flet), Django, FastAPI, sockets, Telegram, OpenCV, warp/numba, Cython, ctypes, Tkinter. Cada carpeta es un experimento aislado, no un producto. |
+
+### 14.2 Cómo evolucionó `Base_class` (mismo archivo, dos épocas)
+
+Comparando `Juegos/Tamagotchi/Utilidades_pygame/base_app_class.py` (515 líneas) con el de hoy:
+
+| Antes | Ahora | Qué cuenta |
+|---|---|---|
+| `def __init__(self, config: Config = Config(), ...)` | `config: Config\|None = None` | El default mutable se sustituyó por `None`: un `Config` compartido entre instancias era una bomba. |
+| `self.relog` | `self.clock` | Renombraste a un nombre que se lee mejor. |
+| `navegate_with_keys` | `navigate_with_keys` | Errata corregida, sin alias de compatibilidad. |
+| `self.screen_main()` directo en el constructor | `if autostart: self.run()` | Lo que acabas de autorizar: construir no es ejecutar. `run()` además envuelve en `try/finally`. |
+| `self.app_lock.acquire()` / `.release()` a mano | `with self.app_lock:` | Si `draw` lanzaba, el lock se quedaba tomado y la app se congelaba. |
+| `self.hwnd = pag.display.get_wm_info()['window']` | `.get('window')` | Un `KeyError` en headless; ahora es `None` y quien lo usa lo comprueba. |
+| Sin `on_keyup_general`, sin `exit()` con GDI, sin `window_transparent` | Todo eso | La app creció por casos reales (cerrar liberando GDI, teclas mantenidas, transparencia). |
+| `update_general` actualizaba widgets y luego llamaba a `self.update()` | `update()` propio va **antes** | Cambio deliberado: tu lógica mueve cosas y los widgets ven el estado nuevo en el mismo frame. |
+| `move_hover` solo `Button`/`Input` | `accept_to_move_with_arrows`, con `Barra_de_progreso` | La navegación por teclado se generalizó a un tipo configurable. |
+
+Ese diff es el mejor resumen de cómo trabajas: **no diseñas el framework en abstracto, lo extraes de una app que ya funciona**. Todo lo que hoy tiene `Base_class` existía antes dentro de `Tower Defense`, `Buscaminas` o `Acelerador`.
+
+### 14.3 Lo que el corpus dice de tu forma de aprender
+
+Contando **todas** las copias del curso (incluidas las vendorizadas):
+
+| Señal | Veces | Lectura |
+|---|---|---|
+| `print(` | 1 029 | El curso entero es un cuaderno de laboratorio; las libs ya no imprimen. |
+| `debug_print` | 207 | El sustituto llegó para quedarse: prioridad, archivo y línea. |
+| `while True` | 113 | Bucle crudo primero; `Base_class` vino después. |
+| `pag.time.Clock` | 91 | El FPS siempre estuvo controlado. |
+| `display.flip()` / `display.update(` | 100 / 32 | Se ve el cambio de “pinto todo” a “pinto rects”. El segundo ganó en las libs. |
+| `except:` desnudo / `except Exception` | 144 / 160 | El desnudo es de la época de pruebas; en las libs conviven los dos. |
+| `eval(` / `exec(` | 57 / 10 | Casi todos de `Select_box` y experimentos. Es el olor más fuerte que queda. |
+| `os.chdir` | 32 | Cada app se pone en su carpeta de assets al arrancar. Explica por qué las rutas relativas funcionan en tus apps y no en una librería. |
+| `Thread(` / `Process(` | 105 / 24 | Concurrencia de verdad, no de juguete: descargas por partes y ventanas en procesos. |
+| `lru_cache` / `__slots__` | 29 / 12 | Las dos optimizaciones que sí usas; el resto es medir y simplificar. |
+| `cProfile` / `perf_counter` | 0 / 21 | Mides **a mano**, con `perf_counter` y contadores de FPS, nunca con el perfilador. Es el hueco más grande de tu método, y lo que llena `benchmarks/`. |
+
+### 14.4 Patrones que se repiten y conviene saber
+
+- **Cada juego acaba con su copia de la librería.** `Buscaminas/lib/`, `Tamagotchi/Utilidades*/`, `Tower Defense/Utilidades/`, `NegocioV3/Utilidades/`. Hay **20 archivos idénticos** entre carpetas. No es descuido: es congelar lo que funciona para no romper el juego mientras la librería cambia. El coste ya lo conoces (los arreglos no llegan).
+- **Copia-pegar-adaptar es el método.** Se ve en `UI maker/Cosas/Base.py` (la property `pos` duplicada dos veces), en `Create_text` (`mode 1`/`mode 2`) y en las versiones de `collision_handler`. Cuando algo funciona, se clona y se poda; no se reescribe desde cero.
+- **Español para el negocio, inglés para la API.** `descargas`, `cola`, `hilos`, `perro`, `hambre`; `draw`, `update`, `click`, `redraw`. Se mantiene desde `Numeros.py` hasta hoy.
+- **Los nombres largos y explícitos llegan tarde.** En el curso joven: `a`, `b`, `q`, `lol`, `cosas`. En las libs: `letter_pos`, `desplazamiento_smooth`, `default_controles_adyacentes`. La mejora es real y es tuya.
+- **Los comentarios empiezan a explicar el porqué**, no el qué: `# Si ya casi no se mueve, clávalo en el objetivo para que la animación acabe.` Eso es lo que hay que conservar.
+- **Todo lo que sabes de rendimiento salió de un experimento propio**: caché de rotaciones, `blits`, hilos de update, moderngl, raylib, 900 polígonos dibujados a mano. Por eso el banco de `benchmarks/` tiene sentido: es la versión ordenada de esos scripts sueltos.
+
+### 14.5 Desajustes esperables en el curso (no se toca nada)
+
+Como avisaste, hay nombres viejos y código a medias. Los más útiles para entender por qué la librería cambió:
+
+- `Hipotenuza` → `Hipotenusa`, `smothmove`/`smothscroll` → `smoothmove`/`smoothscroll`, `Second_Order_Dinamics` → `Second_Order_Dynamics`, `navegate_with_keys` → `navigate_with_keys`. Los archivos del curso se quedaron con los viejos; las libs ya no.
+- `Utilidades.Create_boton`, `Utilidades.Text`, `Utilidades.Input_text` (funciones fábrica) → clases `Button`, `Text`, `Input`. El `UI maker` es el único sitio que usa las fábricas.
+- `Pygame/Juegos/Tower Defense/Utilidades/Texto con superficies/text.py` y `text.py` son dos intentos del mismo widget; el bueno es el de superficies, que es el que sobrevivió en `texts/text.py`.
+- Hay archivos que no parsean (`cosas_random/prueba maquida de estados finito`, `Transformada_de_Fourier(DFT)`, `matematicas/regresion lineal multiple/ejemplo1.py`, `API's/get_from_api.py`): son borradores, no código en uso.
+
+---
+
 ## Apéndice — cómo se comprobó
 
 ```
-# suite de las dos librerías (desde site-packages)
-python -m pytest Utilidades/test Utilidades_pygame/tests -q      → 97 passed in 1.93s
+# suite de las dos librerías (desde site-packages), 26-10-2026
+python -m pytest Utilidades/test Utilidades_pygame/tests -q
+# → 90 passed, 11 failed (los 11 de figuras, BUG-36; el resto en verde)
+
+# banco de pruebas, headless
+python Utilidades_pygame/benchmarks/run_all.py
+BENCH_BIG=1 python Utilidades_pygame/benchmarks/run_all.py
+
+# inventario del curso: 599 .py propios, 74.598 líneas, duplicados por sha1
+# (script de una sola pasada, solo lectura: tamaño, docstring, imports, hashes)
 
 # todo lo demás se comprobó con scripts sueltos en el temporal, sin tocar las librerías:
 #   Barra_de_progreso horizontal, Text.size/underline, Text.copy, Multi_list por defecto,

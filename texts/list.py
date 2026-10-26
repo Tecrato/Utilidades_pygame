@@ -1,12 +1,17 @@
 import pygame as pag
 import math
+import Utilidades as uti
 from typing import Iterable, Callable, Optional
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dynamics
 from ..constants import ALIGN_DIRECTION
+from functools import lru_cache
 
+@lru_cache(100)
+def gen_text(font:pag.font.Font,text,color):
+    return font.render(str(text),True, color)
 
 class List(Base):
     '''
@@ -53,7 +58,7 @@ class List(Base):
         self.header_border_color = kwargs.get('header_border_color',20)
         self.scroll_bar_active = kwargs.get('scroll_bar_active',True)
 
-        self.letter_size = self.font.render('ssss|.)0_-',1, self.text_color).get_height()
+        self.letter_size = self.font.size('ssss|.)0_-')[1]
 
         self.__lista_palabras = list(lista)
         self.lista_objetos: list[pag.Surface] = []
@@ -138,6 +143,7 @@ class List(Base):
         self.redraw += 2
 
     def __gen_list(self):
+        return
         self.lista_objetos.clear()
         for text in self.lista_palabras:
             self.lista_objetos.append(self.font.render(str(text), True, self.text_color))
@@ -152,11 +158,15 @@ class List(Base):
                 pag.draw.rect(self.lista_surface, self.selected_color, self.select_box)
 
         o = (
-            max(0,min(math.floor((-self.desplazamiento_smooth-self.padding_top)/(self.letter_size+self.separacion)),len(self.lista_objetos)-1)),
-            max(0,min(math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smooth-self.padding_top))/(self.letter_size+self.separacion)), len(self.lista_objetos))),
+            max(0,min(math.floor((-self.desplazamiento_smooth-self.padding_top)/(self.letter_size+self.separacion)),len(self.lista_palabras)-1)),
+            max(0,min(math.ceil((self.lista_surface_rect.h+(-self.desplazamiento_smooth-self.padding_top))/(self.letter_size+self.separacion)), len(self.lista_palabras))),
         )
         for x in range(*o):
-            self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smooth))
+            self.lista_surface.blit(
+                gen_text(self.font,self.lista_palabras[x],self.text_color),
+                dest=(self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smooth)
+            )
+            # self.lista_surface.blit(self.lista_objetos[x], (self.padding_left, self.padding_top + ((self.letter_size+self.separacion)*x) + self.desplazamiento_smooth))
 
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
             pag.draw.rect(self.lista_surface, (50,50,50,128), pag.rect.Rect(self.lista_surface_rect.width-self.barra.width, 0, self.barra.width, self.lista_surface_rect.height))
@@ -165,7 +175,7 @@ class List(Base):
             self.redraw = 1
 
     def draw(self,surface, always_draw = False):
-        if (self.smoothscroll and self.lista_objetos and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
+        if (self.smoothscroll and self.lista_palabras and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
             self.draw_surf()
             self.last_dezplazamiento_pos = int(self.desplazamiento_movent.y.y)
 
@@ -315,26 +325,26 @@ class List(Base):
 
     def append(self, text: str):
         self.lista_palabras.append('{}'.format(text))
-        self.lista_objetos.append(self.font.render(str(text), True, self.text_color))
+        # self.lista_objetos.append(self.font.render(str(text), True, self.text_color))
         self.set_height()
         self.on_wheel(0)
 
     def insert(self, index: int, text: str):
         self.lista_palabras.insert(index, text)
-        self.lista_objetos.insert(index, self.font.render(str(text), True, self.text_color))
+        # self.lista_objetos.insert(index, self.font.render(str(text), True, self.text_color))
         self.set_height()
         self.on_wheel(0)
 
     def pop(self,index:int = -1):
         self.lista_palabras.pop(index)
-        self.lista_objetos.pop(index)
+        # self.lista_objetos.pop(index)
         self.set_height()
         self.select(False, False)
         self.on_wheel(0)
 
     def clear(self):
         self.lista_palabras.clear()
-        self.lista_objetos.clear()
+        # self.lista_objetos.clear()
         self.selected_nums.clear()
         self.desplazamiento: float = 0
         self.set_height()
@@ -353,6 +363,7 @@ class List(Base):
         self.__lista_palabras = list(lista_palabras)
         # self.__generate()
         self.__gen_list()
+        self.set_height()
         self.redraw += 1
 
     @property
@@ -403,7 +414,7 @@ class List(Base):
 
     def __setitem__(self, index, value: str):
         self.lista_palabras[index] = str(value)
-        self.lista_objetos[index] = self.font.render(str(value), True, self.text_color)
+        # self.lista_objetos[index] = self.font.render(str(value), True, self.text_color)
         self.on_wheel(0)
         self.redraw += 1
     def __repr__(self):
