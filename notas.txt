@@ -7,3 +7,7 @@
 # Cambios
  - que en las listas no se guarden las superficies de los textos, se generen al hacer draw_surf.
  - que las particulas no sean una clase, sino esten en una lista de todos los X, todos los Y por otro lado, a ver si lo del short es cierto de que eso usa la cache del CPU y hace que vaya mas rapido
+
+
+# Nose:
+ - preguntarle que tal le parece lo de los textos visibles en list.py

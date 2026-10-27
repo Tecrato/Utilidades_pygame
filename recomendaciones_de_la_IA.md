@@ -522,13 +522,12 @@ Con **una** imagen grande animada te comes el 10 % del frame; con cuatro, el fra
 
 # 2. Corrección
 
-Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-28**, **BUG-29**, **BUG-30**, **BUG-33**, **BUG-34**, **BUG-36**, **BUG-37** y UNITS-01.
+Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-27**, **BUG-28**, **BUG-29**, **BUG-30**, **BUG-33**, **BUG-34**, **BUG-36**, **BUG-37** y UNITS-01.
 
 Los de abajo salieron de usar las librerías **desde fuera** (las tres apps) y de montar el banco de pruebas, que es donde no llegan los tests unitarios. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
 
 | ID | Estado | Dónde | Qué pasa |
 |---|---|---|---|
-| BUG-27 | ✅ | `bloque.py` → `move_objs`, `collide` | `move_objs` sale en `if not self.scroll_y: return`, así que con scroll horizontal pero no vertical el `inside_height` del eje X se queda en 1 y la barra no aparece nunca. Y `collide` solo mira a los hijos, no a su propio `rect`: un `Bloque` vacío no colisiona con la ventana y `draw_optimized` lo salta sin dibujarlo. |
 | BUG-31 | ✅ | `obj_Base.py` → `copy` | Copia bien `rect`/`pos`/animación, pero las listas quedan **compartidas**: `lista_text` y `lista_text_rects` son el mismo objeto en original y copia. Medido: copiar un `Text` multilínea y cambiarle el texto deja 7 rects en el original, cuyo texto no cambió. `Select_box` y `mini_GUI.select` viven de `Text.copy()`. |
 | BUG-32 | ✅ | `texts/app_menu.py`, `graficas/grafico_barras.py` | `App_menu.draw` y `Grafico_Barras.draw` devuelven `None` → `for s in r` lanza `TypeError: 'NoneType' object is not iterable` dentro de `draw_optimized`. Además `Barra` llama `Second_Order_Dynamics(60,2,1.0,1.1,(0,0))` con 5 argumentos (la clase toma 4), así que no se puede ni instanciar, y `Grafico_Barras` no está exportado. |
 | BUG-35 | ✅ | `texts/list.py`, `texts/input.py`, `texts/select_box.py` | No aceptan `diff_pos` y `Select_box` ni siquiera tiene `pos`, así que no pueden ir dentro de un `Bloque`: `TypeError: List.draw() got an unexpected keyword argument 'diff_pos'` y `AttributeError: 'Select_box' object has no attribute 'pos'`. |
@@ -714,20 +713,6 @@ def draw(self, surface, *, always_draw=False, diff_pos=(0, 0)) -> list[pag.Rect]
 
 Y `App_menu`/`Grafico_Barras` devolviendo la lista de rects que ya podrían calcular (hoy dibujan y tiran esa información).
 
-## API-11 — `Bloque` no tiene dirty rects y está a medio hacer 📖
-
-**Anotado, no para arreglarlo ahora.** La idea de `Bloque` es ser el `<div>` de la librería: un contenedor con posición, tamaño, scroll y sus hijos dentro. Hoy no cumple el contrato de dirty rects y por eso no es un `<div>`, es un “redibuja todo lo mío”:
-
-- **`draw()` no baja `redraw` nunca.** Al final devuelve `[rect_border, unión]` pero no pone `self.redraw = 0`; como `draw_optimized` solo llama a `draw` (que internamente corta en `if self.redraw < 2`), el bloque queda siempre ≥2 y **se redibuja entero cada frame aunque nada cambie**. Medido: `dibujar Bloque(100), sin scroll` = 1,0–1,1 ms por frame, igual que forzado; no hay estado “quieto”.
-- **Marca sucios a todos los hijos** en cada `draw` (`x['GUI'].redraw += 2`), así que el dirty rect de dentro tampoco descansa: es `draw_always` disfrazado.
-- **No intersecta los updates de los hijos con su propio rect**, y los traslada con `k.center += self.topleft` en vez de `move`; con scroll y bordes se ensucian zonas de fuera del bloque.
-- **`collide` mira solo a los hijos, no a su `rect`** (BUG-27): un `Bloque` vacío no se dibuja nunca, y uno con hijos fuera de pantalla tampoco.
-- **`move_objs` sale antes si falta un eje** (BUG-27): con `scroll_x=False` no recalcula nada, y con scroll horizontal solo tampoco.
-- **`update` llama a `x['GUI'].update()`** sin `mouse_pos` ni `dt`: los hijos con animación o con `update` que espera `dt` no reciben el delta, y los que usan `mouse_pos` se quedan con el último.
-- **`add()` reconstruye el layout completo** (`move_objs` por cada hijo añadido): meter 100 hijos cuesta O(n²) y se nota (100 hijos = 190 ms de creación).
-
-Nada de esto se toca aquí. La forma correcta, cuando lo abordes, es la misma que el resto de la librería: que el bloque tenga su `redraw` de verdad (0 = nada, 1 = su zona, 2 = su zona + la anterior), que los hijos se dibujen a una superficie interna solo cuando **ellos** están sucios, y que su `collide` empiece por `self.rect.colliderect(rect)`. El banco (`bench_bloque.py`) ya mide las tres cosas para que puedas comparar.
-
 ---
 
 # 4. Empaquetado y estructura
@@ -881,7 +866,7 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 | # | Qué | IDs | Riesgo | Por qué ahora |
 |---|---|---|---|---|
-| 1 | Los bugs de §2 que rompen widgets | BUG-27, BUG-31, BUG-32, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
+| 1 | Los bugs de §2 que rompen widgets | BUG-31, BUG-32, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
 | 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto: queda el golden y saber que las libs importan en Linux. |
 | 2 | `Input` deja de marcarse sucio al dibujarse | OPT-04, OPT-01 | Bajo | Medido: 6,9 ms → 0,49 ms en una escena de 200 widgets. La mejora más barata que hay. |
 | 3 | Arreglar el doble bucle | OPT-01 | Medio | Aquí está el techo de escalabilidad de la UI. |
@@ -890,7 +875,6 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 | 6 | `pyproject.toml` + salir de `site-packages` | PKG-01, PKG-02 | Bajo | Trabajar cómodo y no perder el código. |
 | 7 | Separar `run()` de `__init__` | API-04 ✅ | — | Hecho: `autostart=False` y `run()` separado; ya hay tests headless de la app entera. |
 | 8 | Una sola fuente de verdad | API-08 | Medio | Evita que vuelva a divergir. |
-| 9 | `Bloque` con dirty rects de verdad | API-11 | Alto | Es el `<div>` de la librería y hoy redibuja todo siempre; anotado, no urgente. |
 
 ## Lo que no cambiaría
 
@@ -924,7 +908,7 @@ Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-
 Copia esta sección a medida que avances (o marca aquí mismo).
 
 **Corrección** (solo lo pendiente; lo resuelto no se lista)
-- [ ] BUG-27, BUG-31, BUG-32, BUG-35 — los de §2 (uno por commit, con su test)
+- [ ] BUG-31, BUG-32, BUG-35 — los de §2 (uno por commit, con su test)
 
 **Optimización**
 - [x] OPT-00 banco de pruebas y `RESULTADOS.md`
@@ -942,7 +926,6 @@ Copia esta sección a medida que avances (o marca aquí mismo).
 - [ ] API-02 `Protocol` de widget
 - [ ] API-05 Windows aislado
 - [ ] API-08 fuente única
-- [ ] API-11 `Bloque` con dirty rects (anotado, sin prisa)
 - [ ] PKG-01..04 empaquetado
 - [ ] TST-02 lo que falta de la pirámide
 - [ ] TST-03 CI

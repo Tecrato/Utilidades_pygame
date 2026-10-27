@@ -2,6 +2,7 @@ import pygame as pag
 from .text import Text
 from .boton import Button
 from .select_box import Select_box
+from typing import List
 
 class App_menu:
     def __init__(self, width: int, *, height: int = 20, background_color='black', color_hover= 'darkgrey', botons_height=None, text_color = 'white', text_size = 16):
@@ -20,7 +21,7 @@ class App_menu:
 
         self.options: list[Select_box] = []
 
-    def add(self, text: str, options: list[str], func=None) -> None:
+    def add(self, text: str, options: list[str|int|float], func=None) -> None:
         if len(self.options) > 0:
             pos = (self.options[-1].boton.right,self.height/2)
         else:
@@ -36,16 +37,19 @@ class App_menu:
             )
         )
         
-    def draw(self, surface, always_draw = False) -> None:
+    def draw(self, surface, always_draw = False) -> List:
         if always_draw:
             self.redraw += 1
         if self.redraw < 0:
             return []
-        updates = []
+        updates: List[pag.Rect] = []
         pag.draw.rect(surface, self.background_color, self.rect)
         for i,x in sorted(enumerate(self.options),reverse=False):
-            x.boton.draw(surface,always_draw=True)
-            x.draw(surface)
+            if (r:= x.boton.draw(surface,always_draw=True)):
+                updates.append(*r)
+            updates.append(*x.draw(surface))
+
+        return updates
     
     def click(self, pos) -> bool:
         for i,x in sorted(enumerate(self.options),reverse=False):

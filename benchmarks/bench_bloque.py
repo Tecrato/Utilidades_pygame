@@ -1,9 +1,13 @@
 """Benchmark de `Bloque` — el contenedor con scroll.
 
-`Bloque` no usa dirty rects: en cada `draw()` que pasa el filtro rellena su
-superficie y **marca sucios a todos los hijos** para redibujarlos dentro. Por
-eso aquí lo que se mide es el coste de un frame con el bloque visible, con y
-sin scroll, y cuánto pesa `move_objs()` al desplazar.
+Desde que `draw()` usa dirty rects propios, lo que se mide es:
+
+- **sin scroll**: el bloque está en pantalla pero nada cambió. Debe costar
+  casi nada (no rellena ni repinta hijos).
+- **con 1 hijo sucio**: solo repinta la zona de ese hijo, no los N.
+- **forzado (always)**: el techo, repintar todo el contenido.
+- **scroll + update + draw**: el caso caro, porque cambia el contenido entero.
+- **move_objs**: recalcular el tamaño del contenido tras desplazar.
 """
 from __future__ import annotations
 
@@ -40,6 +44,9 @@ def run(frames: int = 300) -> list[Muestra]:
                          lambda: app.draw_optimized(lista), frames=frames))
         out.append(medir(f"dibujar Bloque({n}) forzado (always)",
                          lambda: app.draw_always(lista), frames=frames))
+        out.append(medir(f"dibujar Bloque({n}) con 1 hijo sucio",
+                         lambda: (_marcar_uno(bloque), app.draw_optimized(lista)),
+                         frames=frames))
 
         bloque.on_wheel(-40)
         out.append(medir(f"scroll + update + draw Bloque({n})",
@@ -55,6 +62,11 @@ def run(frames: int = 300) -> list[Muestra]:
 
     cerrar_app(app)
     return out
+
+
+def _marcar_uno(bloque) -> None:
+    if bloque.list_objs:
+        bloque.list_objs[0]["GUI"].redraw = 1
 
 
 def _dibujar_forzado(app, bloque) -> None:

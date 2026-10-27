@@ -1,6 +1,6 @@
 import pygame as pag
 import math
-from typing import Callable, Literal
+from typing import Callable, Literal, List
 
 from pygame import Vector2
 from .boton import Text
@@ -9,7 +9,7 @@ from Utilidades_pygame.Animaciones import Curva_de_Bezier
         
 class Select_box:
     def __init__(
-            self, boton: Button, options: list[str,int,float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
+            self, boton: Button, options: List[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
             func: Callable=None, text_size: int = 16, position: Literal["top","bottom","right","left"] = 'bottom', 
             animation_dir: Literal['vertical', 'horizontal']='vertical', font: str|None =None, padding_horizontal= 5, 
             padding_vertical = 5,separacion = 5,
@@ -108,14 +108,15 @@ class Select_box:
             final_index = -1
             return False
 
-        self.func({'index': final_index, 'text': self.botones[final_index].text})
+        if self.func:
+            self.func({'index': final_index, 'text': self.botones[final_index].text})
         self.close_it()
         return True
 
     def update(self, dt=1, **kwargs) -> None:
         if self.in_animation:
             self.redraw += 2
-            r = self.animation_open.update()
+            r = self.animation_open.update(dt=dt)
             if r == True:
                 self.in_animation = False
                 if self.selected_animation == 'vertical' and not self.select_opened:
@@ -164,7 +165,7 @@ class Select_box:
                 self.hover_rect.top = -1
                 
 
-    def draw(self, surface: pag.Surface, always_draw = False) -> None:
+    def draw(self, surface: pag.Surface, always_draw = False) -> List[pag.Rect]:
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.rect.size], 0)
         
         if always_draw:
@@ -192,7 +193,7 @@ class Select_box:
             self.last_rect = self.rect.copy()
             return [self.rect, r]
     @property
-    def collide_rect(self) -> str:
+    def collide_rect(self) -> pag.Rect:
         return self.rect.union(self.last_rect)
     def collide(self, rect: pag.Rect) -> bool:
         return self.rect.copy().union(self.last_rect.copy()).colliderect(rect)

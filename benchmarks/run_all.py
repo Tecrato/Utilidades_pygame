@@ -95,8 +95,10 @@ Estas conclusiones no dependen de la máquina, son estructurales:
 4. **`Image` gira caro**: animar el ángulo de una imagen grande cuesta
    ~1.5 ms por frame y por imagen (rotación completa cada vez, y si además hay
    `size`, también re-escala). Es exactamente el problema que ya intuías.
-5. **`Bloque` no descansa nunca**: su `draw()` no baja `redraw`, así que
-   redibuja a todos los hijos en cada frame aunque no haya cambiado nada.
+5. **`Bloque` ya descansa como un `div`**: desde que `draw()` usa dirty rects
+   propios y una superficie-caché, un bloque quieto cuesta ~0,2 ms sea cual sea
+   el número de hijos (antes ~1,0–1,3 ms y crecía con ellos), con un hijo sucio
+   ~0,3–0,45 ms y el repintado completo ~1 ms con 100 hijos.
 6. **El bucle limpio escala lineal** con el número de objetos: ~0,7 µs por
    objeto y frame solo en `collide()` + `draw()`. Un millón de objetos en la
    lista de dibujo no cabe en 16 ms ni de lejos (medido: ~700 ms); una `List`

@@ -7,6 +7,24 @@ from .obj_Base import Base
 from .scroll import Screen_scroll
 from .constants import ALIGN_DIRECTION
 
+def _unir_rects(rects: list[pag.Rect]) -> list[pag.Rect]:
+    """Une los rectángulos que se solapan o se tocan, para no repintar dos veces."""
+    pendientes = [r.copy() for r in rects]
+    unidos: list[pag.Rect] = []
+    while pendientes:
+        actual = pendientes.pop()
+        cambio = True
+        while cambio:
+            cambio = False
+            for otro in pendientes[:]:
+                if actual.inflate(2, 2).colliderect(otro):
+                    actual.union_ip(otro)
+                    pendientes.remove(otro)
+                    cambio = True
+        unidos.append(actual)
+    return unidos
+
+
 class Bloque(Base):
     def __init__(
             self,pos,size,dire: ALIGN_DIRECTION ='center', background_color=(0,0,0,0), border_radius=0, 
@@ -52,6 +70,7 @@ class Bloque(Base):
 
         self.actual_smooth_pos = 0
         self.actual_smooth_pos_x = 0
+        self.__last_scroll = None
         self.pos = pos
         
 
@@ -62,12 +81,14 @@ class Bloque(Base):
         self.list_objs.append({"GUI":clase,"drawing":drawing,"clicking":clicking, "index":self.index})
         self.index += 1
         self.move_objs()
+        self.redraw = max(self.redraw, 1)      # hay un hijo nuevo que pintar
         return len(self.list_objs)-1
 
     def clear(self):
         self.list_objs.clear()
         self.scroll_class.inside_height = 1
         self.scroll_class_x.inside_height = 1
+        self.redraw = max(self.redraw, 1)      # quedan huecos que limpiar
 
 
     def click(self,pos):
@@ -96,91 +117,96 @@ class Bloque(Base):
                 return r if r is not None else True
         return False
     
-    def draw(self, surface,diff_pos = (0,0)) -> list[pag.Rect]:
-        if self.redraw < 2:
+    def draw(self, surface, diff_pos = (0,0)) -> list[pag.Rect]:
+        """Pinta solo lo sucio y recorta los hijos al tamaño del bloque.
+
+        Los hijos viven en coordenadas de *contenido* (sin scroll) y se dibujan
+        desplazados por `diff`; el viewport es (0, 0, ancho, alto). La superficie
+        propia hace de caché: solo se rellena y se repintan las zonas sucias.
+        """
+        view = pag.Rect(0, 0, self.rect.w, self.rect.h)
+        diff = (
+            self.scroll_class_x.diff if self.scroll_x else 0,
+            self.scroll_class.diff if self.scroll_y else 0,
+        )
+
+        # ---- 1) qué trozos del viewport hay que repintar ----
+        repintar_todo = self.redraw >= 1 or diff != self.__last_scroll
+        self.__last_scroll = diff
+
+        if repintar_todo:
+            sucios = [view.copy()]
+        else:
+            sucios = []
+            for x in self.list_objs:
+                gui = x["GUI"]
+                if not x["drawing"] or gui.redraw < 1:
+                    continue
+                r = gui.collide_rect.union(gui.last_rect).move(diff).clip(view)
+                if r.w > 0 and r.h > 0:
+                    sucios.append(r)
+            for barra, activa in ((self.scroll_class, self.scroll_y),
+                                  (self.scroll_class_x, self.scroll_x)):
+                if activa and barra.redraw > 0:
+                    r = barra.last_rect.union(barra.rect).clip(view)
+                    if r.w > 0 and r.h > 0:
+                        sucios.append(r)
+
+        if not sucios:
             return []
-        
-        
-        # if self.redraw > 1:
-        self.surf.fill(self.background_color)
-        for x in self.list_objs:
-            # if x['GUI'].redraw < 1:
-            x['GUI'].redraw += 2
-        if self.scroll_y:
-            self.scroll_class.redraw += 1
-        if self.scroll_x:
-            self.scroll_class_x.redraw += 1
-        
+
+        # ---- 2) repintar solo esas zonas de la superficie propia ----
         self.updates.clear()
         self.draw_before()
 
-        h = self.rect.copy()
-        h.topleft = (-self.scroll_class_x.diff,-self.scroll_class.diff)
-        for i,x in sorted(enumerate(self.list_objs),reverse=False):
-            if not x['drawing'] or not x["GUI"].collide(h):
-                continue
-            re = x["GUI"].redraw
-            r = x['GUI'].draw(self.surf,diff_pos=(self.scroll_class_x.diff,self.scroll_class.diff))
-            for s in r:
-                # pag.draw.rect(self.surf, self.background_color, s)
-                k = s.copy()
-                k.center += self.topleft
-                self.updates.append(k)
+        for region in _unir_rects(sucios):
+            self.surf.set_clip(region)
+            self.surf.fill(self.background_color, region)
 
-        # for i,x in sorted(enumerate(self.list_objs),reverse=False):
-        #     h = self.rect.copy()
-        #     h.topleft = (0,0)
-        #     if not x['drawing'] or not x["GUI"].collide(h):
-        #         continue
-        #     re = x["GUI"].redraw
-        #     r = x['GUI'].draw(self.surf)
-        #     for s in r:
-        #         k = s.copy()
-        #         k.center += self.topleft
-        #         self.updates.append(k)
-        #     for y in r:
-        #         for p in self.list_objs[i+1:]:
-        #             if p['GUI'].collide(y) and p['GUI'].redraw < 1:
-        #                 p['GUI'].redraw += 1
-        #     if re < 2:
-        #         continue
-        #     for y in r:
-        #         for p in self.list_objs[:i]:
-        #             if p['GUI'].collide(y) and p['GUI'].redraw < 1:
-        #                 p['GUI'].redraw += 1
-        
-        if self.scroll_y and (p := self.scroll_class.draw(self.surf)):
-            for l in p:
-                k = l.copy()
-                k.center += self.topleft
-                self.updates.append(k)
-        if self.scroll_x and (p := self.scroll_class_x.draw(self.surf)):
-            for l in p:
-                k: pag.Rect = l.copy()
-                k.center += self.topleft
-                self.updates.append(k)
+            for x in self.list_objs:
+                gui = x["GUI"]
+                if not x["drawing"] or not getattr(gui, "visible", True):
+                    continue
+                area = gui.collide_rect.union(gui.last_rect).move(diff)
+                if not area.colliderect(region):
+                    if not area.colliderect(view):
+                        gui.redraw = 0      # fuera del cuadro: ni se dibuja ni queda sucio
+                    continue
+                if gui.redraw < 2:
+                    gui.redraw = 2          # lo que hubiera debajo también se repinta
+                gui.draw(self.surf, diff_pos=diff)
+
+            if self.scroll_y and self.scroll_class.rect.colliderect(region):
+                self.scroll_class.redraw = max(self.scroll_class.redraw, 1)
+                self.scroll_class.draw(self.surf)
+            if self.scroll_x and self.scroll_class_x.rect.colliderect(region):
+                self.scroll_class_x.redraw = max(self.scroll_class_x.redraw, 1)
+                self.scroll_class_x.draw(self.surf)
+
+            self.surf.set_clip(None)
+
+            superficie = (self.rect.x + diff_pos[0] + region.x,
+                          self.rect.y + diff_pos[1] + region.y)
+            surface.blit(self.surf, superficie, area=region)
+            self.updates.append(region.move(self.rect.topleft).move(diff_pos))
+
+        # el borde va sobre la ventana: su mitad exterior no cabe en self.surf
+        pag.draw.rect(surface, self.border_color, self.rect_border.move(diff_pos),
+                      self.border_width, self.border_radius)
 
         self.draw_after()
+        self.redraw = 0
+
+        if repintar_todo:
+            r = self.last_rect.union(self.rect_border).copy()
+            self.last_rect = self.rect_border.copy()
+            return [self.rect_border.move(diff_pos), r.move(diff_pos)]
+        return self.updates
 
 
-        surface.blit(self.surf, self.rect.move(diff_pos))
-        pag.draw.rect(surface, self.border_color, self.rect_border.move(diff_pos), self.border_width,self.border_radius)
-        # if self.redraw < 2:
-        #     self.redraw = 2
-            # return self.updates
-        # else:
-        #     self.redraw = 2
-        #     # print(self.redraw)
-        #     # self.redraw = 2
-        #     # return self.updates
-        r = self.last_rect.union(self.rect_border.copy()).copy()
-        self.last_rect = self.rect_border.copy()
-        return [self.rect_border.move(diff_pos), r.move(diff_pos)]
-
-
-    def update(self, pos=None, **kwargs):
-        self.scroll_class.update()
-        self.scroll_class_x.update()
+    def update(self, pos=None, dt=1, mouse_pos=(-10000, -10000), **kwargs):
+        self.scroll_class.update(dt=dt)
+        self.scroll_class_x.update(dt=dt)
         if self.scroll_y and self.scroll_class.redraw > 3 and self.scroll_class.visible and self.scroll_class.bar_active:
             self.redraw += 1
         if self.scroll_x and self.scroll_class_x.redraw > 3 and self.scroll_class_x.visible and self.scroll_class_x.bar_active:
@@ -194,9 +220,9 @@ class Bloque(Base):
             self.move_objs()
 
         for x in self.list_objs:
-            x["GUI"].update()
+            x["GUI"].update(dt=dt, mouse_pos=mouse_pos)
         
-        return super().update(pos)
+        return super().update(pos, dt=dt)
 
     def update_hover(self, mouse_pos=(-100000,-100000)):
         self.last_mouse_pos = pag.Vector2(mouse_pos)
@@ -208,13 +234,18 @@ class Bloque(Base):
             self.func_out_hover()
         if self.use_mouse_motion:
             return True
-        self.scroll_class.update_hover(mouse_pos=pag.Vector2(self.last_mouse_pos)-self.topleft)
-        self.scroll_class_x.update_hover(mouse_pos=pag.Vector2(self.last_mouse_pos)-self.topleft)
+        # overflow: hidden tambien para el raton; fuera del cuadro no hay hover
+        dentro = self.rect.collidepoint(self.last_mouse_pos)
+        local = (self.last_mouse_pos - self.topleft) if dentro else pag.Vector2(-100000, -100000)
+        contenido = local - (self.scroll_class_x.diff if self.scroll_x else 0,
+                             self.scroll_class.diff if self.scroll_y else 0)
+        self.scroll_class.update_hover(mouse_pos=local)
+        self.scroll_class_x.update_hover(mouse_pos=local)
         cursor_setted = False
         for i,x in sorted(enumerate(self.list_objs), reverse=True):
-            x["GUI"].update_hover(mouse_pos=self.last_mouse_pos-self.topleft-(self.scroll_class_x.diff, self.scroll_class.diff))
+            x["GUI"].update_hover(mouse_pos=contenido)
             # if x['GUI'].hover and not cursor_setted and x['GUI'].cursor:
-            if x['GUI'].is_hover(self.last_mouse_pos-self.topleft-(self.scroll_class_x.diff, self.scroll_class.diff)) and not cursor_setted and getattr(x['GUI'],'cursor',None):
+            if x['GUI'].is_hover(contenido) and not cursor_setted and getattr(x['GUI'],'cursor',None):
                 cursor_setted = True
                 self.cursor = x['GUI'].cursor
                 self.hover = True
@@ -226,38 +257,44 @@ class Bloque(Base):
 
     
     def move_objs(self):
-        diff = (
-            self.scroll_class_x.diff if self.scroll_x else 0,
-            self.scroll_class.diff if self.scroll_y else 0,
-        )
-        # for x in self.list_objs:
-        #     x["GUI"].pos = pag.Vector2(eval(f"{x['pos']}"))
-        if not self.scroll_y:
-            return
-        if not self.scroll_x:
+        """Recalcula el tamaño del contenido de cada eje, por separado.
+
+        Antes salía en cuanto uno de los dos scrolls estaba apagado, así que con
+        scroll vertical solo el `inside_height` se quedaba en 1 y la barra no
+        aparecía nunca.
+        """
+        if not self.list_objs:
             return
 
-        pos = []
-        for i,x in enumerate(self.list_objs):
-            pos.append(x['GUI'].pos.copy())
-            if 'left' in x["GUI"].dire:
-                pos[-1][0] += x["GUI"].width
-            elif 'right'in x["GUI"].dire:
+        ancho = 0
+        alto = 0
+        for x in self.list_objs:
+            gui = x["GUI"]
+            pos = gui.pos.copy()
+            if 'left' in gui.dire:
+                pos[0] += gui.width
+            elif 'right' in gui.dire:
                 pass
             else:
-                pos[-1][0] += x["GUI"].width//2
-            
-            if 'top' in x["GUI"].dire:
-                pos[-1][1] += x["GUI"].height
-            elif 'bottom' in x["GUI"].dire:
-                pass
-            else:
-                pos[-1][1] += x["GUI"].height//2
+                pos[0] += gui.width // 2
 
-        self.scroll_class.inside_height = max([x[1] for x in pos])
-        self.scroll_class.rodar(0)
-        self.scroll_class_x.inside_height = max([x[0] for x in pos])
-        self.scroll_class_x.rodar(0)
+            if 'top' in gui.dire:
+                pos[1] += gui.height
+            elif 'bottom' in gui.dire:
+                pass
+            else:
+                pos[1] += gui.height // 2
+
+            ancho = max(ancho, pos[0])
+            alto = max(alto, pos[1])
+
+        if self.scroll_y:
+            self.scroll_class.inside_height = alto
+            self.scroll_class.rodar(0)
+        if self.scroll_x:
+            self.scroll_class_x.inside_height = ancho
+            self.scroll_class_x.rodar(0)
+
 
     def on_mouse_motion(self, evento):
         if not self.list_objs:
@@ -314,12 +351,7 @@ class Bloque(Base):
 
 
     def collide(self, rect):
-        for x in self.list_objs:
-            r = rect.copy()
-            r.move_ip(-self.topleft[0],-self.topleft[1])
-            if x["GUI"].collide(r):
-                # x["GUI"].redraw += 1
-                return True
-        return False
+        """El bloque ocupa su propia caja: los hijos van recortados dentro."""
+        return self.rect.colliderect(rect) or self.last_rect.colliderect(rect)
 
     
