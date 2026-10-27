@@ -47,7 +47,7 @@
 | `bench_list.py` | creación, scroll, `select`, smoothscroll y **memoria por elemento** |
 | `bench_bloque.py` | contenedor con scroll: dibujar, mover hijos |
 | `bench_image.py` | escalar, girar y **animar** el ángulo cada frame |
-| `bench_figuras.py` | polígonos y engranajes (hoy bloqueado, `BUG-36`) |
+| `bench_figuras.py` | polígonos y engranajes |
 | `bench_particulas.py` | update + draw de 10 / 100 / 1 000 partículas |
 | `bench_app.py` | escena mixta, escalado del bucle, cascada y **perfil `cProfile`** |
 | `run_all.py` | todo + `RESULTADOS.md` con entorno y tablas |
@@ -522,7 +522,7 @@ Con **una** imagen grande animada te comes el 10 % del frame; con cuatro, el fra
 
 # 2. Corrección
 
-Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-33** y UNITS-01.
+Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-33**, **BUG-36**, **BUG-37** y UNITS-01.
 
 Los de abajo salieron de usar las librerías **desde fuera** (las tres apps) y de montar el banco de pruebas, que es donde no llegan los tests unitarios. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
 
@@ -536,7 +536,6 @@ Los de abajo salieron de usar las librerías **desde fuera** (las tres apps) y d
 | BUG-32 | ✅ | `texts/app_menu.py`, `graficas/grafico_barras.py` | `App_menu.draw` y `Grafico_Barras.draw` devuelven `None` → `for s in r` lanza `TypeError: 'NoneType' object is not iterable` dentro de `draw_optimized`. Además `Barra` llama `Second_Order_Dynamics(60,2,1.0,1.1,(0,0))` con 5 argumentos (la clase toma 4), así que no se puede ni instanciar, y `Grafico_Barras` no está exportado. |
 | BUG-34 | ✅ | `Utilidades/multithread.py` → `Interval_funcs.__start_func` | Si la función del intervalo lanza, el hilo muere y el intervalo **deja de existir en silencio**: medido, 1 ejecución y `is_alive()` en `False`, sin log. En `V_download` eso son tres intervalos que pueden desaparecer sin avisar. |
 | BUG-35 | ✅ | `texts/list.py`, `texts/input.py`, `texts/select_box.py` | No aceptan `diff_pos` y `Select_box` ni siquiera tiene `pos`, así que no pueden ir dentro de un `Bloque`: `TypeError: List.draw() got an unexpected keyword argument 'diff_pos'` y `AttributeError: 'Select_box' object has no attribute 'pos'`. |
-| BUG-36 | ✅ | `figuras/base.py` + las tres subclases | El refactor a `pygame.Rect` dejó los atributos con **doble guion bajo en `BasePolygon`**, y las subclases los leen con su propio nombre manglado: `self.__pos` en `PoligonoRegular._generate` es `_PoligonoRegular__pos`, pero quien lo creó fue `BasePolygon.__init__` como `_BasePolygon__pos`. Resultado: `AttributeError` al construir cualquier figura, y `self.__figure` de la subclase no es el que lee `BasePolygon.draw`. **11 tests de `tests/test_figuras.py` en rojo**; `bench_figuras.py` no puede ejecutarse. |
 
 ## Correcciones, con código
 
@@ -581,23 +580,6 @@ def __start_func(self, alias, stop: Event):
 ```
 
 Así el intervalo sigue vivo y te enteras. Si prefieres que muera, al menos que lo diga en el log: hoy el `Thread` escupe el traceback a stderr y el objeto queda como si estuviera funcionando.
-
-### BUG-36 · las figuras no se pueden ni construir
-
-El cambio mínimo es que **subclase y base usen el mismo nombre**, y el más barato es dejar de usar el manglado en la base:
-
-```python
-# figuras/base.py
-self._pos = pos          # antes: self.__pos  →  _BasePolygon__pos
-self._radio = radio
-self._angle = angle
-self._figure = []
-self._rect = Rect(0, 0, 0, 0)
-
-# y en las tres subclases, lo mismo: self._pos, self._radio, self._angle, self._figure
-```
-
-Las propiedades públicas (`pos`, `radio`, `angle`, `figura`, `rect`) ya existen: úsalas desde la subclase (`self.pos`, `self.radio`...) y así el nombre da igual. Lo que **no** funciona es dejar `__pos` en la base y escribirlo en la subclase: son dos atributos distintos y el segundo no existe. Después de arreglarlo, `python -m pytest Utilidades_pygame/tests/test_figuras.py -q` debe volver a 11 verdes, y `bench_figuras.py` ya mide.
 
 ---
 
@@ -893,7 +875,7 @@ Hay dos carpetas de tests, escritas y en verde. Desde `site-packages`:
 python -m pytest Utilidades/test Utilidades_pygame/tests -q
 ```
 
-Estado al 26-10-2026: **90 pasan, 11 fallan**. Los que fallan son **todos los de `test_figuras.py`**, y no por los tests: `BUG-36` rompió la construcción de figuras después de escribirlos. Es exactamente para lo que estaban. Cuando arregles el manglado, la suite vuelve a verde sin tocar un test. El resto (textos, base headless y todo `Utilidades`) sigue en verde.
+Estado al 27-10-2026: **101 pasan, 0 fallan** (incluidos los 11 de `test_figuras.py`, que se arreglaron con el BUG-36 aplicando la opción 2: la base mantiene `__pos`/`__figure` privados y las subclases usan los getters públicos y los huecos `_generate()` / `_set_figura()` / `_update_bounding_box()`). El resto (textos, base headless y todo `Utilidades`) sigue en verde.
 
 | Carpeta | Archivos | Qué cubre |
 |---|---|---|
@@ -947,7 +929,6 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 | # | Qué | IDs | Riesgo | Por qué ahora |
 |---|---|---|---|---|
-| 0 | Reparar `BUG-36` (figuras) | BUG-36 | Ninguno | Son 11 tests en rojo y un benchmark menos; el arreglo es de nombres, no de lógica. |
 | 1 | Los bugs de §2 que rompen widgets | BUG-27..32, BUG-34, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
 | 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto: queda el golden y saber que las libs importan en Linux. |
 | 2 | `Input` deja de marcarse sucio al dibujarse | OPT-04, OPT-01 | Bajo | Medido: 6,9 ms → 0,49 ms en una escena de 200 widgets. La mejora más barata que hay. |
@@ -991,7 +972,6 @@ Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-
 Copia esta sección a medida que avances (o marca aquí mismo).
 
 **Corrección** (solo lo pendiente; lo resuelto no se lista)
-- [ ] BUG-36 — figuras rotas por name mangling (11 tests en rojo)
 - [ ] BUG-27..32, BUG-34, BUG-35 — los de §2 (uno por commit, con su test)
 
 **Optimización**

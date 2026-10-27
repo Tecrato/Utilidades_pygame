@@ -72,8 +72,9 @@ un cambio en la misma máquina, no como número absoluto de otro equipo.
   (el techo de `draw_mode='always'`).
 - La sección **Memoria por widget** mide bytes por unidad con la memoria
   residente del proceso, cada fila en un proceso nuevo (tres veces, mediana).
-  Un `Text` con `font=None` ocupa ~77 KiB porque **crea su propia fuente**;
-  con una `Font` compartida baja a ~8,5 KiB.
+  Desde que `generate_Font` cachea las fuentes por `(ruta, tamaño, subrayado)`,
+  un `Text` con `font=None` ocupa ~5 KiB (antes ~71 KiB, porque cada widget
+  creaba la suya). `Input` bajó de ~196 a ~65 KiB por el mismo motivo.
 
 ## Lo que ya se ve en los números (26-10-2026)
 

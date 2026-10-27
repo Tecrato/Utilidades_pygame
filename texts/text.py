@@ -4,7 +4,23 @@ import math
 from pygame.math import Vector2
 from ..obj_Base import Base
 from ..constants import ALIGN_DIRECTION
+from functools import lru_cache
 
+@lru_cache
+def generate_Font(font_path, size, underline=False):
+    """Fuente compartida, ya configurada, sin mutarla después.
+
+    El subrayado va en la clave porque `set_underline` modifica la fuente: si
+    se aplicara después de sacarla de la caché, el cambio se filtraría a todos
+    los widgets que comparten esa misma `Font`.
+
+    Ojo con el ciclo de vida: una `Font` cacheada no puede sobrevivir a
+    `pag.font.quit()` (el `TTF_Font` de debajo queda liberado y usarlo revienta
+    el proceso). `Text.__init__` vacía la caché cuando reinicializa el módulo.
+    """
+    fuente = pag.font.Font(font_path, size)
+    fuente.set_underline(underline)
+    return fuente
 
 class Text(Base):
     """
@@ -34,6 +50,8 @@ class Text(Base):
         super().__init__(pos,dire)
         if not pag.font.get_init():
             pag.font.init()
+            # font.quit() destruyó los TTF_Font: lo cacheado son punteros colgados
+            generate_Font.cache_clear()
         self.raw_text = str(text)
         self.__underline = underline
         self.__size: int = size
@@ -249,12 +267,13 @@ class Text(Base):
         if isinstance(font, pag.font.Font):
             self.raw_font = font
             self.__font = font
+            # fuente del usuario, no de la caché: aquí sí se puede configurar
+            font.set_underline(self.underline)
         elif isinstance(font, str) or font is None:
             self.raw_font = font
-            self.__font = pag.font.Font(self.raw_font, self.size)
+            self.__font = generate_Font(self.raw_font, self.size, self.underline)
         else:
             raise TypeError('El tipo de font debe ser "str" o "pag.font.Font"')
-        self.__font.set_underline(self.underline)
         self.text_height = self.__font.size('hola|-|█', )[1]
         self.__generate()
     @property
@@ -268,7 +287,7 @@ class Text(Base):
             raise ValueError('No se puede cambiar el tamaño de un Font ya creado; pasa la ruta en `font`')
 
         self.__size = int(size)
-        self.__font = pag.font.Font(self.raw_font, self.__size)
+        self.__font = generate_Font(self.raw_font, self.__size, self.underline)
         self.text_height = self.__font.size('hola|-|█')[1]
         self.__generate()
     @property
@@ -288,7 +307,11 @@ class Text(Base):
         if self.__underline == underline:
             return
         self.__underline = underline
-        self.__font.set_underline(self.__underline)
+        if isinstance(self.raw_font, pag.font.Font):
+            self.__font.set_underline(self.__underline)
+        else:
+            # clave nueva en la caché: la fuente subrayada no se comparte con la normal
+            self.__font = generate_Font(self.raw_font, self.__size, self.__underline)
         self.__generate()
     @property
     def min_width(self):

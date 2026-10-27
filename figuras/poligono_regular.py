@@ -12,17 +12,18 @@ class PoligonoRegular(BasePolygon):
         super().__init__(pos, radio, angle)
         self._lados = lados
         self._generate()
-        self.__update_bounding_box()
+        self._update_bounding_box()
 
     def _generate(self):
         """Generación optimizada"""
+        pos, radio, angle = self.pos, self.radio, self.angle
         step = 360 / self._lados
-        self.__figure = [
+        self._set_figura([
             (
-                self.__pos[0] + cos(radians(step * i + self.__angle)) * self.__radio,
-                self.__pos[1] - sin(radians(step * i + self.__angle)) * self.__radio
+                pos[0] + cos(radians(step * i + angle)) * radio,
+                pos[1] - sin(radians(step * i + angle)) * radio
             ) for i in range(self._lados)
-        ]
+        ])
         self.redraw += 1
 
     @property

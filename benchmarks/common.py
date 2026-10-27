@@ -74,7 +74,12 @@ def nueva_app(resolution: tuple[int, int] = RESOLUTION, **kwargs) -> Bench_app:
 
 
 def cerrar_app(app: Bench_app) -> None:
-    """Cierra el display sin pasar por `Base_class.run()`."""
+    """Cierra el display sin pasar por `Base_class.run()`.
+
+    No toca la caché de fuentes a propósito: `Base_class.__init__` la vacía al
+    reinicializar pygame, así que si un día eso se rompe, el banco lo delata
+    con un segfault en vez de taparlo.
+    """
     pag.display.quit()
     pag.font.quit()
     pag.quit()

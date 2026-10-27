@@ -1,9 +1,15 @@
 from pygame import Rect, draw
 from typing import List, Tuple
-from abc import abstractmethod
 
 class BasePolygon:
-	"""Clase base para polígonos con el protocolo de dibujado de la librería."""
+	"""Clase base para polígonos con el protocolo de dibujado de la librería.
+
+	Los atributos con doble guion bajo solo existen aquí: una subclase que
+	escriba `self.__pos` crea un atributo distinto que no existe. Desde la
+	subclase se usa lo público (`pos`, `radio`, `angle`, `figura`, `rect`) y
+	tres huecos protegidos: `_generate()` para recalcular vértices,
+	`_set_figura()` para guardarlos y `_update_bounding_box()` para la caja.
+	"""
 	def __init__(self,
 				 pos: Tuple[float, float],
 				 radio: float,
@@ -19,8 +25,9 @@ class BasePolygon:
 		self.last_rect = Rect(0,0,0,0)
 		self.use_mouse_wheel = False
 
-	@abstractmethod
-	def __generate(self): ...
+	def _generate(self):
+		"""Punto de extensión: cada subclase lo sobreescribe para calcular sus vértices."""
+		...
 
 	# ==================== PROPIEDADES OPTIMIZADAS ====================
 	@property
@@ -29,8 +36,8 @@ class BasePolygon:
 	@pos.setter
 	def pos(self, value: Tuple[float, float]):
 		self.__pos = value
-		self.__generate()
-		self.__update_bounding_box()
+		self._generate()
+		self._update_bounding_box()
 
 	@property
 	def radio(self) -> float:
@@ -39,8 +46,8 @@ class BasePolygon:
 	def radio(self, value: float):
 		if self.__radio != value:
 			self.__radio = value
-			self.__generate()
-			self.__update_bounding_box()
+			self._generate()
+			self._update_bounding_box()
 
 	@property
 	def angle(self) -> float:
@@ -49,7 +56,7 @@ class BasePolygon:
 	def angle(self, value: float):
 		if self.__angle != value:
 			self.__angle = float(value)
-			self.__generate()
+			self._generate()
 	@property
 	def height(self) -> float:
 		return self.rect.height
@@ -63,14 +70,24 @@ class BasePolygon:
 
 	# ==================== CAJA DE COLISIÓN (AABB) ====================
 
-	def __update_bounding_box(self):
-		"""Actualiza el AABB (Axis-Aligned Bounding Box) del polígono"""
+	def _update_bounding_box(self, size: float | None = None):
+		"""Actualiza el AABB (Axis-Aligned Bounding Box) del polígono.
+
+		`size` deja que una subclase agrande la caja (el Engranaje suma los
+		dientes); por defecto es 2 * radio.
+		"""
 		if not self.__figure:
 			self.__rect = Rect(0, 0, 0, 0)
 			return
-		self.__rect = Rect(0,0,self.radio*2,self.radio*2)
+		if size is None:
+			size = self.radio * 2
+		self.__rect = Rect(0, 0, size, size)
 		self.__rect.center = self.pos
 		self.redraw += 2
+
+	def _set_figura(self, figura: List[Tuple[float, float]]):
+		"""Única forma en que una subclase escribe los vértices."""
+		self.__figure = figura
 
 	# ==================== MÉTODOS DE INTERFAZ PÚBLICA ====================
 	def draw(self, surface, diff_pos = None) -> list[Rect]:

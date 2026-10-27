@@ -12,24 +12,25 @@ class PoligonoIrregular(BasePolygon):
                  color='white'):
         super().__init__(pos, radio, angle, color=color)
         self.__puntos = puntos
-        self.__generate()
-        self.__update_bounding_box()
+        self._generate()
+        self._update_bounding_box()
 
-    def __generate(self):
+    def _generate(self):
         """Generación vectorizada con transformaciones in situ"""
-        self.__figure = [
+        pos, radio, angle = self.pos, self.radio, self.angle
+        self._set_figura([
             (
-                self.__pos[0] + cos(radians(p[0] + self.__angle)) * p[1] * self.__radio,
-                self.__pos[1] - sin(radians(p[0] + self.__angle)) * p[1] * self.__radio
+                pos[0] + cos(radians(p[0] + angle)) * p[1] * radio,
+                pos[1] - sin(radians(p[0] + angle)) * p[1] * radio
             ) for p in self.__puntos
-        ]
+        ])
         self.redraw += 2
 
     def actualizar_punto(self, index: int, **kwargs):
         """Actualización parcial de un punto con invalidación selectiva"""
         if 'angle' in kwargs or 'radio' in kwargs:
             self.__puntos[index].update(kwargs)
-            self.__generate()
-        self.__update_bounding_box()
+            self._generate()
+        self._update_bounding_box()
 
     

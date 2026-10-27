@@ -1,23 +1,13 @@
 """Benchmark de `PoligonoRegular`, `PoligonoIrregular` y `Engranaje`.
 
-**Hoy no se puede ejecutar.** Al refactorizar `figuras/base.py` a `pygame.Rect`
-los atributos privados se quedaron con doble guion bajo en `BasePolygon`
-(`self.__pos`, `self.__radio`, `self.__angle`, `self.__figure`), pero las
-subclases los escriben y leen con **su propio** nombre manglado:
+Mide crear figuras, regenerar vértices al girar y dibujar N figuras.
 
-    self.__pos  en PoligonoRegular._generate  →  _PoligonoRegular__pos
-    self.__pos  en BasePolygon.__init__       →  _BasePolygon__pos
-
-Son dos atributos distintos, así que el primero no existe:
-
-    AttributeError: 'PoligonoRegular' object has no attribute '_PoligonoRegular__pos'
-
-y lo mismo con `Engranaje` y `PoligonoIrregular`. Los 11 tests de
-`tests/test_figuras.py` fallan por esto. No lo arreglo aquí: este archivo solo
-lo deja medido y anotado en `recomendaciones_de_la_IA.md` (BUG-36).
-
-En cuanto esté arreglado, `run()` ya mide lo que importa: crear, regenerar
-vértices al girar, y dibujar N figuras.
+Este archivo nació documentando el BUG-36 (los atributos con doble guion bajo
+en `BasePolygon` no eran los que leían las subclases). Ya está arreglado con
+la opción 2: la base mantiene `__pos`/`__figure` privados y las subclases
+usan los getters públicos (`self.pos`, `self.radio`, `self.angle`) y los huecos
+`_generate()` / `_set_figura()` / `_update_bounding_box()`.
+El preflight de `run()` se queda por si algún día vuelve el manglado.
 """
 from __future__ import annotations
 

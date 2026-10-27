@@ -47,6 +47,10 @@ class Base_class:
         self.kwargs = kwargs
         pag.init()
         pag.font.init()
+        # Un `pag.quit()` anterior destruyó los TTF_Font: lo que quedó en la caché
+        # de textos son punteros colgados, y `pag.init()` los revive sin avisar.
+        from .texts.text import generate_Font
+        generate_Font.cache_clear()
         
         self.config: Config = config if config is not None else Config()
         

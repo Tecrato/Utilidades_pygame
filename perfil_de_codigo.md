@@ -283,7 +283,7 @@ mano — y ahí están las inconsistencias (ver API-10).
 ## 10. Estado real de las tres apps contra las librerías de hoy
 
 Verificado con `grep` sobre el código de las apps y con la suite de las libs (**101 tests, 2,2 s**;
-90 en verde y los 11 de figuras en rojo por `BUG-36`). Las apps **no** están cubiertas por tests, y
+101 en verde (el 27-10-2026 se arregló el `BUG-36` de figuras). Las apps **no** están cubiertas por tests, y
 es justo el hueco donde aparecen estos desajustes:
 
 | Nombre que usan las apps | Nombre de hoy | Dónde | Efecto |
@@ -454,7 +454,7 @@ Como avisaste, hay nombres viejos y código a medias. Los más útiles para ente
 ```
 # suite de las dos librerías (desde site-packages), 26-10-2026
 python -m pytest Utilidades/test Utilidades_pygame/tests -q
-# → 90 passed, 11 failed (los 11 de figuras, BUG-36; el resto en verde)
+# → 101 passed (el 27-10-2026: figuras arregladas con la opción 2 del BUG-36)
 
 # banco de pruebas, headless
 python Utilidades_pygame/benchmarks/run_all.py
