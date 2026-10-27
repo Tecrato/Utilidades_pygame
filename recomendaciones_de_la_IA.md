@@ -522,64 +522,16 @@ Con **una** imagen grande animada te comes el 10 % del frame; con cuatro, el fra
 
 # 2. Corrección
 
-Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-33**, **BUG-36**, **BUG-37** y UNITS-01.
+Última pasada: 26-10-2026. Ya resueltos y probados, fuera de esta lista para no arrastrarlos: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, BUG-10, BUG-11..13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, **BUG-26**, **BUG-28**, **BUG-29**, **BUG-30**, **BUG-33**, **BUG-34**, **BUG-36**, **BUG-37** y UNITS-01.
 
 Los de abajo salieron de usar las librerías **desde fuera** (las tres apps) y de montar el banco de pruebas, que es donde no llegan los tests unitarios. Todos están reproducidos con un script suelto y el resultado está en la fila, así que van con ✅.
 
 | ID | Estado | Dónde | Qué pasa |
 |---|---|---|---|
 | BUG-27 | ✅ | `bloque.py` → `move_objs`, `collide` | `move_objs` sale en `if not self.scroll_y: return`, así que con scroll horizontal pero no vertical el `inside_height` del eje X se queda en 1 y la barra no aparece nunca. Y `collide` solo mira a los hijos, no a su propio `rect`: un `Bloque` vacío no colisiona con la ventana y `draw_optimized` lo salta sin dibujarlo. |
-| BUG-28 | ✅ | `Barras_progreso.py` → `pulsando` | Rama horizontal: `self.rect.w = self.rect2.left + m_x` debería ser `m_x - self.rect2.left`. Medido con la barra en x=100 y ancho 200: clic en x=150 y clic en x=250 dan **volumen 1.0** los dos. En vertical funciona. |
-| BUG-29 | ✅ | `texts/multilist.py` → `__init__` | `Multi_list((100,100),(10,10))` con los valores por defecto revienta: `AttributeError: 'NoneType' object has no attribute 'height'` al leer `self.listas[0].text_header.height`, porque `header=True` y `header_text=None`. Solo funciona pasando `header_text` o `header=False`. |
-| BUG-30 | ✅ | `texts/text.py` → setter de `size` | El setter recrea la fuente pero no le repone el subrayado (el setter de `font` sí lo hace). Medido: con `underline=True`, la fuente nace subrayada y tras `size = 48` `get_underline()` da `False` mientras `texto.underline` sigue diciendo `True`. |
 | BUG-31 | ✅ | `obj_Base.py` → `copy` | Copia bien `rect`/`pos`/animación, pero las listas quedan **compartidas**: `lista_text` y `lista_text_rects` son el mismo objeto en original y copia. Medido: copiar un `Text` multilínea y cambiarle el texto deja 7 rects en el original, cuyo texto no cambió. `Select_box` y `mini_GUI.select` viven de `Text.copy()`. |
 | BUG-32 | ✅ | `texts/app_menu.py`, `graficas/grafico_barras.py` | `App_menu.draw` y `Grafico_Barras.draw` devuelven `None` → `for s in r` lanza `TypeError: 'NoneType' object is not iterable` dentro de `draw_optimized`. Además `Barra` llama `Second_Order_Dynamics(60,2,1.0,1.1,(0,0))` con 5 argumentos (la clase toma 4), así que no se puede ni instanciar, y `Grafico_Barras` no está exportado. |
-| BUG-34 | ✅ | `Utilidades/multithread.py` → `Interval_funcs.__start_func` | Si la función del intervalo lanza, el hilo muere y el intervalo **deja de existir en silencio**: medido, 1 ejecución y `is_alive()` en `False`, sin log. En `V_download` eso son tres intervalos que pueden desaparecer sin avisar. |
 | BUG-35 | ✅ | `texts/list.py`, `texts/input.py`, `texts/select_box.py` | No aceptan `diff_pos` y `Select_box` ni siquiera tiene `pos`, así que no pueden ir dentro de un `Bloque`: `TypeError: List.draw() got an unexpected keyword argument 'diff_pos'` y `AttributeError: 'Select_box' object has no attribute 'pos'`. |
-
-## Correcciones, con código
-
-Un bloque por fila de la tabla. Son **el cambio mínimo**, no el parche final: van escritos contra el código de esta fecha y algunos tocan firmas. Donde hay una trampa, la digo debajo.
-
-### BUG-28 · la barra horizontal
-
-```python
-elif self.__orientacion == 'horizontal':
-    rel = m_x - self.rect2.left                 # antes: self.rect2.left + m_x (en las tres ramas)
-    self.rect.w = min(max(rel, 0), self.__size.x)
-```
-
-Es el mismo patrón que ya usas en vertical (`rect2.bottom - m_y`), solo que con el signo bien. Ojo con un detalle aparte que vi al medirlo: `pulsando()` ignora el `mouse_pos` que recibe y lee `pag.mouse.get_pos()`. En la app coincide, pero hace que la barra no se pueda probar sin ventana real.
-
-### BUG-30 · el subrayado al cambiar de tamaño
-
-```python
-self.__font = pag.font.Font(self.raw_font, self.__size)
-self.__font.set_underline(self.__underline)      # ← lo que falta
-```
-
-### BUG-29 · cabecera sin texto
-
-```python
-# en Multi_list.__init__, antes del bucle de columnas
-header_h = self.listas[0].text_header.height if (self.header and self.listas[0].text_header) else 0
-# y usar header_h en las dos líneas que hoy hacen .text_header.height
-```
-
-### BUG-34 · un intervalo que sobrevive a sus errores
-
-```python
-from .logger import debug_print        # multithread no importa logger: no hay ciclo
-
-def __start_func(self, alias, stop: Event):
-    while not stop.wait(self.task_dict[alias]['time']):
-        try:
-            self.task_dict[alias]['func']()
-        except Exception:
-            debug_print(f'intervalo {alias} lanzó una excepción', priority=3)
-```
-
-Así el intervalo sigue vivo y te enteras. Si prefieres que muera, al menos que lo diga en el log: hoy el `Thread` escupe el traceback a stderr y el objeto queda como si estuviera funcionando.
 
 ---
 
@@ -929,7 +881,7 @@ Ordenado por **impacto / riesgo**. No es obligatorio seguirlo, pero cada paso es
 
 | # | Qué | IDs | Riesgo | Por qué ahora |
 |---|---|---|---|---|
-| 1 | Los bugs de §2 que rompen widgets | BUG-27..32, BUG-34, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
+| 1 | Los bugs de §2 que rompen widgets | BUG-27, BUG-31, BUG-32, BUG-35 | Ninguno | Cada uno está reproducido con un comando; son bugs, no decisiones de diseño. |
 | 1b | Montar el CI | TST-02, TST-03 | Ninguno | El suelo ya está puesto: queda el golden y saber que las libs importan en Linux. |
 | 2 | `Input` deja de marcarse sucio al dibujarse | OPT-04, OPT-01 | Bajo | Medido: 6,9 ms → 0,49 ms en una escena de 200 widgets. La mejora más barata que hay. |
 | 3 | Arreglar el doble bucle | OPT-01 | Medio | Aquí está el techo de escalabilidad de la UI. |
@@ -972,7 +924,7 @@ Cuando aparezca uno nuevo, añade aquí su comando y conviértelo en test (`TST-
 Copia esta sección a medida que avances (o marca aquí mismo).
 
 **Corrección** (solo lo pendiente; lo resuelto no se lista)
-- [ ] BUG-27..32, BUG-34, BUG-35 — los de §2 (uno por commit, con su test)
+- [ ] BUG-27, BUG-31, BUG-32, BUG-35 — los de §2 (uno por commit, con su test)
 
 **Optimización**
 - [x] OPT-00 banco de pruebas y `RESULTADOS.md`

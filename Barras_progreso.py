@@ -57,12 +57,14 @@ class Barra_de_progreso:
             self.rect.bottom = self.pos[1]
             new_vol = float(self.rect.height / self.__size.y)
         elif self.__orientacion == 'horizontal':
-            if self.rect2.left + m_x > self.__size.x:
+            # lo recorrido desde el borde izquierdo, igual que en vertical (rect2.bottom - m_y)
+            rel = m_x - self.rect2.left
+            if rel > self.__size.x:
                 self.rect.w = self.__size.x
-            elif self.rect2.left + m_x < 0:
+            elif rel < 0:
                 self.rect.w = 0
             else:
-                self.rect.w = self.rect2.left + m_x
+                self.rect.w = rel
             new_vol = float(self.rect.w / self.__size.x)
         if new_vol != self.volumen:
             self.volumen = new_vol

@@ -89,7 +89,9 @@ class Multi_list(Base):
                 header=self.header, text_header=txt_header, header_top_left_radius=l_header_top_left_radius, 
                 header_top_right_radius=l_header_top_right_radius, font=self.fonts[x], header_border_color=self.border_color,
                 border_width=-1))
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),(self.listas[0].text_header.height)if self.header else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            # con header=True y header_text=None no hay cabecera que medir: su altura es 0
+            header_h = self.listas[0].text_header.height if (self.header and self.listas[0].text_header) else 0
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1), header_h if header_h else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         
         self.create_border(self.rect, 2)
 
@@ -104,11 +106,12 @@ class Multi_list(Base):
         self.lista_surface.set_colorkey((0,0,0))
 
         self.lineas.clear()
+        header_h = self.listas[0].text_header.height if (self.header and self.listas[0].text_header) else 0
         for x in range(self.num_list):
             self.listas[x].resize(((self.size.x*self.colums_witdh[x+1]) - (self.size.x*self.colums_witdh[x]), self.size.y))
-            self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x],self.listas[0].text_header.height if self.header else 0) + self.pos
+            self.listas[x].pos = Vector2(self.size.x*self.colums_witdh[x], header_h) + self.pos
             
-            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),((self.listas[0].text_header.height+1)if self.header else 1)), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
+            self.lineas.append([((self.size.x*self.colums_witdh[x] -1),(header_h+1) if header_h else 1), ((self.size.x*self.colums_witdh[x] -1),self.rect.h)])
         self.create_border(self.rect, 2)
 
     def update(self,pos=None,dt=1, mouse_pos=(-10000,-10000)):
