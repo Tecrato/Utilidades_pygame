@@ -45,7 +45,7 @@ class Text(Base):
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
             underline = False, border_top_left_radius = -1, border_top_right_radius = -1,
             border_bottom_left_radius = -1, border_bottom_right_radius = -1,
-            border_color = 'black', **kwargs
+            border_color: str|tuple = 'black', **kwargs
         ) -> None:
         super().__init__(pos,dire)
         if not pag.font.get_init():

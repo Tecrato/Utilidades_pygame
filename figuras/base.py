@@ -24,6 +24,7 @@ class BasePolygon:
 		self.redraw = 2
 		self.last_rect = Rect(0,0,0,0)
 		self.use_mouse_wheel = False
+		self.dire = "center"
 
 	def _generate(self):
 		"""Punto de extensión: cada subclase lo sobreescribe para calcular sus vértices."""

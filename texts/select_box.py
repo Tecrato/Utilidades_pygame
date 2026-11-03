@@ -45,8 +45,8 @@ class Select_box:
         self.animation_open = Curva_de_Bezier        
 
         self.dict_animations = {
-            'open': "Curva_de_Bezier(20, [(self.rect.w,self.rect.h), (self.size[0]*1.5,self.size[1]*1.5),(self.size[0],self.size[1])])",
-            'close': "Curva_de_Bezier(10, [\
+            'open': "Curva_de_Bezier(.5, [(self.rect.w,self.rect.h), (self.size[0]*1.5,self.size[1]*1.5),(self.size[0],self.size[1])])",
+            'close': "Curva_de_Bezier(.25, [\
                 (self.rect.w,self.rect.h), \
                 (self.rect.w,0) if self.selected_animation == 'vertical' else (0,self.rect.h)\
             ])"
