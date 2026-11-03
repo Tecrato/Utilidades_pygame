@@ -6,7 +6,7 @@ from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
 from ..Animaciones import Second_Order_Dynamics
-from ..constants import ALIGN_DIRECTION
+from ..constants import ALIGN_DIRECTION, REDRAW_CLEAN, REDRAW_FULL, REDRAW_MOVED, REDRAW_SELF
 from functools import lru_cache
 
 @lru_cache(100)
@@ -140,7 +140,7 @@ class List(Base):
         p = self.rect.union(self.text_header.rect) if self.header and self.text_header else self.rect
         self.create_border(p, self.border_width)
         self.last_rect = self.last_rect.union(self.rect_border)
-        self.redraw += 2
+        self.redraw += REDRAW_MOVED
 
     def __gen_list(self):
         return
@@ -171,8 +171,8 @@ class List(Base):
         if self.scroll_bar_active and self.total_content_height + self.lista_surface_rect.h > self.rect.h:
             pag.draw.rect(self.lista_surface, (50,50,50,128), pag.rect.Rect(self.lista_surface_rect.width-self.barra.width, 0, self.barra.width, self.lista_surface_rect.height))
             pag.draw.rect(self.lista_surface, self.barra_color_hover if (self.barra_hover or self.use_mouse_motion) else self.barra_color, self.barra,border_radius=5)
-        if self.redraw < 1:
-            self.redraw = 1
+        if self.redraw < REDRAW_SELF:
+            self.redraw = REDRAW_SELF
 
     def draw(self,surface, always_draw = False):
         if (self.smoothscroll and self.lista_palabras and int(self.last_dezplazamiento_pos) != int(self.desplazamiento_movent.y.y)) or self.redraw > 0:
@@ -181,11 +181,11 @@ class List(Base):
 
         if always_draw:
             if self.text_header:
-                self.text_header.redraw += 1
-            self.redraw += 1
+                self.text_header.redraw += REDRAW_SELF
+            self.redraw += REDRAW_SELF
 
 
-        if self.redraw < 1:
+        if self.redraw < REDRAW_SELF:
             return []
         
         surface.blit(self.lista_surface,self.rect)
@@ -193,11 +193,11 @@ class List(Base):
             self.text_header.draw(surface)
         pag.draw.rect(surface, 'black', self.rect_border, self.border_width, border_radius=self.border_radius, border_top_left_radius=self.header_top_left_radius, border_top_right_radius=self.header_top_right_radius, border_bottom_left_radius=0, border_bottom_right_radius=0)
         r = self.rect_border.union(self.text_header.rect) if self.header and self.text_header else self.rect_border
-        if self.redraw < 2:
-            self.redraw = 0
+        if self.redraw < REDRAW_MOVED:
+            self.redraw = REDRAW_CLEAN
             return [r]
         else:
-            self.redraw = 0
+            self.redraw = REDRAW_CLEAN
             r2 = self.last_rect.union(r).copy()
             self.last_rect = r.copy()
             return [r, r2]
@@ -216,7 +216,7 @@ class List(Base):
         if (self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and not self.barra_hover) or \
             (not self.barra.collidepoint(pag.Vector2(mouse_pos)-self.topleft) and self.scroll_bar_active and self.barra_hover):
             self.barra_hover = not self.barra_hover
-            self.redraw += 1
+            self.redraw += REDRAW_SELF
         return super().update_hover(mouse_pos)
         
 
@@ -295,7 +295,7 @@ class List(Base):
             # self.select(False)
             return False
         m = Vector2(mouse_pos) - self.rect.topleft
-        self.redraw += 1
+        self.redraw += REDRAW_SELF
 
         if self.scroll_bar_active and self.barra.collidepoint(m):
             self.use_mouse_motion = True
@@ -319,7 +319,7 @@ class List(Base):
         if not index in self.selected_nums:
             return
         self.selected_nums.remove(index)
-        self.redraw += 1
+        self.redraw += REDRAW_SELF
         if not self.smoothscroll or abs(sum(self.desplazamiento_movent.yd.xy)) < 0.1:
             self.draw_surf()
 
@@ -364,7 +364,7 @@ class List(Base):
         # self.__generate()
         self.__gen_list()
         self.set_height()
-        self.redraw += 1
+        self.redraw += REDRAW_SELF
 
     @property
     def selected_color(self):
@@ -416,7 +416,7 @@ class List(Base):
         self.lista_palabras[index] = str(value)
         # self.lista_objetos[index] = self.font.render(str(value), True, self.text_color)
         self.on_wheel(0)
-        self.redraw += 1
+        self.redraw += REDRAW_SELF
     def __repr__(self):
         return '\n'.join(self.lista_palabras)
 

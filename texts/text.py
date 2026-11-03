@@ -3,7 +3,7 @@ import pygame as pag
 import math
 from pygame.math import Vector2
 from ..obj_Base import Base
-from ..constants import ALIGN_DIRECTION
+from ..constants import ALIGN_DIRECTION, REDRAW_CLEAN, REDRAW_SELF, REDRAW_MOVED, REDRAW_FULL
 from functools import lru_cache
 
 @lru_cache
@@ -41,7 +41,7 @@ class Text(Base):
     def __init__(
             self,text: str,size: int,font: str|pag.font.Font|None=None, pos: tuple|pag.Vector2 = (0,0),
             dire: ALIGN_DIRECTION ='center', color: str|Tuple[int,int,int]='white',with_rect = False, color_rect: str|Tuple[int,int,int] ='black', 
-            border_width = -1, padding: int|list|tuple = 0, min_width: int|float = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
+            border_width = -1, padding: int|list|tuple|Vector2 = 0, min_width: int|float = 0,max_width=math.inf, min_height = 0, rect_width= 0, 
             always_draw=False, border_radius=0, wrap=True, text_align='center', max_lines=math.inf,
             underline = False, border_top_left_radius = -1, border_top_right_radius = -1,
             border_bottom_left_radius = -1, border_bottom_right_radius = -1,
@@ -175,17 +175,17 @@ class Text(Base):
         self.last_rect = self.last_rect.copy().union(self.rect_border.copy())
         self.create_texts_rects()
 
-        self.redraw += 3
+        self.redraw += REDRAW_FULL
 
     def update(self, pos = None,dt=1, **kwargs):
         if super().update(pos,dt=dt):
             self.create_texts_rects()
         self.last_rect: pag.Rect = self.last_rect.copy().union(self.rect_border.copy())
-        if self.redraw > 0:
+        if self.redraw > REDRAW_CLEAN:
             self.create_texts_rects()
     
     def create_texts_rects(self):
-        self.redraw += 2
+        self.redraw += REDRAW_MOVED
         self.lista_text_rects.clear()
         for i,txt in enumerate(self.lista_text):
             r = txt.get_rect()
@@ -208,10 +208,10 @@ class Text(Base):
 
     def draw(self, surface, always_draw = False, diff_pos = (0,0)) -> list[pag.Rect]|None:
         if always_draw or self.always_draw:
-            self.redraw += 2
-        if not self.visible and self.redraw > 0:
+            self.redraw += REDRAW_MOVED
+        if not self.visible and self.redraw > REDRAW_CLEAN:
             return [self.rect_border]
-        if self.redraw < 1 or not self.visible:
+        if self.redraw < REDRAW_SELF or not self.visible:
             return []
         
         if self.with_rect:
@@ -221,11 +221,11 @@ class Text(Base):
         for i,txt in enumerate(self.lista_text):
             surface.blit(txt, self.lista_text_rects[i].move(diff_pos))
 
-        if self.redraw < 2:
-            self.redraw = 0
+        if self.redraw < REDRAW_MOVED:
+            self.redraw = REDRAW_CLEAN
             return [self.rect_border.move(diff_pos)]
         else:
-            self.redraw = 0
+            self.redraw = REDRAW_CLEAN
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
             return [self.rect.move(diff_pos), r.move(diff_pos)]

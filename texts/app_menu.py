@@ -4,6 +4,8 @@ from .boton import Button
 from .select_box import Select_box
 from typing import List
 
+from ..constants import REDRAW_CLEAN, REDRAW_FULL, REDRAW_MOVED, REDRAW_SELF
+
 class App_menu:
     def __init__(self, width: int, *, height: int = 20, background_color='black', color_hover= 'darkgrey', botons_height=None, text_color = 'white', text_size = 16):
         self.width = width
@@ -12,7 +14,7 @@ class App_menu:
         self.text_color = text_color
         self.text_size = text_size
         self.color_hover = color_hover
-        self.redraw = 2
+        self.redraw = REDRAW_FULL
 
         self.option_height = Text('.|asd]¿!',16,None,padding=0).height
         self.height = max(height,self.option_height)
@@ -39,8 +41,8 @@ class App_menu:
         
     def draw(self, surface, always_draw = False) -> List:
         if always_draw:
-            self.redraw += 1
-        if self.redraw < 0:
+            self.redraw += REDRAW_SELF
+        if self.redraw < REDRAW_CLEAN:
             return []
         updates: List[pag.Rect] = []
         pag.draw.rect(surface, self.background_color, self.rect)

@@ -2,7 +2,7 @@ import pygame as pag
 from typing import Literal, Callable
 from .text import Text
 from .input import Input
-from ..constants import ALIGN_DIRECTION
+from ..constants import ALIGN_DIRECTION, REDRAW_SELF
 
 
 class Button(Text):
@@ -74,8 +74,8 @@ class Button(Text):
             self.border_color = self.border_color_inactive
             if self.toggle_rect and self.with_rect2:
                 self.with_rect = False
-            if self.redraw < 1:
-                self.redraw = 1
+            if self.redraw < REDRAW_SELF:
+                self.redraw = REDRAW_SELF
         elif not self.__hover and bool(value):
             if self.sound_to_hover:
                 self.sound_to_hover.play()
@@ -87,8 +87,8 @@ class Button(Text):
             self.border_color = self.color_border_active
             if self.toggle_rect and self.with_rect2:
                 self.with_rect = True
-            if self.redraw < 1:
-                self.redraw = 1
+            if self.redraw < REDRAW_SELF:
+                self.redraw = REDRAW_SELF
 
     def click(self, *args, **kwargs) -> bool:
         if not self.hover:
@@ -118,8 +118,8 @@ class Button(Text):
             self.color_rect = self.color_rect_active
         else:
             self.color_rect = self.color_rect_inactive
-        if self.redraw < 1:
-            self.redraw += 1
+        if self.redraw < REDRAW_SELF:
+            self.redraw += REDRAW_SELF
 
 
     def __str__(self) -> str:

@@ -2,8 +2,8 @@ import pygame as pag, time
 from pygame.math import Vector2
 from ..obj_Base import Base
 from .text import Text
-from ..constants import ALIGN_DIRECTION
-
+from ..constants import ALIGN_DIRECTION, REDRAW_CLEAN, REDRAW_FULL, REDRAW_MOVED, REDRAW_SELF
+from typing import List
 
 class Input(Base):
     '''
@@ -34,8 +34,8 @@ class Input(Base):
         self.text_value_color = text_value_color
 
         self.padding = Vector2(padding)
-        self.raw_text = ''
-        self.text_value = text_value
+        self.raw_text = text_value
+        self.text_value: Text
         self.max_letter = max_letter
         self.background_color = background_color
         self.font = font
@@ -76,7 +76,7 @@ class Input(Base):
         self.surf_rect = self.input_surface.get_rect()
 
         self.text = Text(self.raw_text, self.text_size, self.font, (0,self.input_surface.get_height()/2), 'left',self.text_color,True, self.background_color, padding=0)
-        self.text_value = Text(self.text_value, self.text_size, self.font, (0,self.input_surface.get_height()/2), 'left',self.text_value_color,True, self.background_color, padding=0)
+        self.text_value = Text(self.raw_text, self.text_size, self.font, (0,self.input_surface.get_height()/2), 'left',self.text_value_color,True, self.background_color, padding=0)
 
         self.surf_rect.center = self.rect.center
         self.create_border(self.rect, self.border_width)
@@ -86,18 +86,18 @@ class Input(Base):
     def draw_surf(self):
         self.input_surface.fill(self.background_color)
         if self.raw_text == '':
-            self.text_value.redraw = 1
+            self.text_value.redraw = REDRAW_SELF
             self.text_value.draw(self.input_surface)
         else:
-            self.text.redraw = 1
+            self.text.redraw = REDRAW_SELF
             self.text.draw(self.input_surface)
         if self.typing_line:
             pag.draw.line(self.input_surface, self.pointer_color, (sum(self.letter_pos[:self.typing_pos])+self.text.left,0),
                           (sum(self.letter_pos[:self.typing_pos])+self.text.left,self.input_surface.get_height()))
-        if self.redraw < 1:
-            self.redraw = 1
+        if self.redraw < REDRAW_SELF:
+            self.redraw = REDRAW_SELF
 
-    def draw(self, surface) -> None:
+    def draw(self, surface) -> List[pag.Rect]:
         self.update_pressed_keys()
 
         pag.draw.rect(surface, self.background_color, self.rect, 0, self.border_radius, self.border_top_left_radius, 
@@ -114,13 +114,13 @@ class Input(Base):
         self.surf_rect.center = self.rect.center
         surface.blit(self.input_surface, self.surf_rect)
         
-        if self.redraw < 1:
+        if self.redraw < REDRAW_SELF:
             return []
-        if self.redraw < 2:
-            self.redraw = 0
+        if self.redraw < REDRAW_MOVED:
+            self.redraw = REDRAW_CLEAN
             return [self.rect_border]
         else:
-            self.redraw = 0
+            self.redraw = REDRAW_CLEAN
             r = self.last_rect.union(self.rect_border.copy()).copy()
             self.last_rect = self.rect_border.copy()
             return [self.rect_border, r]
@@ -324,5 +324,5 @@ class Input(Base):
         rect = self.rect.copy()
         self.hover = rect.collidepoint(pos)
         if aux != self.hover:
-            self.redraw += 1
+            self.redraw += REDRAW_SELF
         return self.hover

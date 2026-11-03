@@ -90,10 +90,10 @@ class BasePolygon:
 		self.__figure = figura
 
 	# ==================== MÉTODOS DE INTERFAZ PÚBLICA ====================
-	def draw(self, surface, diff_pos = None) -> list[Rect]:
+	def draw(self, surface, diff_pos = None) -> Tuple[Rect,...]:
 		"""Renderizado optimizado"""
 		if len(self.__figure) < 3 or self.redraw < 1:
-			return []
+			return tuple()
 		draw.polygon(surface, self.color, self.__figure)
 		if self.redraw < 2:
 			self.redraw = 0

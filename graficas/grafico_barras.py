@@ -1,12 +1,15 @@
 import random
 import pygame as pag
 
+from typing import Tuple
+
 from ..Animaciones import Second_Order_Dynamics
 from ..obj_Base import Base
+from ..constants import ALIGN_DIRECTION
 
 
 class Barra:
-    def __init__(self, data_x, data_y, start_pos = (0,0), smooth_move = True, color = (255,255,255)):
+    def __init__(self, data_x, data_y, start_pos: Tuple[int|float,int|float] = (0,0), smooth_move = True, color = (255,255,255)):
         self.data_x = data_x
         self.data_y = data_y
         self.x = 0
@@ -16,8 +19,8 @@ class Barra:
         self.smooth_move = smooth_move
         self.color = color
 
-        self.cambio_tamaño = Second_Order_Dynamics(60,2,1.0,1.1, (0,0))
-        self.cambio_posicion = Second_Order_Dynamics(60,2,1.0,1.1, start_pos)
+        self.cambio_tamaño = Second_Order_Dynamics(f=2,z=1.0,r=1.1, coord=(0,0))
+        self.cambio_posicion = Second_Order_Dynamics(f=2,z=1.0,r=1.1, coord=start_pos)
 
         self.rect = pag.Rect(*start_pos,0,0)
 
@@ -30,9 +33,9 @@ class Barra:
             self.x,self.y = pos
             self.width, self.height = size
 
-        self.rect.width = self.width
-        self.rect.height = self.height
-        self.rect.bottomleft = (self.x, self.y)
+        self.rect.width = int(self.width)
+        self.rect.height = int(self.height)
+        self.rect.bottomleft = (int(self.x), int(self.y))
 
     def draw(self,surface):
         pag.draw.rect(surface, self.color, self.rect)
@@ -44,7 +47,7 @@ class Barra:
         return self.data_x < other.data_x
 
 class Grafico_Barras(Base):
-    def __init__(self, pos: pag.Vector2, width: int, height: int, direccion = "center", random_color=True):
+    def __init__(self, pos: pag.Vector2, width: int, height: int, direccion: ALIGN_DIRECTION = "center", random_color=True):
         super().__init__(pos,direccion)
         self.surface = pag.Surface((width, height))
         self.rect = self.surface.get_rect()
@@ -59,12 +62,12 @@ class Grafico_Barras(Base):
         self.barras: list[Barra] = []
 
     def update(self, dt=1):
-        super().update()
+        super().update(dt=dt)
         for i,x in enumerate(self.barras):
             rect = pag.Rect(0,0,0,0)
-            rect.width = self.width / len(self.barras) - 2
+            rect.width = self.width // len(self.barras) - 2
             rect.height = x.data_y/self.max_y * self.height
-            rect.bottomleft = (i * (self.width / len(self.barras)) + 1, self.height)
+            rect.bottomleft = (i * (self.width // len(self.barras)) + 1, self.height)
             x.update(rect.bottomleft, rect.size)
 
 
@@ -74,6 +77,7 @@ class Grafico_Barras(Base):
             x.draw(self.surface)
 
         surf.blit(self.surface, self.rect)
+        return [self.rect, self.last_rect]
 
     def append(self, x, y):
         color = [random.randint(0,255) for _ in range(3)] if self.random_color else (255,255,255)

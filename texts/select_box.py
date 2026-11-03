@@ -6,7 +6,8 @@ from pygame import Vector2
 from .boton import Text
 from .boton import Button
 from Utilidades_pygame.Animaciones import Curva_de_Bezier
-        
+from .. import constants
+
 class Select_box:
     def __init__(
             self, boton: Button, options: List[str|int|float], *, auto_open: bool=False, min_width = 10, min_height = 30, 
@@ -25,7 +26,7 @@ class Select_box:
         self.botones = []
         self.selected_animation = animation_dir
         self.position = position
-        self.redraw = 2
+        self.redraw = constants.REDRAW_MOVED
         self.padding_vertical = padding_vertical
         self.padding_horizontal = padding_horizontal
         self.last_rect = pag.Rect(0,0,0,0)
@@ -78,7 +79,7 @@ class Select_box:
             self.rect.h = 0
         elif self.selected_animation == 'horizontal':
             self.rect.w = 0
-        self.rect.topleft = self.boton.bottomleft
+        self.rect.topleft = self.boton.bottomleft # type: ignore
 
     def open_it(self) -> None:
         self.select_opened = True
@@ -115,8 +116,8 @@ class Select_box:
 
     def update(self, dt=1, **kwargs) -> None:
         if self.in_animation:
-            self.redraw += 2
-            r = self.animation_open.update(dt=dt)
+            self.redraw += constants.REDRAW_MOVED
+            r = self.animation_open.update(dt=dt) # type: ignore
             if r == True:
                 self.in_animation = False
                 if self.selected_animation == 'vertical' and not self.select_opened:
@@ -157,10 +158,10 @@ class Select_box:
                 else:
                     self.hover_rect.top = -100
                     self.cursor = pag.SYSTEM_CURSOR_ARROW
-                self.redraw += 1
+                self.redraw += constants.REDRAW_SELF
             else:
                 if self.hover_rect != -1:
-                    self.redraw += 1
+                    self.redraw += constants.REDRAW_SELF
 
                 self.hover_rect.top = -1
                 
@@ -169,23 +170,23 @@ class Select_box:
         pag.draw.rect(self.surf, (240,240,240), [0,0,*self.rect.size], 0)
         
         if always_draw:
-            self.redraw += 1
+            self.redraw += constants.REDRAW_SELF
 
-        if self.redraw < 1:
+        if self.redraw < constants.REDRAW_SELF:
             return []
         
         if self.hover_rect.top >= 0:
             pag.draw.rect(self.surf, 'darkgrey', self.hover_rect, 0, self.border_radius)
-            if self.redraw < 1:
-                self.redraw += 1
+            if self.redraw < constants.REDRAW_SELF:
+                self.redraw += constants.REDRAW_SELF
         for btn in self.botones:
-            btn.redraw += 2
+            btn.redraw += constants.REDRAW_MOVED
             btn.draw(self.surf)
         
         surface.blit(self.surf, self.rect.topleft,[0,0,self.rect.w,self.rect.h])
         
-        if self.redraw < 2:
-            self.redraw = 0
+        if self.redraw < constants.REDRAW_MOVED:
+            self.redraw = constants.REDRAW_CLEAN
             return [self.rect]
         else:
             self.redraw = 0
