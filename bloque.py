@@ -167,7 +167,8 @@ class Bloque(Base):
                 gui = x["GUI"]
                 if not x["drawing"] or not getattr(gui, "visible", True):
                     continue
-                area = gui.collide_rect.union(gui.last_rect).move(diff)
+                # area = gui.collide_rect.union(gui.last_rect).move(diff)
+                area = getattr(gui, "collide_rect", gui.rect).union(gui.last_rect).move(diff)
                 if not area.colliderect(region):
                     if not area.colliderect(view):
                         gui.redraw = 0      # fuera del cuadro: ni se dibuja ni queda sucio

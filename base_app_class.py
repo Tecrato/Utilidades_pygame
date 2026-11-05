@@ -159,6 +159,8 @@ class Base_class:
         crea la app sin entrar al bucle, util para tests y benchmarks headless.'''
         try:
             self.screen_main()
+        except Exception as e:
+            uti.debug_print(e, priority=4)
         finally:
             self.on_exit()
             pag.quit()

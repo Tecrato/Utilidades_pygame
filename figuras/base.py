@@ -14,7 +14,8 @@ class BasePolygon:
 				 pos: Tuple[float, float],
 				 radio: float,
 				 angle: float,
-				 color: Tuple[int,int,int]|str = 'white'):
+				 color: Tuple[int,int,int]|str = 'white',
+				 func_on_click = None):
 		self.color = color
 		self.__pos = pos
 		self.__radio = radio
@@ -25,10 +26,17 @@ class BasePolygon:
 		self.last_rect = Rect(0,0,0,0)
 		self.use_mouse_wheel = False
 		self.dire = "center"
+		self.visible = True
+		self.func_on_click = func_on_click
+		self.hover = False
+		self.use_mouse_wheel = False
+		self.use_mouse_motion = False
+		
 
 	def _generate(self):
 		"""Punto de extensión: cada subclase lo sobreescribe para calcular sus vértices."""
 		...
+
 
 	# ==================== PROPIEDADES OPTIMIZADAS ====================
 	@property
@@ -66,8 +74,21 @@ class BasePolygon:
 	def width(self) -> float:
 		return self.rect.width
 	
-	def update_hover(self,mouse_pos):
-		return
+	def click(self, *args, **kwargs) -> None: 
+		if self.func_on_click:
+			self.func_on_click()
+
+	def update_hover(self, mouse_pos) -> None:
+		if self.rect.collidepoint(mouse_pos):
+			self.hover = True
+		else:
+			self.hover = False
+
+	def on_click(self):
+		if self.func_on_click:
+			self.func_on_click()
+
+	
 
 	# ==================== CAJA DE COLISIÓN (AABB) ====================
 
@@ -124,3 +145,7 @@ class BasePolygon:
 	
 	def on_wheel(self, val):
 		return False
+
+	@property
+	def collide_rect(self) -> Rect:
+		return self.rect
